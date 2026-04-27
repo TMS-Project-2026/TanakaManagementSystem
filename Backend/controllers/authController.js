@@ -11,6 +11,11 @@ exports.login = (req, res) => {
 
         const user = results[0];
         
+        // Cek status aktif
+        if (user.status && user.status === 'nonaktif') {
+            return res.status(403).json({ message: "Akun Anda dinonaktifkan!" });
+        }
+        
         // Pengecekan password sementara tanpa bcrypt (bisa diupgrade nanti)
         if (password !== user.password) {
             return res.status(401).json({ message: "Password salah!" });
@@ -26,7 +31,7 @@ exports.login = (req, res) => {
         res.json({
             message: "Login Berhasil!",
             token: token,
-            user: { username: user.username, role: user.role, nama: user.nama_lengkap }
+            user: { id_user: user.id_user, username: user.username, role: user.role, nama_lengkap: user.nama_lengkap }
         });
     });
 };
