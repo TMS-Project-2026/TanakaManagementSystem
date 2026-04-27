@@ -141,8 +141,7 @@ const SalesOnline = () => {
     setFormData({
       ...formData,
       nama_produk: product.nama_produk,
-      hpp_satuan: product.harga_beli || '',
-      harga_satuan: product.harga_jual || ''
+      hpp_satuan: product.hpp_satuan || ''
     });
     setProductSearch(product.nama_produk);
     setShowProductDropdown(false);
@@ -577,13 +576,9 @@ const SalesOnline = () => {
                           <div
                             key={product.id}
                             onClick={() => handleSelectProduct(product)}
-                            className="px-4 py-2.5 hover:bg-red-50 cursor-pointer border-b border-gray-100 last:border-b-0 text-sm"
+                            className="px-4 py-2.5 hover:bg-red-50 cursor-pointer border-b border-gray-100 last:border-b-0 text-sm font-semibold text-gray-900"
                           >
-                            <div className="font-semibold text-gray-900">{product.nama_produk}</div>
-                            <div className="text-xs text-gray-500 mt-0.5">
-                              HPP: Rp{product.harga_beli?.toLocaleString('id-ID') || '0'} | 
-                              Jual: Rp{product.harga_jual?.toLocaleString('id-ID') || '0'}
-                            </div>
+                            {product.nama_produk}
                           </div>
                         ))}
                       </div>

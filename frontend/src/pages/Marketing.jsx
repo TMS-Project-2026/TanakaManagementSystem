@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import {
   Search, Calendar, UserCircle, Plus,
-  X, Trash2, Loader2, LogOut, CheckCircle2, Package, Clock, DollarSign
+  X, Trash2, Loader2, LogOut, Edit2, Package, Clock, DollarSign
 } from 'lucide-react';
 
 const Marketing = () => {
@@ -24,17 +24,29 @@ const Marketing = () => {
     nama_customer: '',
     produk: '',
     qty: 1,
+    harga_awal: '',
+    harga_potongan: '',
     jenis_pembayaran: 'Lunas',
     nominal_dp: '',
-    tanggal_masuk: '',
-    deadline_final: ''
+    tanggal_masuk: new Date().toISOString().split('T')[0],
+    deadline_final: '',
+    catatan: ''
   });
+
+  // State untuk Edit Status
+  const [editingStatusId, setEditingStatusId] = useState(null);
+  const [newStatus, setNewStatus] = useState('');
+  const statusOptions = ['Pending', 'Follow Up', 'Negosiasi', 'Deal', 'Batal'];
 
   const fetchLeads = async () => {
     try {
       setLoading(true);
+      const token = localStorage.getItem('token');
       const res = await axios.get('http://localhost:3000/api/marketing', {
-        params: { startDate, endDate }
+        params: { startDate, endDate },
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
       setLeads(res.data);
     } catch (err) {
@@ -51,32 +63,49 @@ const Marketing = () => {
   const handleSimpan = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:3000/api/marketing', formData);
+      const token = localStorage.getItem('token');
+      await axios.post('http://localhost:3000/api/marketing', formData, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       setShowAddModal(false);
       setFormData({
         nama_customer: '', produk: '', qty: 1,
+        harga_awal: '', harga_potongan: '',
         jenis_pembayaran: 'Lunas', nominal_dp: '',
-        tanggal_masuk: '', deadline_final: ''
+        tanggal_masuk: new Date().toISOString().split('T')[0], deadline_final: '', catatan: ''
       });
       fetchLeads();
     } catch (err) {
-      alert("Gagal menambah data pesanan. Cek koneksi backend atau struktur database.");
+      console.error("Error:", err);
+      alert("Gagal menambah data pesanan: " + (err.response?.data?.message || err.message));
     }
   };
 
   const handleUpdateStatus = async (id, statusBaru) => {
     try {
-      await axios.put(`http://localhost:3000/api/marketing/${id}`, { status: statusBaru });
+      const token = localStorage.getItem('token');
+      await axios.put(`http://localhost:3000/api/marketing/${id}`, { status: statusBaru }, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       fetchLeads();
     } catch (err) {
-      alert("Gagal mengupdate status.");
+      alert("Gagal mengupdate status: " + (err.response?.data?.message || err.message));
     }
   };
 
   const handleHapus = async (id) => {
     if (window.confirm("Yakin ingin menghapus data ini?")) {
       try {
-        await axios.delete(`http://localhost:3000/api/marketing/${id}`);
+        const token = localStorage.getItem('token');
+        await axios.delete(`http://localhost:3000/api/marketing/${id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         fetchLeads();
       } catch (err) {
         alert("Gagal menghapus data.");
@@ -188,14 +217,17 @@ const Marketing = () => {
                     <th className="py-4 px-6">Customer</th>
                     <th className="py-4 px-6">Produk & Qty</th>
                     <th className="py-4 px-6">Pembayaran</th>
+                    <th className="py-4 px-6">Harga Awal</th>
+                    <th className="py-4 px-6">Harga Potongan</th>
                     <th className="py-4 px-6">Tgl Masuk</th>
                     <th className="py-4 px-6">Deadline</th>
+                    <th className="py-4 px-6">Status</th>
                     <th className="py-4 px-6 text-center">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="text-sm text-gray-700 divide-y divide-gray-100">
                   {loading ? (
-                    <tr><td colSpan="6" className="text-center py-12"><Loader2 className="animate-spin mx-auto text-[#990000]" size={32} /></td></tr>
+                    <tr><td colSpan="9" className="text-center py-12"><Loader2 className="animate-spin mx-auto text-[#990000]" size={32} /></td></tr>
                   ) : filteredOrders.map((order) => (
                     <tr key={order.id} className="hover:bg-red-50/20 transition-colors">
                       <td className="py-4 px-6">
@@ -215,6 +247,12 @@ const Marketing = () => {
                           </div>
                         )}
                       </td>
+                      <td className="py-4 px-6 text-right">
+                        {order.harga_awal ? `Rp ${Number(order.harga_awal).toLocaleString('id-ID')}` : '-'}
+                      </td>
+                      <td className="py-4 px-6 text-right">
+                        {order.harga_potongan ? `Rp ${Number(order.harga_potongan).toLocaleString('id-ID')}` : '-'}
+                      </td>
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-1.5 text-gray-600">
                           <Calendar size={14} className="text-gray-400" />
@@ -228,9 +266,21 @@ const Marketing = () => {
                         </div>
                       </td>
                       <td className="py-4 px-6">
+                        <span className={`px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider inline-block ${
+                          order.status === 'Pending' ? 'bg-gray-100 text-gray-700' :
+                          order.status === 'Follow Up' ? 'bg-blue-50 text-blue-700' :
+                          order.status === 'Negosiasi' ? 'bg-yellow-50 text-yellow-700' :
+                          order.status === 'Deal' ? 'bg-green-50 text-green-700' :
+                          order.status === 'Batal' ? 'bg-red-100 text-red-700' :
+                          'bg-gray-100 text-gray-600'
+                        }`}>
+                          {order.status || 'Pending'}
+                        </span>
+                      </td>
+                      <td className="py-4 px-6">
                         <div className="flex justify-center gap-2">
-                          <button onClick={() => handleUpdateStatus(order.id, 'Selesai')} className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Tandai Selesai">
-                            <CheckCircle2 size={18} />
+                          <button onClick={() => { setEditingStatusId(order.id); setNewStatus(order.status || 'Pending'); }} className="p-1.5 text-gray-400 hover:text-[#990000] hover:bg-red-50 rounded-lg transition-colors" title="Edit Status">
+                            <Edit2 size={18} />
                           </button>
                           <button onClick={() => handleHapus(order.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Hapus">
                             <Trash2 size={18} />
@@ -273,6 +323,14 @@ const Marketing = () => {
                     <label className="text-xs font-bold text-gray-900 mb-1.5 block">Quantity</label>
                     <input type="number" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none transition-all" value={formData.qty} onChange={(e) => setFormData({ ...formData, qty: e.target.value })} required />
                   </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-900 mb-1.5 block">Harga Awal (Optional)</label>
+                    <input type="number" placeholder="Rp" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none transition-all" value={formData.harga_awal} onChange={(e) => setFormData({ ...formData, harga_awal: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-gray-900 mb-1.5 block">Harga Potongan (Optional)</label>
+                    <input type="number" placeholder="Rp" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none transition-all" value={formData.harga_potongan} onChange={(e) => setFormData({ ...formData, harga_potongan: e.target.value })} />
+                  </div>
                   <div className={formData.jenis_pembayaran === 'DP' ? 'col-span-1' : 'col-span-1 sm:col-span-2'}>
                     <label className="text-xs font-bold text-gray-900 mb-1.5 block">Jenis Pembayaran</label>
                     <select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none transition-all cursor-pointer" value={formData.jenis_pembayaran} onChange={(e) => setFormData({ ...formData, jenis_pembayaran: e.target.value })}>
@@ -302,6 +360,53 @@ const Marketing = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL EDIT STATUS */}
+        {editingStatusId && (
+          <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white w-full max-w-sm rounded-2xl p-6 sm:p-8 shadow-xl animate-in zoom-in-95 duration-200 border border-gray-100">
+              <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Ubah Status Pesanan</h2>
+                  <p className="text-xs text-gray-500 mt-1">Pilih status baru untuk pesanan ini.</p>
+                </div>
+                <button className="p-2 text-gray-400 hover:text-[#990000] hover:bg-red-50 rounded-xl transition-colors" onClick={() => setEditingStatusId(null)}>
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {statusOptions.map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => {
+                      handleUpdateStatus(editingStatusId, status);
+                      setEditingStatusId(null);
+                    }}
+                    className={`w-full p-4 text-left rounded-xl border-2 font-semibold transition-all ${
+                      newStatus === status
+                        ? 'border-[#990000] bg-red-50 text-[#990000]'
+                        : 'border-gray-200 bg-gray-50 text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>{status}</span>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                        newStatus === status
+                          ? 'border-[#990000] bg-[#990000]'
+                          : 'border-gray-300'
+                      }`}>
+                        {newStatus === status && (
+                          <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}
