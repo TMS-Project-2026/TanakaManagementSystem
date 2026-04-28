@@ -22,6 +22,8 @@ const cashInBankRoutes = require('./routes/cashInBankRoutes');
 const expenseRoutes = require('./routes/expenseRoutes');
 const invoiceRoutes = require('./routes/invoiceRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const accountRoutes = require('./routes/accountRoutes');
+const journalRoutes = require('./routes/journalRoutes');
 
 const gudangRoutes = require('./routes/gudangRoutes');
 const stokRoutes = require('./routes/stokRoutes');
@@ -45,6 +47,8 @@ app.use('/api/cash-in-bank', cashInBankRoutes);
 app.use('/api/expense', expenseRoutes);
 app.use('/api/invoice', invoiceRoutes);
 app.use('/api/report', reportRoutes);
+app.use('/api/accounts', accountRoutes);
+app.use('/api/journal', journalRoutes);
 
 app.use('/api/gudang', gudangRoutes);
 app.use('/api/stok', stokRoutes);

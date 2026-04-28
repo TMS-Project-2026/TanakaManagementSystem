@@ -10,7 +10,8 @@ import SalesOnline from './pages/SalesOnline';
 import Finance from './pages/Finance';
 import FinanceDashboard from './pages/FinanceDashboard';
 import CashInBank from './pages/CashInBank';
-import Expense from './pages/Expense';
+import Journal from './pages/Journal';
+import ChartOfAccounts from './pages/ChartOfAccounts';
 import ReportCenter from './pages/ReportCenter';
 import Invoice from './pages/Invoice';
 import InvoiceForm from './pages/InvoiceForm';
@@ -158,9 +159,14 @@ function App() {
             <CashInBank />
           </ProtectedRoute>
         } />
-        <Route path="/expense" element={
+        <Route path="/journal" element={
           <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance']}>
-            <Expense />
+            <Journal />
+          </ProtectedRoute>
+        } />
+        <Route path="/chart-of-accounts" element={
+          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance']}>
+            <ChartOfAccounts />
           </ProtectedRoute>
         } />
         <Route path="/invoice" element={
