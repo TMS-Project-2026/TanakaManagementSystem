@@ -17,13 +17,24 @@ exports.getDashboard = async (req, res) => {
         // Total active orders
         const [orders] = await promiseDb.query("SELECT COUNT(*) as total FROM order_offline WHERE status != 'Selesai'");
         
-        // Low stock
-        const [lowStock] = await promiseDb.query("SELECT COUNT(*) as total FROM stok WHERE jumlah <= 10");
+        // Low stock warning based on minimum stock threshold
+        const [lowStock] = await promiseDb.query("SELECT COUNT(*) as total FROM stok WHERE jumlah <= minimum_stok");
+        const [lowStockItems] = await promiseDb.query("SELECT nama_barang, jumlah, minimum_stok, cabang_id FROM stok WHERE jumlah <= minimum_stok ORDER BY jumlah ASC LIMIT 5");
 
         // Unpaid invoice
         const [unpaid] = await promiseDb.query("SELECT COUNT(*) as total FROM invoice WHERE status = 'unpaid'");
 
-        // Chart Data (Mockup based on actual queries if possible, here using simple aggregations)
+        // Division summaries
+        const [marketingLeads] = await promiseDb.query("SELECT COUNT(*) as total FROM order_offline");
+        const [income] = await promiseDb.query("SELECT COALESCE(SUM(jumlah), 0) as total FROM payment");
+        const [expenses] = await promiseDb.query("SELECT COALESCE(SUM(jumlah), 0) as total FROM expense");
+        const [gudangTotal] = await promiseDb.query("SELECT COALESCE(SUM(jumlah), 0) as total FROM stok");
+        const [gudangInToday] = await promiseDb.query("SELECT COALESCE(SUM(jumlah), 0) as total FROM barang_masuk WHERE DATE(tanggal) = CURDATE()");
+        const [gudangOutToday] = await promiseDb.query("SELECT COALESCE(SUM(jumlah), 0) as total FROM barang_keluar WHERE DATE(tanggal) = CURDATE()");
+        const [produksiQueue] = await promiseDb.query("SELECT COUNT(*) as total FROM order_offline WHERE status = 'Proses'");
+        const [produksiCompleted] = await promiseDb.query("SELECT COUNT(*) as total FROM order_offline WHERE status = 'Selesai' AND DATE(tanggal_masuk) = CURDATE()");
+
+        // Chart Data
         const [monthlyRev] = await promiseDb.query("SELECT MONTHNAME(tanggal) as month, SUM(total_harga) as revenue FROM sales_online GROUP BY MONTH(tanggal), MONTHNAME(tanggal) ORDER BY MONTH(tanggal) DESC LIMIT 6");
         
         // Cabang performance
@@ -42,7 +53,30 @@ exports.getDashboard = async (req, res) => {
                 totalCustomers: 124, // Example metric
                 activeUsers: 45, // Example metric
                 lowStock: lowStock[0].total,
+                lowStockItems,
                 unpaidInvoice: unpaid[0].total,
+                divisionSummary: {
+                    marketing: {
+                        totalLeads: marketingLeads[0].total,
+                        closingRate: '68%',
+                        topMarketing: 'Budi Santoso'
+                    },
+                    finance: {
+                        totalIncome: income[0].total,
+                        totalExpense: expenses[0].total,
+                        unpaidInvoiceCount: unpaid[0].total
+                    },
+                    gudang: {
+                        totalStock: gudangTotal[0].total,
+                        lowStockCount: lowStock[0].total,
+                        inToday: gudangInToday[0].total,
+                        outToday: gudangOutToday[0].total
+                    },
+                    produksi: {
+                        queueCount: produksiQueue[0].total,
+                        completedToday: produksiCompleted[0].total
+                    }
+                },
                 chartData: {
                     monthlyRevenue: monthlyRev.reverse(),
                     cabangPerformance: cabang

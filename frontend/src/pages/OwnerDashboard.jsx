@@ -32,6 +32,41 @@ const OwnerDashboard = () => {
         { title: 'Invoice Unpaid', value: data.unpaidInvoice, icon: <AlertCircle className="text-pink-600" size={28} />, bg: 'bg-pink-50' },
     ];
 
+    const divisionCards = [
+        {
+            title: 'Marketing',
+            items: [
+                { label: 'Total Leads', value: data.divisionSummary.marketing.totalLeads },
+                { label: 'Top Marketing', value: data.divisionSummary.marketing.topMarketing },
+                { label: 'Closing Rate', value: data.divisionSummary.marketing.closingRate }
+            ]
+        },
+        {
+            title: 'Finance',
+            items: [
+                { label: 'Total Income', value: formatRupiah(data.divisionSummary.finance.totalIncome) },
+                { label: 'Total Expense', value: formatRupiah(data.divisionSummary.finance.totalExpense) },
+                { label: 'Unpaid Invoice', value: data.divisionSummary.finance.unpaidInvoiceCount }
+            ]
+        },
+        {
+            title: 'Gudang',
+            items: [
+                { label: 'Total Stok', value: data.divisionSummary.gudang.totalStock },
+                { label: 'Stok Menipis', value: data.divisionSummary.gudang.lowStockCount },
+                { label: 'Masuk Hari Ini', value: data.divisionSummary.gudang.inToday },
+                { label: 'Keluar Hari Ini', value: data.divisionSummary.gudang.outToday }
+            ]
+        },
+        {
+            title: 'Produksi',
+            items: [
+                { label: 'Dalam Antrian', value: data.divisionSummary.produksi.queueCount },
+                { label: 'Selesai Hari Ini', value: data.divisionSummary.produksi.completedToday }
+            ]
+        }
+    ];
+
     return (
         <div className="flex bg-[#f8fafc] min-h-screen font-sans">
             <Sidebar />
@@ -41,6 +76,28 @@ const OwnerDashboard = () => {
                         <h1 className="text-3xl font-black text-gray-900 tracking-tight">Executive <span className="text-[#990000]">Dashboard</span></h1>
                         <p className="text-gray-500 font-medium mt-1">Monitoring performa perusahaan TMS secara real-time.</p>
                     </div>
+
+                    {data.lowStock > 0 && (
+                        <div className="mb-8 rounded-3xl border border-red-200 bg-red-50 p-6 shadow-sm">
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                                <div>
+                                    <h2 className="text-xl font-bold text-red-900">Pemberitahuan Stok Menipis</h2>
+                                    <p className="text-sm text-red-700 mt-1">Terdapat {data.lowStock} item yang sudah mencapai atau dibawah minimum stok. Segera tindak lanjuti agar operasi tetap lancar.</p>
+                                </div>
+                                <span className="inline-flex items-center rounded-full bg-red-100 px-4 py-2 text-sm font-bold text-red-800">{data.lowStock} item kritis</span>
+                            </div>
+                            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                                {data.lowStockItems.map((item, idx) => (
+                                    <div key={idx} className="rounded-2xl bg-white p-4 shadow-sm border border-red-100">
+                                        <p className="text-sm text-gray-500">{item.nama_barang}</p>
+                                        <p className="mt-2 text-lg font-bold text-gray-900">{item.jumlah}</p>
+                                        <p className="text-xs text-gray-500 mt-1">Minimum stok: {item.minimum_stok}</p>
+                                        <p className="text-xs text-gray-500">Cabang ID: {item.cabang_id}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Summary Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -53,6 +110,25 @@ const OwnerDashboard = () => {
                                 <div className={`p-4 rounded-xl ${card.bg}`}>{card.icon}</div>
                             </div>
                         ))}
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-8 mb-8">
+                        <h2 className="text-2xl font-bold text-gray-900">Ringkasan Per Divisi</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {divisionCards.map((division, idx) => (
+                                <div key={idx} className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+                                    <h3 className="text-lg font-bold text-gray-900 mb-4">{division.title}</h3>
+                                    <div className="space-y-3">
+                                        {division.items.map((item, itemIdx) => (
+                                            <div key={itemIdx} className="flex items-center justify-between gap-4 rounded-2xl bg-gray-50 p-4">
+                                                <span className="text-sm text-gray-500">{item.label}</span>
+                                                <span className="text-sm font-semibold text-gray-900">{item.value}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
