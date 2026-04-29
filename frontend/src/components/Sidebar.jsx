@@ -124,7 +124,7 @@ const Sidebar = () => {
           {(() => {
             let currentGroup = '';
             return menuItems.map((item) => {
-              const isActive = location.pathname === item.path;
+              const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path + '/'));
               const showGroupLabel = item.group && item.group !== currentGroup;
               if (showGroupLabel) currentGroup = item.group;
 
