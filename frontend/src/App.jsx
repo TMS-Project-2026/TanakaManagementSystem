@@ -244,7 +244,7 @@ function App() {
         <Route path="/owner/finance" element={<ProtectedRoute allowedRoles={['owner']}><FinanceOverview /></ProtectedRoute>} />
         <Route path="/owner/gudang" element={<ProtectedRoute allowedRoles={['owner']}><GudangOverview /></ProtectedRoute>} />
         <Route path="/owner/produksi" element={<ProtectedRoute allowedRoles={['owner']}><ProduksiOverview /></ProtectedRoute>} />
-        <Route path="/owner/report" element={<ProtectedRoute allowedRoles={['owner']}><ReportCenter /></ProtectedRoute>} />
+        <Route path="/owner/report/*" element={<ProtectedRoute allowedRoles={['owner']}><ReportCenter /></ProtectedRoute>} />
         <Route path="/owner/approval" element={<ProtectedRoute allowedRoles={['owner']}><ApprovalCenter /></ProtectedRoute>} />
         <Route path="/owner/cabang" element={<ProtectedRoute allowedRoles={['owner']}><CabangPerformance /></ProtectedRoute>} />
         <Route path="/owner/users" element={<ProtectedRoute allowedRoles={['owner']}><UserSummary /></ProtectedRoute>} />

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getUserSummary } from '../api/ownerApi';
-import { Users, UserCheck, UserX, Shield } from 'lucide-react';
+import { Users, UserCheck, UserX, Shield, Clock } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 
 const UserSummary = () => {
@@ -31,7 +31,7 @@ const UserSummary = () => {
                 <div className="max-w-7xl mx-auto">
                     <div className="mb-8 border-l-4 border-[#990000] pl-4">
                         <h1 className="text-3xl font-black text-gray-900 tracking-tight">User <span className="text-[#990000]">Summary</span></h1>
-                        <p className="text-gray-500 font-medium mt-1">Ringkasan jumlah pengguna dan distribusi hak akses (role) di sistem.</p>
+                        <p className="text-gray-500 font-medium mt-1">Ringkasan jumlah pengguna, role, dan aktivitas login terbaru.</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -46,7 +46,7 @@ const UserSummary = () => {
                         ))}
                     </div>
 
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-8">
                         <h3 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
                             <Shield size={20} className="text-[#990000]" /> Distribusi Role User
                         </h3>
@@ -58,11 +58,35 @@ const UserSummary = () => {
                                     </div>
                                     <div>
                                         <p className="text-xs font-bold text-gray-500 uppercase">{item.role}</p>
-                                        <p className="text-lg font-black text-gray-900">{item.count} User</p>
+                                        <p className="text-lg font-black text-gray-900">{item.count}</p>
                                     </div>
                                 </div>
                             ))}
                         </div>
+                    </div>
+
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <div className="flex items-center justify-between mb-6">
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2"><Clock size={20} className="text-[#990000]" /> Aktivitas Login Terakhir</h3>
+                                <p className="text-sm text-gray-500">Melihat siapa yang baru saja masuk ke sistem.</p>
+                            </div>
+                        </div>
+                        {data.loginHistory?.length ? (
+                            <div className="space-y-3">
+                                {data.loginHistory.map((item, i) => (
+                                    <div key={i} className="rounded-3xl bg-gray-50 p-4 border border-gray-100 flex justify-between items-center">
+                                        <div>
+                                            <p className="text-sm font-semibold text-gray-800">{item.username}</p>
+                                            <p className="text-xs text-gray-500">{item.aktivitas}</p>
+                                        </div>
+                                        <p className="text-xs text-gray-400">{new Date(item.created_at).toLocaleString('id-ID')}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-gray-500">Belum ada aktivitas login terbaru.</p>
+                        )}
                     </div>
                 </div>
             </main>
