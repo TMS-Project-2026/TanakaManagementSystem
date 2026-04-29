@@ -238,7 +238,7 @@ const InvoicePreview = () => {
                     <div className="flex flex-col md:flex-row justify-between items-start gap-8">
                         <div className="flex-1">
                             <p className="text-sm font-bold text-gray-400 mb-2 uppercase">Catatan Tambahan:</p>
-                            <p className="text-sm text-gray-600 whitespace-pre-line border-l-4 border-gray-200 pl-3">
+                            <p className="text-sm text-gray-600 whitespace-pre-wrap border-l-4 border-gray-200 pl-3">
                                 {invoice.note || "Terima kasih atas kerja sama Anda."}
                             </p>
                         </div>

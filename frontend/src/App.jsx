@@ -21,6 +21,7 @@ import Report from './pages/Report';
 // Gudang Pages
 import GudangDashboard from './pages/GudangDashboard';
 import Stok from './pages/Stok';
+import StokDetail from './pages/StokDetail';
 import Sparepart from './pages/Sparepart';
 import BarangMasuk from './pages/BarangMasuk';
 import BarangKeluar from './pages/BarangKeluar';
@@ -112,6 +113,11 @@ function App() {
         <Route path="/stok" element={
           <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Gudang']}>
             <Stok />
+          </ProtectedRoute>
+        } />
+        <Route path="/stok/detail" element={
+          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Gudang']}>
+            <StokDetail />
           </ProtectedRoute>
         } />
         <Route path="/sparepart" element={

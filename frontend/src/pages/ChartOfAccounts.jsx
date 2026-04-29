@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Power, Search, AlertTriangle, FileText } from 'lucide-react';
+import Sidebar from '../components/Sidebar';
 import { accountApi } from '../api/accountApi';
 
 const ChartOfAccounts = () => {
@@ -98,22 +99,25 @@ const ChartOfAccounts = () => {
   };
 
   return (
-    <div className="p-6 md:p-8 space-y-6 bg-gray-50 min-h-screen">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Chart of Accounts</h1>
-          <p className="text-gray-500 mt-1">Manage company financial accounts</p>
-        </div>
-        <button 
-          onClick={() => {
-            setFormData({id: null, account_code: '', account_name: '', category: 'Current Assets', normal_balance: 'Debit', branch: 'All Branches', status: 'Active'});
-            setShowModal(true);
-          }}
-          className="bg-red-800 hover:bg-red-900 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 shadow-sm transition-all"
-        >
-          <Plus size={20} /> Add Account
-        </button>
-      </div>
+    <div className="flex bg-gray-50 min-h-screen font-sans">
+      <Sidebar />
+      <main className="flex-1 overflow-y-auto h-screen">
+        <div className="p-6 md:p-8 space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Chart of Accounts</h1>
+              <p className="text-gray-500 mt-1">Manage company financial accounts</p>
+            </div>
+            <button 
+              onClick={() => {
+                setFormData({id: null, account_code: '', account_name: '', category: 'Current Assets', normal_balance: 'Debit', branch: 'All Branches', status: 'Active'});
+                setShowModal(true);
+              }}
+              className="bg-red-800 hover:bg-red-900 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 shadow-sm transition-all"
+            >
+              <Plus size={20} /> Add Account
+            </button>
+          </div>
 
       {/* Header Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -291,6 +295,8 @@ const ChartOfAccounts = () => {
           </div>
         </div>
       )}
+      </div>
+      </main>
     </div>
   );
 };

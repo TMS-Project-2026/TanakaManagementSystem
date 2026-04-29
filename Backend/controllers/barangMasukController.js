@@ -4,7 +4,7 @@ exports.getAllBarangMasuk = async (req, res) => {
     try {
         const promiseDb = db.promise();
         const sql = `
-            SELECT bm.*, s.nama_barang, s.cabang_id 
+            SELECT bm.*, s.nama_brand, s.nama_barang, s.cabang_id, s.ukuran 
             FROM barang_masuk bm
             JOIN stok s ON bm.barang_id = s.id
             ORDER BY bm.tanggal DESC, bm.id DESC
@@ -19,7 +19,7 @@ exports.getAllBarangMasuk = async (req, res) => {
 
 exports.createBarangMasuk = async (req, res) => {
     try {
-        const { barang_id, jumlah, tanggal, supplier } = req.body;
+        const { barang_id, jumlah, tanggal, supplier, transaksi_id } = req.body;
         if (!barang_id || !jumlah || !tanggal) {
             return res.status(400).json({ message: "Data tidak lengkap!" });
         }
@@ -27,8 +27,8 @@ exports.createBarangMasuk = async (req, res) => {
         const promiseDb = db.promise();
         
         // 1. Insert into barang_masuk
-        const sqlInsert = "INSERT INTO barang_masuk (barang_id, jumlah, tanggal, supplier) VALUES (?, ?, ?, ?)";
-        await promiseDb.query(sqlInsert, [barang_id, jumlah, tanggal, supplier]);
+        const sqlInsert = "INSERT INTO barang_masuk (transaksi_id, barang_id, jumlah, tanggal, supplier) VALUES (?, ?, ?, ?, ?)";
+        await promiseDb.query(sqlInsert, [transaksi_id || null, barang_id, jumlah, tanggal, supplier]);
         
         // 2. Update stok
         const sqlUpdate = "UPDATE stok SET jumlah = jumlah + ? WHERE id = ?";

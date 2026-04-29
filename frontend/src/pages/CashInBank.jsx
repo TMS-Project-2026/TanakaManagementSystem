@@ -110,7 +110,7 @@ const CashInBank = () => {
     return (
         <div className="flex bg-[#f8f9fa] min-h-screen font-sans">
             <Sidebar />
-            <main className="flex-1 p-8 overflow-y-auto h-screen ml-64">
+            <main className="flex-1 p-8 overflow-y-auto h-screen">
                 
                 {/* Header */}
                 <div className="flex justify-between items-center mb-8">

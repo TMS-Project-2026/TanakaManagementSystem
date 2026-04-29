@@ -58,6 +58,33 @@ const InvoiceForm = () => {
         }));
     }, [form.qty, form.harga_satuan, form.ppn_persen]);
 
+    // Auto update note based on cabang
+    useEffect(() => {
+        let defaultNote = '';
+        if (form.cabang === 'Banua') {
+            defaultNote = `PAYMENT METHODE :
+Silahkan lakukan pembayaran melalui :
+Nama Bank      : BANK RAKYAT INDONESIA (BRI)
+Cabang Bank    : Yogyakarta
+Nomor Rekening : 2099 0100 0545 304
+Nama Rekening  : PT BANUA MITRA LESTARI
+SWIFT Code     : BRINIDJA`;
+        } else if (form.cabang === 'Tanaka') {
+            defaultNote = `PAYMENT METHODE :
+Silahkan lakukan pembayaran melalui :
+Nama Bank      : BANK RAKYAT INDONESIA (BRI)
+Cabang Bank    : Yogyakarta
+Nomor Rekening : 2099 0100 0495 305
+Nama Rekening  : PT TANAKA RIZQI BAROKAH
+SWIFT Code     : BRINIDJA`;
+        }
+        
+        setForm(prev => ({
+            ...prev,
+            note: defaultNote
+        }));
+    }, [form.cabang]);
+
     const fetchInvoice = async () => {
         try {
             const res = await getInvoiceById(id);
@@ -231,9 +258,6 @@ const InvoiceForm = () => {
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">Payment Method (Keterangan)</label>
                                     <textarea name="keterangan" value={form.keterangan} onChange={handleChange} rows={2} placeholder="Misal: Sudah termasuk biaya ongkos kirim" className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none resize-none"></textarea>
-
-                                    <label className="block text-sm font-semibold text-gray-700 mt-4 mb-1">Note Pembayaran (Tampil di PDF)</label>
-                                    <textarea name="note" value={form.note} onChange={handleChange} rows={3} className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none resize-none"></textarea>
                                 </div>
 
                                 <div className="space-y-4">

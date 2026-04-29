@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Search, FileText, Download, Printer, Activity } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, FileText, Download, Printer, Activity, AlertTriangle } from 'lucide-react';
+import Sidebar from '../components/Sidebar';
 import { journalApi } from '../api/journalApi';
 import { accountApi } from '../api/accountApi';
 
@@ -37,10 +38,6 @@ const Journal = () => {
   const categories = ['Revenue', 'Expense', 'Transfer', 'Liability', 'Receivable', 'Capital', 'Operational'];
   const units = ['pcs', 'day', 'pckg', 'unit'];
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
   const fetchData = async () => {
     try {
       const [journalData, accountData] = await Promise.all([
@@ -56,15 +53,19 @@ const Journal = () => {
     }
   };
 
-  // Auto calculate amount when qty or unit_price changes
   useEffect(() => {
-    const amount = formData.qty * formData.unit_price;
-    setFormData(prev => ({ ...prev, amount }));
-  }, [formData.qty, formData.unit_price]);
+    fetchData();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const newData = { ...prev, [name]: value };
+      if (name === 'qty' || name === 'unit_price') {
+        newData.amount = newData.qty * newData.unit_price;
+      }
+      return newData;
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -136,27 +137,30 @@ const Journal = () => {
   };
 
   return (
-    <div className="p-6 md:p-8 space-y-6 bg-gray-50 min-h-screen">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Journal</h1>
-          <p className="text-gray-500 mt-1">Central accounting transaction center</p>
-        </div>
-        <div className="flex gap-3">
-          <button className="bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-xl font-medium flex items-center gap-2 shadow-sm hover:bg-gray-50 transition-all">
-            <Printer size={18} /> Print
-          </button>
-          <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-xl font-medium flex items-center gap-2 shadow-sm transition-all">
-            <Download size={18} /> Excel
-          </button>
-          <button 
-            onClick={() => { resetForm(); setShowModal(true); }}
-            className="bg-red-800 hover:bg-red-900 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 shadow-sm transition-all"
-          >
-            <Plus size={20} /> Add Journal
-          </button>
-        </div>
-      </div>
+    <div className="flex bg-gray-50 min-h-screen font-sans">
+      <Sidebar />
+      <main className="flex-1 overflow-y-auto h-screen">
+        <div className="p-6 md:p-8 space-y-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Journal</h1>
+              <p className="text-gray-500 mt-1">Central accounting transaction center</p>
+            </div>
+            <div className="flex gap-3">
+              <button className="bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-xl font-medium flex items-center gap-2 shadow-sm hover:bg-gray-50 transition-all">
+                <Printer size={18} /> Print
+              </button>
+              <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-xl font-medium flex items-center gap-2 shadow-sm transition-all">
+                <Download size={18} /> Excel
+              </button>
+              <button 
+                onClick={() => { resetForm(); setShowModal(true); }}
+                className="bg-red-800 hover:bg-red-900 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 shadow-sm transition-all"
+              >
+                <Plus size={20} /> Add Journal
+              </button>
+            </div>
+          </div>
 
       {/* Header Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -385,6 +389,8 @@ const Journal = () => {
           </div>
         </div>
       )}
+      </div>
+      </main>
     </div>
   );
 };
