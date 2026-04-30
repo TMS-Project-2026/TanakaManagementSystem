@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Search, FileText, Download, Printer, Activity, AlertTriangle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, FileText, Download, Printer, Activity, AlertTriangle, UserCircle } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { journalApi } from '../api/journalApi';
 import { accountApi } from '../api/accountApi';
@@ -9,6 +9,7 @@ const Journal = () => {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -137,14 +138,36 @@ const Journal = () => {
   };
 
   return (
-    <div className="flex bg-gray-50 min-h-screen font-sans">
+    <div className="flex bg-gray-50 min-h-screen font-sans relative">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto h-screen">
-        <div className="p-6 md:p-8 space-y-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Journal</h1>
-              <p className="text-gray-500 mt-1">Central accounting transaction center</p>
+      <main className="flex-1 flex flex-col pt-16 md:pt-0 h-screen overflow-hidden">
+        {/* TOPBAR */}
+        <header className="h-auto flex flex-col sm:flex-row items-end justify-end px-4 sm:px-10 py-4 gap-4 sm:gap-0 mb-4">
+          <div className="flex items-center gap-6">
+            <div className="relative">
+              <div className="bg-white p-1.5 rounded-full shadow-sm cursor-pointer hover:shadow-md transition-all border border-gray-100" onClick={() => setShowProfile(!showProfile)}>
+                <UserCircle size={32} className="text-gray-400 hover:text-[#990000] transition-colors" />
+              </div>
+              
+              {showProfile && (
+                <div className="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+                  <div className="p-4 bg-red-50/50">
+                    <p className="text-sm font-black text-gray-900">Admin</p>
+                    <p className="text-[10px] font-bold text-[#990000] uppercase tracking-wider mt-0.5">Finance</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        <div className="flex-1 overflow-y-auto px-4 sm:px-10 pb-10">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div className="flex flex-col items-start gap-1">
+              <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-tight">
+                Data <span className="text-[#990000]">Journal</span>
+              </h1>
+              <p className="text-gray-500 font-medium mt-1">Central accounting transaction center</p>
             </div>
             <div className="flex gap-3">
               <button className="bg-white border border-gray-200 text-gray-700 px-4 py-2.5 rounded-xl font-medium flex items-center gap-2 shadow-sm hover:bg-gray-50 transition-all">
@@ -163,41 +186,29 @@ const Journal = () => {
           </div>
 
       {/* Header Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="bg-red-50 p-6 rounded-3xl shadow-md border border-red-100 flex items-center justify-between hover:shadow-lg transition-all duration-300">
           <div>
-            <p className="text-gray-500 text-sm font-medium">Total Debit Today</p>
-            <p className="text-2xl font-bold text-blue-600">{formatRupiah(stats.debitToday)}</p>
-          </div>
-          <div className="bg-blue-100 p-3 rounded-xl text-blue-600">
-            <Activity size={24} />
+            <p className="text-sm font-bold text-red-800">Total Debit Today</p>
+            <h3 className="text-lg md:text-xl font-black text-red-900 mt-2 break-words">{formatRupiah(stats.debitToday)}</h3>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+        <div className="bg-red-100 p-6 rounded-3xl shadow-md border border-red-200 flex items-center justify-between hover:shadow-lg transition-all duration-300">
           <div>
-            <p className="text-gray-500 text-sm font-medium">Total Credit Today</p>
-            <p className="text-2xl font-bold text-orange-600">{formatRupiah(stats.creditToday)}</p>
-          </div>
-          <div className="bg-orange-100 p-3 rounded-xl text-orange-600">
-            <Activity size={24} />
+            <p className="text-sm font-bold text-red-800">Total Credit Today</p>
+            <h3 className="text-lg md:text-xl font-black text-red-900 mt-2 break-words">{formatRupiah(stats.creditToday)}</h3>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+        <div className="bg-red-500 p-6 rounded-3xl shadow-md flex items-center justify-between hover:shadow-lg transition-all duration-300">
           <div>
-            <p className="text-gray-500 text-sm font-medium">Total Transactions</p>
-            <p className="text-2xl font-bold text-gray-900">{stats.totalTx}</p>
-          </div>
-          <div className="bg-gray-100 p-3 rounded-xl text-gray-600">
-            <FileText size={24} />
+            <p className="text-sm font-bold text-white">Total Transactions</p>
+            <h3 className="text-lg md:text-xl font-black text-white mt-2 break-words">{stats.totalTx}</h3>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+        <div className="bg-red-200 p-6 rounded-3xl shadow-md border border-red-300 flex items-center justify-between hover:shadow-lg transition-all duration-300">
           <div>
-            <p className="text-gray-500 text-sm font-medium">Ending Balance</p>
-            <p className={`text-2xl font-bold ${stats.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatRupiah(Math.abs(stats.balance))}</p>
-          </div>
-          <div className={`${stats.balance >= 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'} p-3 rounded-xl`}>
-            <Activity size={24} />
+            <p className="text-sm font-bold text-red-900">Ending Balance</p>
+            <h3 className="text-lg md:text-xl font-black text-red-900 mt-2 break-words">{formatRupiah(Math.abs(stats.balance))}</h3>
           </div>
         </div>
       </div>
@@ -226,18 +237,18 @@ const Journal = () => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse whitespace-nowrap">
             <thead>
-              <tr className="bg-gray-50 text-gray-600 text-sm">
-                <th className="px-6 py-4 font-semibold">Date</th>
-                <th className="px-6 py-4 font-semibold">Transaction ID</th>
-                <th className="px-6 py-4 font-semibold">Branch</th>
-                <th className="px-6 py-4 font-semibold">Category</th>
-                <th className="px-6 py-4 font-semibold">From</th>
-                <th className="px-6 py-4 font-semibold">To</th>
-                <th className="px-6 py-4 font-semibold text-right">Debit</th>
-                <th className="px-6 py-4 font-semibold text-right">Credit</th>
-                <th className="px-6 py-4 font-semibold text-right">Amount</th>
-                <th className="px-6 py-4 font-semibold text-center">Status</th>
-                <th className="px-6 py-4 font-semibold text-center">Action</th>
+              <tr className="bg-gray-900 text-xs text-white uppercase tracking-wider font-semibold">
+                <th className="px-6 py-4">Date</th>
+                <th className="px-6 py-4">Transaction ID</th>
+                <th className="px-6 py-4">Branch</th>
+                <th className="px-6 py-4">Category</th>
+                <th className="px-6 py-4">From</th>
+                <th className="px-6 py-4">To</th>
+                <th className="px-6 py-4 text-right">Debit</th>
+                <th className="px-6 py-4 text-right">Credit</th>
+                <th className="px-6 py-4 text-right">Amount</th>
+                <th className="px-6 py-4 text-center">Status</th>
+                <th className="px-6 py-4 text-center">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-sm">
@@ -271,6 +282,7 @@ const Journal = () => {
           </table>
         </div>
       </div>
+        </div>
 
       {/* Modal Form Add Journal */}
       {showModal && (
@@ -389,7 +401,6 @@ const Journal = () => {
           </div>
         </div>
       )}
-      </div>
       </main>
     </div>
   );

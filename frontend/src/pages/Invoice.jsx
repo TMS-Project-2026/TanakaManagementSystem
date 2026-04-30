@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getInvoices, deleteInvoice, updateInvoice } from '../api/invoiceApi';
-import { PlusCircle, Edit, Trash2, Eye, Printer, Download, Search, Filter, Receipt } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Eye, Printer, Download, Search, Filter, Receipt, UserCircle } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { useNavigate } from 'react-router-dom';
 
@@ -10,6 +10,7 @@ const Invoice = () => {
     const [filterStatus, setFilterStatus] = useState('');
     const [filterCabang, setFilterCabang] = useState('');
     const [loading, setLoading] = useState(true);
+    const [showProfile, setShowProfile] = useState(false);
 
     const navigate = useNavigate();
 
@@ -61,15 +62,38 @@ const Invoice = () => {
     };
 
     return (
-        <div className="flex bg-[#f8f9fa] min-h-screen font-sans">
+        <div className="flex bg-gray-50 min-h-screen font-sans relative">
             <Sidebar />
-            <main className="flex-1 p-8 overflow-y-auto h-screen">
+            <main className="flex-1 flex flex-col pt-16 md:pt-0 h-screen overflow-hidden">
+                {/* TOPBAR */}
+                <header className="h-auto flex flex-col sm:flex-row items-end justify-end px-4 sm:px-10 py-4 gap-4 sm:gap-0 mb-4">
+                  <div className="flex items-center gap-6">
+                    <div className="relative">
+                      <div className="bg-white p-1.5 rounded-full shadow-sm cursor-pointer hover:shadow-md transition-all border border-gray-100" onClick={() => setShowProfile(!showProfile)}>
+                        <UserCircle size={32} className="text-gray-400 hover:text-[#990000] transition-colors" />
+                      </div>
+                      
+                      {showProfile && (
+                        <div className="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+                          <div className="p-4 bg-red-50/50">
+                            <p className="text-sm font-black text-gray-900">Admin</p>
+                            <p className="text-[10px] font-bold text-[#990000] uppercase tracking-wider mt-0.5">Finance</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </header>
+
+                <div className="flex-1 overflow-y-auto px-4 sm:px-10 pb-10">
                 <div className="max-w-7xl mx-auto">
                     {/* Header */}
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-800 border-l-4 border-[#990000] pl-4">Data Invoice</h1>
-                            <p className="text-gray-500 mt-2 ml-5">Kelola seluruh tagihan perusahaan dari berbagai cabang.</p>
+                        <div className="flex flex-col items-start gap-1">
+                            <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-tight">
+                                Data <span className="text-[#990000]">Invoice</span>
+                            </h1>
+                            <p className="text-gray-500 font-medium mt-1">Kelola seluruh tagihan perusahaan dari berbagai cabang.</p>
                         </div>
                         <button
                             onClick={() => navigate('/invoice/create')}
@@ -125,14 +149,14 @@ const Invoice = () => {
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse whitespace-nowrap">
                                 <thead>
-                                    <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 text-sm">
-                                        <th className="p-4 font-semibold">NO INVOICE</th>
-                                        <th className="p-4 font-semibold">CABANG</th>
-                                        <th className="p-4 font-semibold">CUSTOMER</th>
-                                        <th className="p-4 font-semibold">TANGGAL</th>
-                                        <th className="p-4 font-semibold">GRAND TOTAL</th>
-                                        <th className="p-4 font-semibold text-center">STATUS</th>
-                                        <th className="p-4 font-semibold text-center">AKSI</th>
+                                    <tr className="bg-gray-900 text-xs text-white uppercase tracking-wider font-semibold">
+                                        <th className="p-4">NO INVOICE</th>
+                                        <th className="p-4">CABANG</th>
+                                        <th className="p-4">CUSTOMER</th>
+                                        <th className="p-4">TANGGAL</th>
+                                        <th className="p-4">GRAND TOTAL</th>
+                                        <th className="p-4 text-center">STATUS</th>
+                                        <th className="p-4 text-center">AKSI</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -180,6 +204,7 @@ const Invoice = () => {
                             </table>
                         </div>
                     </div>
+                </div>
                 </div>
             </main>
         </div>

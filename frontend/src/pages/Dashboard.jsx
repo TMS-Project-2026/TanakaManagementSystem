@@ -54,7 +54,7 @@ const Dashboard = () => {
         {/* TOPBAR */}
         <header className="h-auto flex flex-col sm:flex-row items-end justify-end px-4 sm:px-10 py-4 gap-4 sm:gap-0 mb-4">
           <div className="flex items-center gap-6">
-            {/* FILTER TANGGAL (Pindahan) */}
+            {/* FILTER TANGGAL */}
             <div className="flex items-center gap-2 bg-white p-1.5 rounded-full shadow-sm border border-gray-100">
               <div className="flex flex-col">
                 <label className="text-[8px] font-bold text-gray-400 px-3 pt-0.5 uppercase tracking-wider leading-none">Mulai</label>
@@ -104,55 +104,54 @@ const Dashboard = () => {
         <div className="flex-1 overflow-y-auto px-4 sm:px-10 pb-10">
           
           <div className="mb-6 flex flex-col items-start gap-1">
-            <span className="bg-[#990000]/10 text-[#990000] px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase shadow-sm">
-              Dashboard Overview
-            </span>
             <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-tight">
-              Kinerja <span className="text-[#990000]">Marketplace.</span>
+              Dashboard <span className="text-[#990000]">Marketing</span>
             </h1>
           </div>
 
-          {/* ================= 1. TOP METRICS (Seragam & Mungil) ================= */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-8">
+{/* ================= 1. TOP METRICS (6 Kotak Grid 3x2) - ALL RED ================= */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             
-            <div className="bg-white p-3 rounded-xl shadow-sm border-l-4 border-[#990000] flex items-center justify-between hover:shadow-md transition-all duration-300">
+            <div className="bg-red-50 p-6 rounded-3xl shadow-md border border-red-100 flex items-center justify-between hover:shadow-lg transition-all duration-300">
               <div>
-                <p className="text-[9px] font-bold uppercase text-gray-500 tracking-wider">Sales Revenue</p>
-                <h3 className="text-sm sm:text-base font-black text-gray-900 mt-0.5 break-words">{formatRupiah(data.summary.totalRevenue)}</h3>
+                <p className="text-sm font-bold text-red-800">Sales Revenue</p>
+                <h3 className="text-2xl font-black text-red-900 mt-2 break-words">{formatRupiah(data.summary.totalRevenue)}</h3>
               </div>
-              <div className="w-7 h-7 bg-red-50 text-[#990000] rounded-lg flex items-center justify-center flex-shrink-0">💰</div>
             </div>
 
-            <div className="bg-white p-3 rounded-xl shadow-sm border-l-4 border-[#990000] flex items-center justify-between hover:shadow-md transition-all duration-300">
+            <div className="bg-red-500 p-6 rounded-3xl shadow-md flex items-center justify-between hover:shadow-lg transition-all duration-300">
               <div>
-                <p className="text-[9px] font-bold uppercase text-gray-500 tracking-wider">Profit Bersih</p>
-                <h3 className="text-sm sm:text-base font-black text-[#990000] mt-0.5 break-words">{formatRupiah(data.summary.totalProfit)}</h3>
+                <p className="text-sm font-bold text-white">Profit Bersih</p>
+                <h3 className="text-2xl font-black text-white mt-2 break-words">{formatRupiah(data.summary.totalProfit)}</h3>
               </div>
-              <div className="w-7 h-7 bg-red-50 text-[#990000] rounded-lg flex items-center justify-center flex-shrink-0">📈</div>
             </div>
 
-            <div className="bg-white p-3 rounded-xl shadow-sm border-l-4 border-gray-900 flex items-center justify-between hover:shadow-md transition-all duration-300">
+            <div className="bg-red-100 p-6 rounded-3xl shadow-md border border-red-200 flex items-center justify-between hover:shadow-lg transition-all duration-300">
               <div>
-                <p className="text-[9px] font-bold uppercase text-gray-500 tracking-wider">Total HPP</p>
-                <h3 className="text-sm sm:text-base font-black text-gray-900 mt-0.5 break-words">{formatRupiah(data.summary.totalHPP)}</h3>
+                <p className="text-sm font-bold text-red-800">Total HPP</p>
+                <h3 className="text-2xl font-black text-red-900 mt-2 break-words">{formatRupiah(data.summary.totalHPP)}</h3>
               </div>
-              <div className="w-7 h-7 bg-gray-100 text-gray-900 rounded-lg flex items-center justify-center flex-shrink-0">📦</div>
             </div>
 
-            <div className="bg-white p-3 rounded-xl shadow-sm border-l-4 border-gray-900 flex items-center justify-between hover:shadow-md transition-all duration-300">
+            <div className="bg-red-200 p-6 rounded-3xl shadow-md border border-red-300 flex items-center justify-between hover:shadow-lg transition-all duration-300">
               <div>
-                <p className="text-[9px] font-bold uppercase text-gray-500 tracking-wider">Qty Terjual</p>
-                <h3 className="text-sm sm:text-base font-black text-gray-900 mt-0.5">{data.summary.totalQty} <span className="text-[10px] font-bold text-gray-400">Pcs</span></h3>
+                <p className="text-sm font-bold text-red-900">Qty Terjual</p>
+                <h3 className="text-2xl font-black text-red-900 mt-2">{data.summary.totalQty} <span className="text-xs font-bold text-red-700">Pcs</span></h3>
               </div>
-              <div className="w-7 h-7 bg-gray-100 text-gray-900 rounded-lg flex items-center justify-center flex-shrink-0">🛒</div>
             </div>
 
-            <div className="bg-white p-3 rounded-xl shadow-sm border-l-4 border-[#990000] flex items-center justify-between hover:shadow-md transition-all duration-300">
+            <div className="bg-red-300 p-6 rounded-3xl shadow-md border border-red-400 flex items-center justify-between hover:shadow-lg transition-all duration-300">
               <div>
-                <p className="text-[9px] font-bold uppercase text-gray-500 tracking-wider">Potongan Admin</p>
-                <h3 className="text-sm sm:text-base font-black text-[#990000] mt-0.5 break-words">{formatRupiah(data.summary.totalPotongan)}</h3>
+                <p className="text-sm font-bold text-red-950">Potongan Admin</p>
+                <h3 className="text-2xl font-black text-red-950 mt-2 break-words">{formatRupiah(data.summary.totalPotongan)}</h3>
               </div>
-              <div className="w-7 h-7 bg-red-50 text-[#990000] rounded-lg flex items-center justify-center flex-shrink-0">✂️</div>
+            </div>
+
+            <div className="bg-red-400 p-6 rounded-3xl shadow-md border border-red-500 flex items-center justify-between hover:shadow-lg transition-all duration-300">
+              <div>
+                <p className="text-sm font-bold text-white">Status Terjual</p>
+                <h3 className="text-2xl font-black text-white mt-2">{data.summary.totalQty} Item</h3>
+              </div>
             </div>
 
           </div>
@@ -160,11 +159,11 @@ const Dashboard = () => {
           {/* ================= AREA TENGAH ================= */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
             
-            {/* KIRI: Grid Pendapatan Per Toko */}
+{/* KIRI: Grid Pendapatan Per Toko */}
             <div className="col-span-1 bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center">
-                  <span className="text-white text-xs">🏪</span>
+                <div className="w-8 h-8 bg-[#990000] rounded-lg flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">TK</span>
                 </div>
                 <h3 className="text-xs font-black text-gray-900 uppercase tracking-widest">Toko</h3>
               </div>
@@ -181,12 +180,12 @@ const Dashboard = () => {
 
             <div className="col-span-1 lg:col-span-2 flex flex-col gap-8">
               
-              {/* Sales Trend (Chart) */}
+{/* Sales Trend (Chart) */}
               <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 w-full">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center text-[#990000] text-xs">
-                      📈
+                    <div className="w-8 h-8 bg-[#990000] rounded-lg flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">TR</span>
                     </div>
                     <h3 className="text-xs font-black text-gray-900 uppercase tracking-widest">Sales Trend</h3>
                   </div>
@@ -205,11 +204,11 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Top Produk */}
+{/* Top Produk */}
               <div className="bg-gray-900 p-5 rounded-2xl shadow-md w-full">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center text-white text-xs">
-                    ⭐
+                  <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
+                    <span className="text-gray-900 text-xs font-bold">TOP</span>
                   </div>
                   <h3 className="text-xs font-black text-white uppercase tracking-widest">Top 5 Products</h3>
                 </div>

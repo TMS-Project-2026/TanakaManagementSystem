@@ -3,7 +3,7 @@ import { getFinanceDashboard } from '../api/financeApi';
 import { 
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
 } from 'recharts';
-import { DollarSign, TrendingUp, TrendingDown, Activity } from 'lucide-react';
+import { UserCircle } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 
 const FinanceDashboard = () => {
@@ -14,6 +14,7 @@ const FinanceDashboard = () => {
         totalTransaksi: 0,
         chartData: []
     });
+    const [showProfile, setShowProfile] = useState(false);
 
     useEffect(() => {
         fetchDashboardData();
@@ -34,54 +35,101 @@ const FinanceDashboard = () => {
         return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(number);
     };
 
-    const cards = [
-        { title: 'Total Revenue', value: formatRupiah(data.totalRevenue), icon: <TrendingUp className="text-red-600 w-8 h-8" />, bg: 'bg-red-50' },
-        { title: 'Total Expense', value: formatRupiah(data.totalExpense), icon: <TrendingDown className="text-red-600 w-8 h-8" />, bg: 'bg-red-50' },
-        { title: 'Profit', value: formatRupiah(data.profit), icon: <DollarSign className="text-red-600 w-8 h-8" />, bg: 'bg-red-600 text-white' },
-        { title: 'Total Transaksi', value: data.totalTransaksi, icon: <Activity className="text-red-600 w-8 h-8" />, bg: 'bg-red-50' }
-    ];
-
     return (
-        <div className="flex bg-[#f3f4f6] min-h-screen font-sans">
+        <div className="flex bg-gray-50 min-h-screen font-sans relative">
             <Sidebar />
-            <main className="flex-1 p-6 overflow-y-auto h-screen">
-                <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100">
-                    <h1 className="text-3xl font-bold text-gray-800 mb-6 border-l-4 border-red-600 pl-4">Finance Dashboard</h1>
 
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                {cards.map((card, index) => (
-                    <div key={index} className={`p-6 rounded-2xl shadow-sm border border-red-100 flex items-center justify-between ${card.bg}`}>
-                        <div>
-                            <p className={`text-sm font-medium mb-1 ${card.title === 'Profit' ? 'text-red-100' : 'text-gray-500'}`}>{card.title}</p>
-                            <h3 className={`text-2xl font-bold ${card.title === 'Profit' ? 'text-white' : 'text-gray-800'}`}>{card.value}</h3>
+            <main className="flex-1 flex flex-col pt-16 md:pt-0 h-screen overflow-hidden">
+                {/* TOPBAR */}
+                <header className="h-auto flex flex-col sm:flex-row items-end justify-end px-4 sm:px-10 py-4 gap-4 sm:gap-0 mb-4">
+                  <div className="flex items-center gap-6">
+                    <div className="relative">
+                      <div className="bg-white p-1.5 rounded-full shadow-sm cursor-pointer hover:shadow-md transition-all border border-gray-100" onClick={() => setShowProfile(!showProfile)}>
+                        <UserCircle size={32} className="text-gray-400 hover:text-[#990000] transition-colors" />
+                      </div>
+                      
+                      {showProfile && (
+                        <div className="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+                          <div className="p-4 bg-red-50/50">
+                            <p className="text-sm font-black text-gray-900">Admin</p>
+                            <p className="text-[10px] font-bold text-[#990000] uppercase tracking-wider mt-0.5">Finance</p>
+                          </div>
                         </div>
-                        <div className={`p-3 rounded-full ${card.title === 'Profit' ? 'bg-red-500 bg-opacity-30' : 'bg-red-100'}`}>
-                            {card.title === 'Profit' ? React.cloneElement(card.icon, { className: 'text-white w-8 h-8' }) : card.icon}
-                        </div>
+                      )}
                     </div>
-                ))}
-            </div>
+                  </div>
+                </header>
 
-            {/* Chart Section */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-red-100">
-                <h3 className="text-xl font-bold text-gray-800 mb-6">Grafik Keuangan Bulanan</h3>
-                <div className="h-80 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                            data={data.chartData}
-                            margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                        >
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                            <XAxis dataKey="name" />
-                            <YAxis tickFormatter={(val) => `Rp ${val / 1000}k`} />
-                            <Tooltip formatter={(value) => formatRupiah(value)} cursor={{fill: '#fef2f2'}} />
-                            <Legend />
-                            <Bar dataKey="revenue" name="Revenue" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                            <Bar dataKey="expense" name="Expense" fill="#991b1b" radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
+                <div className="flex-1 overflow-y-auto px-4 sm:px-10 pb-10">
+                    {/* Hero Header */}
+                    <div className="mb-6 flex flex-col items-start gap-1">
+                      <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-tight">
+                        Dashboard <span className="text-[#990000]">Finance</span>
+                      </h1>
+                      <p className="text-gray-500 font-medium mt-1">Ringkasan performa keuangan perusahaan secara real-time.</p>
+                    </div>
+
+                    {/* Summary Cards - Matching Marketing */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                        
+                        <div className="bg-red-50 p-6 rounded-3xl shadow-md border border-red-100 flex items-center justify-between hover:shadow-lg transition-all duration-300">
+                          <div>
+                            <p className="text-sm font-bold text-red-800">Total Revenue</p>
+                            <h3 className="text-lg md:text-xl font-black text-red-900 mt-2 break-words">{formatRupiah(data.totalRevenue)}</h3>
+                          </div>
+                        </div>
+
+                        <div className="bg-red-100 p-6 rounded-3xl shadow-md border border-red-200 flex items-center justify-between hover:shadow-lg transition-all duration-300">
+                          <div>
+                            <p className="text-sm font-bold text-red-800">Total Expense</p>
+                            <h3 className="text-lg md:text-xl font-black text-red-900 mt-2 break-words">{formatRupiah(data.totalExpense)}</h3>
+                          </div>
+                        </div>
+
+                        <div className="bg-red-500 p-6 rounded-3xl shadow-md flex items-center justify-between hover:shadow-lg transition-all duration-300">
+                          <div>
+                            <p className="text-sm font-bold text-white">Profit</p>
+                            <h3 className="text-lg md:text-xl font-black text-white mt-2 break-words">{formatRupiah(data.profit)}</h3>
+                          </div>
+                        </div>
+
+                        <div className="bg-red-200 p-6 rounded-3xl shadow-md border border-red-300 flex items-center justify-between hover:shadow-lg transition-all duration-300">
+                          <div>
+                            <p className="text-sm font-bold text-red-900">Total Transaksi</p>
+                            <h3 className="text-lg md:text-xl font-black text-red-900 mt-2">{data.totalTransaksi}</h3>
+                          </div>
+                        </div>
+
+                    </div>
+
+                    {/* Chart Section */}
+                    <div className="grid grid-cols-1 gap-8 mb-10">
+                        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 w-full">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 bg-[#990000] rounded-lg flex items-center justify-center">
+                                        <span className="text-white text-xs font-bold">GF</span>
+                                    </div>
+                                    <h3 className="text-xs font-black text-gray-900 uppercase tracking-widest">Grafik Keuangan Bulanan</h3>
+                                </div>
+                            </div>
+                            <div className="h-80 w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart
+                                        data={data.chartData}
+                                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                                    >
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                        <XAxis dataKey="name" tick={{fontSize: 9, fill: '#6b7280', fontWeight: 'bold'}} axisLine={false} tickLine={false} dy={5} />
+                                        <YAxis tick={{fontSize: 9, fill: '#6b7280', fontWeight: 'bold'}} tickFormatter={(val) => `Rp ${val / 1000}k`} axisLine={false} tickLine={false} dx={-5} />
+                                        <Tooltip cursor={{fill: '#fef2f2'}} contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', padding: '8px', fontSize: '12px', fontWeight: 'bold'}} formatter={(value) => formatRupiah(value)} />
+                                        <Legend wrapperStyle={{fontSize: '12px', fontWeight: 'bold', color: '#374151', paddingTop: '10px'}} />
+                                        <Bar dataKey="revenue" name="Revenue" fill="#990000" radius={[6, 6, 0, 0]} />
+                                        <Bar dataKey="expense" name="Expense" fill="#f87171" radius={[6, 6, 0, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </main>

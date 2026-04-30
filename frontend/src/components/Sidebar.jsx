@@ -38,7 +38,7 @@ const Sidebar = () => {
     { name: 'Backup Database', path: '/it/backup', icon: <HardDrive size={20} />, roles: ['admin_it', 'Admin'], group: 'System' },
     { name: 'Monitoring System', path: '/it/monitoring', icon: <Monitor size={20} />, roles: ['admin_it', 'Admin'], group: 'System' },
     { name: 'Settings Sistem', path: '/it/settings', icon: <Sliders size={20} />, roles: ['admin_it', 'Admin'], group: 'System' },
-    
+
     // MENU OWNER EKSKLUSIF
     { name: 'Owner Dashboard', path: '/owner/dashboard', icon: <LayoutDashboard size={20} />, roles: ['owner'], group: 'Owner' },
     { name: 'Finance Overview', path: '/owner/finance', icon: <DollarSign size={20} />, roles: ['owner'], group: 'Owner' },
@@ -120,7 +120,7 @@ const Sidebar = () => {
         </div>
 
         {/* Menu Navigasi */}
-        <nav className="flex-1 px-4 space-y-1"> {/* Diubah dari space-y-2 ke space-y-1 agar lebih rapat */}
+        <nav className="flex-1 px-4 space-y-1">
           {(() => {
             let currentGroup = '';
             return menuItems.map((item) => {
@@ -155,11 +155,11 @@ const Sidebar = () => {
                       {item.subMenu.map(sub => {
                         const isSubActive = location.pathname === (sub.path || '');
                         return (
-                          <li 
-                            key={sub.title || sub} 
+                          <li
+                            key={sub.title || sub}
                             onClick={(e) => {
                               e.stopPropagation();
-                              if(sub.path) navigate(sub.path);
+                              if (sub.path) navigate(sub.path);
                             }}
                             className={`text-[11px] font-medium cursor-pointer py-1 transition ${isSubActive ? 'text-red-900 font-bold' : 'text-red-700 hover:text-red-900'}`}
                           >

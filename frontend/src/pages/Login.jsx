@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import api from '../api/axios';
 import { useNavigate } from 'react-router-dom';
 import { User, Lock } from 'lucide-react';
-import LogoTanaka from '../assets/logotanaka.jpeg';
+
 const Login = () => {
     const [nip, setNip] = useState('');
     const [password, setPassword] = useState('');
@@ -47,8 +47,6 @@ const Login = () => {
                 {/* --- KOLOM KIRI: Teks & Branding --- */}
                 <div className="flex-1 text-center md:text-left w-full">
                     <div className="flex items-center justify-center md:justify-start gap-3 mb-8 md:mb-12">
-                        <img src={LogoTanaka} alt="Logo Tanaka" className="w-10 h-10 object-contain" />
-
                         <span className="text-[#990000] font-bold text-xl tracking-widest">TANAKA GROUP</span>
                     </div>
 

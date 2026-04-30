@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
-import { FileText, PieChart, BarChart2, Activity, DollarSign, ArrowRightLeft, CreditCard, LayoutDashboard, List, Download, MapPin } from 'lucide-react';
+import { FileText, PieChart, BarChart2, Activity, DollarSign, ArrowRightLeft, CreditCard, LayoutDashboard, List, Download, MapPin, UserCircle } from 'lucide-react';
 import { getCabangPerformance } from '../api/ownerApi';
 
 // Import sub-reports
@@ -85,6 +85,7 @@ const formatRupiah = (number) => new Intl.NumberFormat('id-ID', { style: 'curren
 const ReportCenter = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const [showProfile, setShowProfile] = useState(false);
 
     const reportMenus = [
         { path: 'sales-report', name: 'Sales Report', icon: <List size={18} /> },
@@ -101,13 +102,36 @@ const ReportCenter = () => {
     ];
 
     return (
-        <div className="flex bg-[#f3f4f6] min-h-screen font-sans">
+        <div className="flex bg-gray-50 min-h-screen font-sans relative">
             <Sidebar />
-            <main className="flex-1 p-6 overflow-y-auto h-screen">
+            <main className="flex-1 flex flex-col pt-16 md:pt-0 h-screen overflow-hidden">
+                {/* TOPBAR */}
+                <header className="h-auto flex flex-col sm:flex-row items-end justify-end px-4 sm:px-10 py-4 gap-4 sm:gap-0 mb-4">
+                  <div className="flex items-center gap-6">
+                    <div className="relative">
+                      <div className="bg-white p-1.5 rounded-full shadow-sm cursor-pointer hover:shadow-md transition-all border border-gray-100" onClick={() => setShowProfile(!showProfile)}>
+                        <UserCircle size={32} className="text-gray-400 hover:text-[#990000] transition-colors" />
+                      </div>
+                      
+                      {showProfile && (
+                        <div className="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+                          <div className="p-4 bg-red-50/50">
+                            <p className="text-sm font-black text-gray-900">Admin</p>
+                            <p className="text-[10px] font-bold text-[#990000] uppercase tracking-wider mt-0.5">Finance</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </header>
+
+                <div className="flex-1 overflow-y-auto px-4 sm:px-10 pb-10">
                 <div className="flex justify-between items-center mb-6">
-                    <div>
-                        <h1 className="text-3xl font-bold text-gray-800 border-l-4 border-[#990000] pl-4">Reports & Analytics</h1>
-                        <p className="text-gray-500 mt-2 ml-5">Laporan keuangan dan kinerja cabang untuk Owner.</p>
+                    <div className="flex flex-col items-start gap-1">
+                        <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-tight">
+                            Reports & <span className="text-[#990000]">Analytics</span>
+                        </h1>
+                        <p className="text-gray-500 font-medium mt-1">Laporan keuangan dan kinerja cabang untuk Owner.</p>
                     </div>
                 </div>
 
@@ -153,6 +177,7 @@ const ReportCenter = () => {
                             <Route path="rekap-jurnal" element={<RekapJurnal />} />
                         </Routes>
                     </div>
+                </div>
                 </div>
             </main>
         </div>

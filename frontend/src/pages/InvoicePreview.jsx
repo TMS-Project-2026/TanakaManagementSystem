@@ -6,12 +6,7 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import Sidebar from '../components/Sidebar';
 
-// Temporary placeholders for logos. Put real logos in src/assets/ later.
-const logos = {
-    Banua: 'https://via.placeholder.com/150x50/990000/ffffff?text=BANUA',
-    Tanaka: 'https://via.placeholder.com/150x50/333333/ffffff?text=TANAKA',
-    Acestreet: 'https://via.placeholder.com/150x50/0055ff/ffffff?text=ACESTREET'
-};
+
 
 const addresses = {
     Banua: 'Jl. Banua Raya No. 1, Kaltim\nTelp: (0541) 123456 | Email: finance@banua.com',
@@ -189,8 +184,7 @@ const InvoicePreview = () => {
                     {/* Header */}
                     <div className="flex justify-between items-start border-b-2 border-gray-100 pb-8 mb-8">
                         <div>
-                            <img src={logos[invoice.cabang]} alt="Logo" className="h-12 object-contain mb-3" />
-                            <p className="text-gray-500 text-sm whitespace-pre-line">{addresses[invoice.cabang]}</p>
+                            <h2 className="text-2xl font-bold text-gray-900 mb-3">{invoice.cabang.toUpperCase()}</h2>\n                            <p className="text-gray-500 text-sm whitespace-pre-line">{addresses[invoice.cabang]}</p>
                         </div>
                         <div className="text-right">
                             <h1 className="text-4xl font-black text-gray-200 tracking-widest mb-2">INVOICE</h1>

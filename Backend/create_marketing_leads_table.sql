@@ -7,6 +7,7 @@ CREATE TABLE marketing_leads (
   produk VARCHAR(200) NOT NULL,
   qty INT NOT NULL DEFAULT 1,
   harga_awal DECIMAL(12, 2),
+  diskon DECIMAL(12, 2) DEFAULT 0,
   harga_potongan DECIMAL(12, 2),
   jenis_pembayaran VARCHAR(50) DEFAULT 'Lunas',
   nominal_dp DECIMAL(12, 2) DEFAULT 0,

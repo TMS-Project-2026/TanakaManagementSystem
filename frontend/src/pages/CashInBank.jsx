@@ -6,7 +6,7 @@ import {
 } from '../api/cashInBankApi';
 import { 
     Plus, Search, Filter, Edit, Trash2, Wallet, 
-    TrendingUp, Activity, DollarSign, Clock 
+    TrendingUp, Activity, DollarSign, Clock, UserCircle
 } from 'lucide-react';
 import { 
     BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, 
@@ -20,6 +20,7 @@ const CashInBank = () => {
     const [summary, setSummary] = useState(null);
     const [charts, setCharts] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [showProfile, setShowProfile] = useState(false);
 
     const [filters, setFilters] = useState({
         search: '', bank: '', status: '', cabang: '', startDate: '', endDate: ''
@@ -108,15 +109,38 @@ const CashInBank = () => {
     };
 
     return (
-        <div className="flex bg-[#f8f9fa] min-h-screen font-sans">
+        <div className="flex bg-gray-50 min-h-screen font-sans relative">
             <Sidebar />
-            <main className="flex-1 p-8 overflow-y-auto h-screen">
+            <main className="flex-1 flex flex-col pt-16 md:pt-0 h-screen overflow-hidden">
+                {/* TOPBAR */}
+                <header className="h-auto flex flex-col sm:flex-row items-end justify-end px-4 sm:px-10 py-4 gap-4 sm:gap-0 mb-4">
+                  <div className="flex items-center gap-6">
+                    <div className="relative">
+                      <div className="bg-white p-1.5 rounded-full shadow-sm cursor-pointer hover:shadow-md transition-all border border-gray-100" onClick={() => setShowProfile(!showProfile)}>
+                        <UserCircle size={32} className="text-gray-400 hover:text-[#990000] transition-colors" />
+                      </div>
+                      
+                      {showProfile && (
+                        <div className="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+                          <div className="p-4 bg-red-50/50">
+                            <p className="text-sm font-black text-gray-900">Admin</p>
+                            <p className="text-[10px] font-bold text-[#990000] uppercase tracking-wider mt-0.5">Finance</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </header>
+
+                <div className="flex-1 overflow-y-auto px-4 sm:px-10 pb-10">
                 
                 {/* Header */}
-                <div className="flex justify-between items-center mb-8">
-                    <div>
-                        <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Cash In Bank</h1>
-                        <p className="text-gray-500 mt-1">Sistem Pencatatan Uang Masuk Perusahaan</p>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                    <div className="flex flex-col items-start gap-1">
+                        <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-tight">
+                            Cash In <span className="text-[#990000]">Bank</span>
+                        </h1>
+                        <p className="text-gray-500 font-medium mt-1">Sistem Pencatatan Uang Masuk Perusahaan</p>
                     </div>
                     <button 
                         onClick={() => handleOpenModal()}
@@ -128,40 +152,35 @@ const CashInBank = () => {
 
                 {/* Summary Cards */}
                 {summary && (
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group hover:shadow-md transition-all">
-                            <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-50 rounded-full group-hover:scale-150 transition-all duration-500"></div>
-                            <div className="relative">
-                                <p className="text-sm font-semibold text-gray-500 mb-1 flex items-center gap-2"><Wallet size={16} className="text-blue-500"/> Saldo Awal</p>
-                                <h3 className="text-2xl font-bold text-gray-800">{formatRupiah(summary.saldo_awal)}</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+                        <div className="bg-red-50 p-6 rounded-3xl shadow-md border border-red-100 flex items-center justify-between hover:shadow-lg transition-all duration-300">
+                            <div>
+                                <p className="text-sm font-bold text-red-800">Saldo Awal</p>
+                                <h3 className="text-lg md:text-xl font-black text-red-900 mt-2 break-words">{formatRupiah(summary.saldo_awal)}</h3>
                             </div>
                         </div>
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group hover:shadow-md transition-all">
-                            <div className="absolute -right-4 -top-4 w-24 h-24 bg-green-50 rounded-full group-hover:scale-150 transition-all duration-500"></div>
-                            <div className="relative">
-                                <p className="text-sm font-semibold text-gray-500 mb-1 flex items-center gap-2"><TrendingUp size={16} className="text-green-500"/> Cash In Hari Ini</p>
-                                <h3 className="text-2xl font-bold text-gray-800">{formatRupiah(summary.total_cash_in_today)}</h3>
+                        <div className="bg-red-100 p-6 rounded-3xl shadow-md border border-red-200 flex items-center justify-between hover:shadow-lg transition-all duration-300">
+                            <div>
+                                <p className="text-sm font-bold text-red-800">Cash In Hari Ini</p>
+                                <h3 className="text-lg md:text-xl font-black text-red-900 mt-2 break-words">{formatRupiah(summary.total_cash_in_today)}</h3>
                             </div>
                         </div>
-                        <div className="bg-[#990000] p-6 rounded-2xl shadow-md border border-red-800 relative overflow-hidden group hover:shadow-lg transition-all text-white">
-                            <div className="absolute -right-4 -top-4 w-24 h-24 bg-red-800 rounded-full group-hover:scale-150 transition-all duration-500 opacity-50"></div>
-                            <div className="relative">
-                                <p className="text-sm font-medium mb-1 flex items-center gap-2"><Activity size={16} /> Saldo Akhir</p>
-                                <h3 className="text-2xl font-bold">{formatRupiah(summary.saldo_akhir)}</h3>
+                        <div className="bg-red-500 p-6 rounded-3xl shadow-md flex items-center justify-between hover:shadow-lg transition-all duration-300">
+                            <div>
+                                <p className="text-sm font-bold text-white">Saldo Akhir</p>
+                                <h3 className="text-lg md:text-xl font-black text-white mt-2 break-words">{formatRupiah(summary.saldo_akhir)}</h3>
                             </div>
                         </div>
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group hover:shadow-md transition-all">
-                            <div className="absolute -right-4 -top-4 w-24 h-24 bg-yellow-50 rounded-full group-hover:scale-150 transition-all duration-500"></div>
-                            <div className="relative">
-                                <p className="text-sm font-semibold text-gray-500 mb-1 flex items-center gap-2"><Clock size={16} className="text-yellow-500"/> Total Pending</p>
-                                <h3 className="text-2xl font-bold text-gray-800">{formatRupiah(summary.total_pending)}</h3>
+                        <div className="bg-red-200 p-6 rounded-3xl shadow-md border border-red-300 flex items-center justify-between hover:shadow-lg transition-all duration-300">
+                            <div>
+                                <p className="text-sm font-bold text-red-900">Total Pending</p>
+                                <h3 className="text-lg md:text-xl font-black text-red-900 mt-2 break-words">{formatRupiah(summary.total_pending)}</h3>
                             </div>
                         </div>
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden group hover:shadow-md transition-all">
-                            <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-50 rounded-full group-hover:scale-150 transition-all duration-500"></div>
-                            <div className="relative">
-                                <p className="text-sm font-semibold text-gray-500 mb-1 flex items-center gap-2"><DollarSign size={16} className="text-emerald-500"/> Total Paid</p>
-                                <h3 className="text-2xl font-bold text-gray-800">{formatRupiah(summary.total_paid)}</h3>
+                        <div className="bg-red-300 p-6 rounded-3xl shadow-md border border-red-400 flex items-center justify-between hover:shadow-lg transition-all duration-300">
+                            <div>
+                                <p className="text-sm font-bold text-red-950">Total Paid</p>
+                                <h3 className="text-lg md:text-xl font-black text-red-950 mt-2 break-words">{formatRupiah(summary.total_paid)}</h3>
                             </div>
                         </div>
                     </div>
@@ -280,17 +299,17 @@ const CashInBank = () => {
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm">
                             <thead>
-                                <tr className="bg-gray-50 text-gray-500 border-b border-gray-100 uppercase text-xs tracking-wider">
-                                    <th className="py-4 px-4 font-semibold">Transaksi ID</th>
-                                    <th className="py-4 px-4 font-semibold">Tanggal</th>
-                                    <th className="py-4 px-4 font-semibold">Vendor/Klien</th>
-                                    <th className="py-4 px-4 font-semibold">Keterangan</th>
-                                    <th className="py-4 px-4 font-semibold text-right">Qty</th>
-                                    <th className="py-4 px-4 font-semibold text-right">Total</th>
-                                    <th className="py-4 px-4 font-semibold text-center">Bank</th>
-                                    <th className="py-4 px-4 font-semibold text-center">Due Date</th>
-                                    <th className="py-4 px-4 font-semibold text-center">Status</th>
-                                    <th className="py-4 px-4 font-semibold text-center">Aksi</th>
+                                <tr className="bg-gray-900 text-xs text-white uppercase tracking-wider font-semibold">
+                                    <th className="py-4 px-4">Transaksi ID</th>
+                                    <th className="py-4 px-4">Tanggal</th>
+                                    <th className="py-4 px-4">Vendor/Klien</th>
+                                    <th className="py-4 px-4">Keterangan</th>
+                                    <th className="py-4 px-4 text-right">Qty</th>
+                                    <th className="py-4 px-4 text-right">Total</th>
+                                    <th className="py-4 px-4 text-center">Bank</th>
+                                    <th className="py-4 px-4 text-center">Due Date</th>
+                                    <th className="py-4 px-4 text-center">Status</th>
+                                    <th className="py-4 px-4 text-center">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -334,7 +353,7 @@ const CashInBank = () => {
                         </table>
                     </div>
                 </div>
-
+                </div>
             </main>
 
             {/* Modal Form */}

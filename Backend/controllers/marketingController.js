@@ -20,7 +20,7 @@ exports.getLeads = (req, res) => {
 
 // CREATE: Tambah prospek baru dengan form data Sales Offline
 exports.addLead = (req, res) => {
-    const { nama_customer, produk, qty, harga_awal, harga_potongan, jenis_pembayaran, nominal_dp, tanggal_masuk, deadline_final, catatan } = req.body;
+    const { nama_customer, produk, qty, harga_awal, diskon, harga_potongan, jenis_pembayaran, nominal_dp, tanggal_masuk, deadline_final, catatan } = req.body;
 
     // Validasi field required
     if (!nama_customer || !produk || !qty || !tanggal_masuk) {
@@ -28,14 +28,15 @@ exports.addLead = (req, res) => {
     }
 
     const sql = `INSERT INTO marketing_leads 
-                 (nama_customer, produk, qty, harga_awal, harga_potongan, jenis_pembayaran, nominal_dp, tanggal_masuk, deadline_final, catatan, status) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending')`;
+                 (nama_customer, produk, qty, harga_awal, diskon, harga_potongan, jenis_pembayaran, nominal_dp, tanggal_masuk, deadline_final, catatan, status) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Pending')`;
 
     const values = [
         nama_customer,
         produk,
         parseInt(qty) || 1,
         parseFloat(harga_awal) || null,
+        parseFloat(diskon) || 0,
         parseFloat(harga_potongan) || null,
         jenis_pembayaran || 'Lunas',
         parseFloat(nominal_dp) || 0,
