@@ -3,7 +3,7 @@ import { getGudangDashboard } from '../api/gudangApi';
 import { 
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
 } from 'recharts';
-import { Package, TrendingUp, TrendingDown, AlertTriangle, Box, Settings } from 'lucide-react';
+import { Package, TrendingUp, TrendingDown, AlertTriangle, Box, Settings, UserCircle } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 
 const GudangDashboard = () => {
@@ -15,8 +15,10 @@ const GudangDashboard = () => {
         stokMenipisCount: 0,
         totalSparepart: 0,
         chartData: [],
+        chartData: [],
         hampirHabis: []
     });
+    const [showProfile, setShowProfile] = useState(false);
 
     useEffect(() => {
         fetchDashboardData();
@@ -45,9 +47,21 @@ const GudangDashboard = () => {
     return (
         <div className="flex bg-[#f3f4f6] min-h-screen font-sans">
             <Sidebar />
-            <main className="flex-1 p-6 overflow-y-auto h-screen">
-                <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100">
-                    <h1 className="text-3xl font-bold text-gray-800 mb-6 border-l-4 border-red-600 pl-4">Dashboard Gudang</h1>
+            <main className="flex-1 flex flex-col h-screen overflow-hidden">
+
+                <div className="flex-1 overflow-y-auto px-6 pb-6">
+                    <div className="pt-6">
+                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
+                        <div>
+                            <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-tight flex items-center gap-3">
+                                <div className="bg-red-50 border border-red-100 p-2 rounded-lg shadow-sm">
+                                    <Box className="text-[#990000]" size={20} />
+                                </div>
+                                Dashboard <span className="text-[#990000]">Gudang</span>
+                            </h1>
+                            <p className="text-sm text-gray-500 mt-2 font-medium">Ringkasan aktivitas dan pergerakan barang secara keseluruhan</p>
+                        </div>
+                    </div>
 
                     {/* Summary Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -105,6 +119,7 @@ const GudangDashboard = () => {
                                 )}
                             </div>
                         </div>
+                    </div>
                     </div>
                 </div>
             </main>

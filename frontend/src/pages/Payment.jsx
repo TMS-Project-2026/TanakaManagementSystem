@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getPayments, createPayment, updatePaymentStatus } from '../api/financeApi';
-import { PlusCircle, Edit } from 'lucide-react';
+import { PlusCircle, Edit, Search, UserCircle } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 
 const Payment = () => {
@@ -46,10 +46,22 @@ const Payment = () => {
     const formatRupiah = (number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(number);
 
     return (
-        <div className="flex bg-[#f3f4f6] min-h-screen font-sans">
+        <div className="flex bg-gray-50 min-h-screen font-sans relative">
             <Sidebar />
-            <main className="flex-1 p-6 overflow-y-auto h-screen">
-                <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100">
+            <main className="flex-1 flex flex-col pt-16 md:pt-0 h-screen overflow-hidden">
+                {/* TOPBAR */}
+                <header className="h-auto flex flex-col sm:flex-row items-end justify-end px-4 sm:px-10 py-4 gap-4 sm:gap-0 mb-4">
+                  <div className="flex items-center gap-6">
+                    <div className="relative">
+                      <div className="bg-white p-1.5 rounded-full shadow-sm cursor-pointer hover:shadow-md transition-all border border-gray-100" onClick={() => {}}>
+                        <UserCircle size={32} className="text-gray-400 hover:text-[#990000] transition-colors" />
+                      </div>
+                    </div>
+                  </div>
+                </header>
+
+                <div className="flex-1 overflow-y-auto px-4 sm:px-10 pb-10">
+                <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100 flex flex-col">
                     <h1 className="text-3xl font-bold text-gray-800 mb-6 border-l-4 border-red-600 pl-4">Manajemen Payment</h1>
 
             {/* Form Create */}
@@ -114,6 +126,7 @@ const Payment = () => {
                     </table>
                 </div>
                     </div>
+                </div>
                 </div>
             </main>
         </div>

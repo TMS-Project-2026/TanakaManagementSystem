@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { getFinanceReport } from '../api/financeApi';
-import { FileText, Filter, Printer } from 'lucide-react';
+import { FileText, Filter, Printer, Search, UserCircle } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 
 const Report = () => {
     const [filter, setFilter] = useState({ startDate: '', endDate: '' });
     const [report, setReport] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [showProfile, setShowProfile] = useState(false);
 
     const handleFilter = async (e) => {
         e.preventDefault();
@@ -29,6 +31,31 @@ const Report = () => {
         <div className="flex bg-[#f3f4f6] min-h-screen font-sans print:bg-white print:block">
             <div className="print:hidden"><Sidebar /></div>
             <main className="flex-1 p-6 overflow-y-auto h-screen print:p-0 print:overflow-visible">
+                <header className="h-auto flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-10 py-4 gap-4 z-50 shrink-0 print:hidden">
+                  <div className="relative w-full sm:w-96">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <input
+                      type="text"
+                      placeholder="Cari laporan..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-12 pr-4 py-2.5 bg-white rounded-full border border-gray-200 shadow-sm text-sm focus:outline-none focus:border-[#990000] focus:ring-2 focus:ring-red-100 transition-all"
+                    />
+                  </div>
+                  <div className="relative">
+                    <div className="bg-white p-1.5 rounded-full shadow-sm cursor-pointer hover:shadow-md transition-all border border-gray-100" onClick={() => setShowProfile(!showProfile)}>
+                      <UserCircle size={32} className="text-gray-400 hover:text-red-600 transition-colors" />
+                    </div>
+                    {showProfile && (
+                      <div className="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+                        <div className="p-4 bg-red-50/50">
+                          <p className="text-sm font-black text-gray-900">Admin</p>
+                          <p className="text-[10px] font-bold text-red-600 uppercase tracking-wider mt-0.5">Finance</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </header>
                 <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100 print:shadow-none print:border-none print:p-0">
                     <h1 className="text-3xl font-bold text-gray-800 mb-6 border-l-4 border-red-600 pl-4 print:hidden">Laporan Keuangan</h1>
 

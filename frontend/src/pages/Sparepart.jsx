@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getSpareparts, createSparepart, updateSparepart, deleteSparepart } from '../api/gudangApi';
-import { PlusCircle, Edit, Trash2, Search } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Search, Plus, X, Settings, UserCircle } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 
 const Sparepart = () => {
@@ -8,6 +8,8 @@ const Sparepart = () => {
     const [form, setForm] = useState({ id: 0, nama_part: '', jumlah: '', kategori: '', supplier: '' });
     const [isEdit, setIsEdit] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [showProfile, setShowProfile] = useState(false);
 
     useEffect(() => {
         fetchSpareparts();
@@ -34,6 +36,7 @@ const Sparepart = () => {
             }
             fetchSpareparts();
             resetForm();
+            setShowAddModal(false);
         } catch (error) {
             console.error("Gagal simpan sparepart", error);
         }
@@ -42,6 +45,7 @@ const Sparepart = () => {
     const handleEdit = (item) => {
         setIsEdit(true);
         setForm(item);
+        setShowAddModal(true);
     };
 
     const handleDelete = async (id) => {
@@ -58,6 +62,7 @@ const Sparepart = () => {
     const resetForm = () => {
         setIsEdit(false);
         setForm({ id: 0, nama_part: '', jumlah: '', kategori: '', supplier: '' });
+        setShowAddModal(false);
     };
 
     const filteredData = spareparts.filter(item => item.nama_part.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -65,56 +70,98 @@ const Sparepart = () => {
     return (
         <div className="flex bg-[#f3f4f6] min-h-screen font-sans">
             <Sidebar />
-            <main className="flex-1 p-6 overflow-y-auto h-screen">
-                <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100">
-                    <h1 className="text-3xl font-bold text-gray-800 mb-6 border-l-4 border-red-600 pl-4">Manajemen Suku Cadang</h1>
+            <main className="flex-1 flex flex-col h-screen overflow-hidden">
+                {/* TOPBAR */}
+                <header className="h-auto flex flex-col sm:flex-row items-start sm:items-center justify-between px-6 py-4 gap-4 z-50 shrink-0">
+                  <div className="relative w-full sm:w-80">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <input
+                      type="text"
+                      placeholder="Cari suku cadang..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-12 pr-4 py-2.5 bg-white rounded-full border border-gray-200 shadow-sm text-sm focus:outline-none focus:border-[#990000] focus:ring-2 focus:ring-red-100 transition-all"
+                    />
+                  </div>
+                  <div className="relative">
+                    <div className="bg-white p-1.5 rounded-full shadow-sm cursor-pointer hover:shadow-md transition-all border border-gray-100" onClick={() => setShowProfile(!showProfile)}>
+                      <UserCircle size={32} className="text-gray-400 hover:text-red-600 transition-colors" />
+                    </div>
+                    {showProfile && (
+                      <div className="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+                        <div className="p-4 bg-red-50/50">
+                          <p className="text-sm font-black text-gray-900">Admin</p>
+                          <p className="text-[10px] font-bold text-red-600 uppercase tracking-wider mt-0.5">Gudang</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </header>
 
-                    {/* Form Create/Edit */}
-                    <div className="bg-gray-50 p-6 rounded-2xl shadow-sm border border-gray-200 mb-8">
-                        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                            <PlusCircle className="text-red-600" /> {isEdit ? 'Edit Suku Cadang' : 'Tambah Suku Cadang'}
-                        </h3>
-                        <form onSubmit={handleCreateOrUpdate} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
-                            <div className="lg:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Nama Part</label>
-                                <input type="text" required value={form.nama_part} onChange={e => setForm({...form, nama_part: e.target.value})} placeholder="Contoh: Resleting, Benang" className="w-full border border-gray-300 rounded-lg p-2 focus:ring-red-500 focus:border-red-500" />
+                <div className="flex-1 overflow-y-auto px-6 pb-6">
+                    <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100">
+                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
+                        <div>
+                            <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-tight flex items-center gap-3">
+                                <div className="bg-red-50 border border-red-100 p-2 rounded-lg shadow-sm">
+                                    <Settings className="text-[#990000]" size={20} />
+                                </div>
+                                Suku Cadang <span className="text-[#990000]">Barang</span>
+                            </h1>
+                            <p className="text-sm text-gray-500 mt-2 font-medium">Kelola data suku cadang gudang</p>
+                        </div>
+                        <button
+                            onClick={() => { resetForm(); setShowAddModal(true); }}
+                            className="bg-red-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 shadow-sm hover:bg-red-700 hover:shadow-md transition-all active:scale-95 whitespace-nowrap"
+                        >
+                            <Plus size={18} className="text-white" /> Tambah Suku Cadang
+                        </button>
+                    </div>
+
+                    {/* MODAL INPUT DATA */}
+                    {showAddModal && (
+                        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                            <div className="bg-white w-full max-w-2xl rounded-2xl p-6 sm:p-8 shadow-xl overflow-y-auto max-h-[90vh] animate-in zoom-in-95 duration-200 border border-gray-100">
+                                <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
+                                    <div>
+                                        <h2 className="text-xl font-bold text-gray-900">{isEdit ? 'Edit Suku Cadang' : 'Tambah Suku Cadang Baru'}</h2>
+                                        <p className="text-xs text-gray-500 mt-1">Lengkapi form di bawah ini untuk manajemen data suku cadang.</p>
+                                    </div>
+                                    <button type="button" onClick={resetForm} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"><X size={20} /></button>
+                                </div>
+                                <form onSubmit={handleCreateOrUpdate} className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                            <div className="sm:col-span-2">
+                                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Nama Part</label>
+                                <input type="text" required value={form.nama_part} onChange={e => setForm({...form, nama_part: e.target.value})} placeholder="Contoh: Resleting, Benang" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition-all" />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
-                                <input type="text" required value={form.kategori} onChange={e => setForm({...form, kategori: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2 focus:ring-red-500 focus:border-red-500" />
+                                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Kategori</label>
+                                <input type="text" required value={form.kategori} onChange={e => setForm({...form, kategori: e.target.value})} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition-all" />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Supplier</label>
-                                <input type="text" value={form.supplier} onChange={e => setForm({...form, supplier: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2 focus:ring-red-500 focus:border-red-500" />
+                                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Supplier</label>
+                                <input type="text" value={form.supplier} onChange={e => setForm({...form, supplier: e.target.value})} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition-all" />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Jumlah</label>
-                                <input type="number" required value={form.jumlah} onChange={e => setForm({...form, jumlah: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2 focus:ring-red-500 focus:border-red-500" disabled={isEdit} />
+                                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Jumlah</label>
+                                <input type="number" required value={form.jumlah} onChange={e => setForm({...form, jumlah: e.target.value})} className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:bg-white focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition-all" disabled={isEdit} />
                             </div>
-                            <div className="lg:col-span-5 flex gap-2 justify-end mt-2">
-                                {isEdit && <button type="button" onClick={resetForm} className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-6 rounded-lg transition-colors">Batal</button>}
-                                <button type="submit" className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-8 rounded-lg transition-colors">Simpan</button>
+                            <div className="sm:col-span-2 pt-5 mt-2 border-t border-gray-100 flex justify-end gap-3">
+                                <button type="button" onClick={resetForm} className="px-6 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold transition-colors">Batal</button>
+                                <button type="submit" className="bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-8 rounded-xl shadow-sm transition-all active:scale-95">Simpan</button>
                             </div>
                         </form>
-                    </div>
+                            </div>
+                        </div>
+                    )}
 
-                    <div className="relative mb-4 w-full md:w-1/3">
-                        <Search className="absolute left-3 top-2.5 text-gray-400" size={20} />
-                        <input 
-                            type="text" 
-                            placeholder="Cari suku cadang..." 
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full border border-gray-300 rounded-lg pl-10 p-2 focus:ring-red-500 focus:border-red-500" 
-                        />
-                    </div>
 
                     {/* Table */}
                     <div className="bg-white rounded-2xl shadow-sm border border-red-100 overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
-                                <thead>
-                                    <tr className="bg-red-50 border-b border-red-100 text-gray-700">
+                                <thead className="bg-gray-900 text-xs text-white uppercase tracking-wider font-semibold sticky top-0 z-10 shadow-sm">
+                                    <tr>
                                         <th className="p-4 font-semibold">Nama Suku Cadang</th>
                                         <th className="p-4 font-semibold">Kategori</th>
                                         <th className="p-4 font-semibold">Supplier</th>
@@ -141,6 +188,7 @@ const Sparepart = () => {
                                 </tbody>
                             </table>
                         </div>
+                    </div>
                     </div>
                 </div>
             </main>

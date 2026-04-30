@@ -286,6 +286,7 @@ const Marketing = () => {
 
         {/* CONTENT */}
         <div className="flex-1 flex flex-col px-4 sm:px-10 pb-10 overflow-hidden">
+          <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100 flex flex-col h-full">
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
             <div>
               <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3">
@@ -420,6 +421,7 @@ const Marketing = () => {
                 </tbody>
               </table>
             </div>
+          </div>
           </div>
         </div>
 

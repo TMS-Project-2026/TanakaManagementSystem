@@ -3,7 +3,6 @@ import { getFinanceDashboard } from '../api/financeApi';
 import { 
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
 } from 'recharts';
-import { UserCircle } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 
 const FinanceDashboard = () => {
@@ -14,7 +13,6 @@ const FinanceDashboard = () => {
         totalTransaksi: 0,
         chartData: []
     });
-    const [showProfile, setShowProfile] = useState(false);
 
     useEffect(() => {
         fetchDashboardData();
@@ -40,27 +38,7 @@ const FinanceDashboard = () => {
             <Sidebar />
 
             <main className="flex-1 flex flex-col pt-16 md:pt-0 h-screen overflow-hidden">
-                {/* TOPBAR */}
-                <header className="h-auto flex flex-col sm:flex-row items-end justify-end px-4 sm:px-10 py-4 gap-4 sm:gap-0 mb-4">
-                  <div className="flex items-center gap-6">
-                    <div className="relative">
-                      <div className="bg-white p-1.5 rounded-full shadow-sm cursor-pointer hover:shadow-md transition-all border border-gray-100" onClick={() => setShowProfile(!showProfile)}>
-                        <UserCircle size={32} className="text-gray-400 hover:text-[#990000] transition-colors" />
-                      </div>
-                      
-                      {showProfile && (
-                        <div className="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
-                          <div className="p-4 bg-red-50/50">
-                            <p className="text-sm font-black text-gray-900">Admin</p>
-                            <p className="text-[10px] font-bold text-[#990000] uppercase tracking-wider mt-0.5">Finance</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </header>
-
-                <div className="flex-1 overflow-y-auto px-4 sm:px-10 pb-10">
+                <div className="flex-1 overflow-y-auto px-4 sm:px-10 pb-10 pt-8 sm:pt-10">
                     {/* Hero Header */}
                     <div className="mb-6 flex flex-col items-start gap-1">
                       <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-tight">

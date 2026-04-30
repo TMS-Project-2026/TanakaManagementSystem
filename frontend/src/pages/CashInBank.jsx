@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 
 const formatRupiah = (number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number || 0);
+const formatRupiahValue = (number) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(number || 0);
 
 const CashInBank = () => {
     const [data, setData] = useState([]);
@@ -22,8 +23,9 @@ const CashInBank = () => {
     const [loading, setLoading] = useState(true);
     const [showProfile, setShowProfile] = useState(false);
 
+
     const [filters, setFilters] = useState({
-        search: '', bank: '', status: '', cabang: '', startDate: '', endDate: ''
+        search: '', bank: '', status: '', startDate: '', endDate: '', cabang: ''
     });
 
     const [modalOpen, setModalOpen] = useState(false);
@@ -43,7 +45,7 @@ const CashInBank = () => {
         setLoading(true);
         try {
             const [listRes, summaryRes] = await Promise.all([
-                getAllCashInBank(filters),
+                getAllCashInBank({...filters}),
                 getCashInBankSummary()
             ]);
             setData(listRes.data.data);
@@ -113,7 +115,17 @@ const CashInBank = () => {
             <Sidebar />
             <main className="flex-1 flex flex-col pt-16 md:pt-0 h-screen overflow-hidden">
                 {/* TOPBAR */}
-                <header className="h-auto flex flex-col sm:flex-row items-end justify-end px-4 sm:px-10 py-4 gap-4 sm:gap-0 mb-4">
+                <header className="h-auto flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-10 py-4 gap-4 sm:gap-0 mb-4">
+                  <div className="relative w-full sm:w-96">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <input
+                      type="text"
+                      placeholder="Cari transaksi cash in..."
+                      value={filters.search}
+                      onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                      className="w-full pl-12 pr-4 py-2.5 bg-white rounded-full border border-gray-200 shadow-sm text-sm focus:outline-none focus:border-[#990000] focus:ring-2 focus:ring-red-100 transition-all"
+                    />
+                  </div>
                   <div className="flex items-center gap-6">
                     <div className="relative">
                       <div className="bg-white p-1.5 rounded-full shadow-sm cursor-pointer hover:shadow-md transition-all border border-gray-100" onClick={() => setShowProfile(!showProfile)}>
@@ -133,7 +145,7 @@ const CashInBank = () => {
                 </header>
 
                 <div className="flex-1 overflow-y-auto px-4 sm:px-10 pb-10">
-                
+                <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100 flex flex-col">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div className="flex flex-col items-start gap-1">
@@ -156,31 +168,31 @@ const CashInBank = () => {
                         <div className="bg-red-50 p-6 rounded-3xl shadow-md border border-red-100 flex items-center justify-between hover:shadow-lg transition-all duration-300">
                             <div>
                                 <p className="text-sm font-bold text-red-800">Saldo Awal</p>
-                                <h3 className="text-lg md:text-xl font-black text-red-900 mt-2 break-words">{formatRupiah(summary.saldo_awal)}</h3>
+                                <h3 className="text-base md:text-lg font-black text-red-900 mt-2 break-words">{formatRupiah(summary.saldo_awal)}</h3>
                             </div>
                         </div>
                         <div className="bg-red-100 p-6 rounded-3xl shadow-md border border-red-200 flex items-center justify-between hover:shadow-lg transition-all duration-300">
                             <div>
                                 <p className="text-sm font-bold text-red-800">Cash In Hari Ini</p>
-                                <h3 className="text-lg md:text-xl font-black text-red-900 mt-2 break-words">{formatRupiah(summary.total_cash_in_today)}</h3>
+                                <h3 className="text-base md:text-lg font-black text-red-900 mt-2 break-words">{formatRupiah(summary.total_cash_in_today)}</h3>
                             </div>
                         </div>
                         <div className="bg-red-500 p-6 rounded-3xl shadow-md flex items-center justify-between hover:shadow-lg transition-all duration-300">
                             <div>
                                 <p className="text-sm font-bold text-white">Saldo Akhir</p>
-                                <h3 className="text-lg md:text-xl font-black text-white mt-2 break-words">{formatRupiah(summary.saldo_akhir)}</h3>
+                                <h3 className="text-base md:text-lg font-black text-white mt-2 break-words">{formatRupiah(summary.saldo_akhir)}</h3>
                             </div>
                         </div>
                         <div className="bg-red-200 p-6 rounded-3xl shadow-md border border-red-300 flex items-center justify-between hover:shadow-lg transition-all duration-300">
                             <div>
                                 <p className="text-sm font-bold text-red-900">Total Pending</p>
-                                <h3 className="text-lg md:text-xl font-black text-red-900 mt-2 break-words">{formatRupiah(summary.total_pending)}</h3>
+                                <h3 className="text-base md:text-lg font-black text-red-900 mt-2 break-words">{formatRupiah(summary.total_pending)}</h3>
                             </div>
                         </div>
                         <div className="bg-red-300 p-6 rounded-3xl shadow-md border border-red-400 flex items-center justify-between hover:shadow-lg transition-all duration-300">
                             <div>
                                 <p className="text-sm font-bold text-red-950">Total Paid</p>
-                                <h3 className="text-lg md:text-xl font-black text-red-950 mt-2 break-words">{formatRupiah(summary.total_paid)}</h3>
+                                <h3 className="text-base md:text-lg font-black text-red-950 mt-2 break-words">{formatRupiah(summary.total_paid)}</h3>
                             </div>
                         </div>
                     </div>
@@ -249,7 +261,7 @@ const CashInBank = () => {
 
                 {/* Filters */}
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 flex flex-wrap gap-4 items-center">
-                    <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 w-full md:w-64 focus-within:border-[#990000] focus-within:ring-1 focus-within:ring-[#990000] transition-all">
+                    <div className="flex-1 min-w-[200px] flex items-center bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 focus-within:border-[#990000] transition-colors">
                         <Search size={18} className="text-gray-400 mr-2" />
                         <input 
                             type="text" 
@@ -352,6 +364,7 @@ const CashInBank = () => {
                             </tbody>
                         </table>
                     </div>
+                </div>
                 </div>
                 </div>
             </main>

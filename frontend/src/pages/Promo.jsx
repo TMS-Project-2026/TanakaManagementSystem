@@ -64,8 +64,9 @@ const Promo = () => {
     <div className="flex bg-[#f3f4f6] min-h-screen font-sans relative">
       <Sidebar />
 
-      <main className="flex-1 flex flex-col pt-16 md:pt-0">
-        <div className="p-4 sm:p-10">
+      <main className="flex-1 flex flex-col pt-16 md:pt-0 h-screen overflow-hidden">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-10 pb-10 mt-6">
+          <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100">
           {/* HEADER HALAMAN */}
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
             <div>
@@ -207,6 +208,7 @@ const Promo = () => {
             </div>
           </div>
         )}
+          </div>
         </div>
       </main>
     </div>

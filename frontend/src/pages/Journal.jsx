@@ -142,7 +142,17 @@ const Journal = () => {
       <Sidebar />
       <main className="flex-1 flex flex-col pt-16 md:pt-0 h-screen overflow-hidden">
         {/* TOPBAR */}
-        <header className="h-auto flex flex-col sm:flex-row items-end justify-end px-4 sm:px-10 py-4 gap-4 sm:gap-0 mb-4">
+        <header className="h-auto flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-10 py-4 gap-4 sm:gap-0 mb-4">
+          <div className="relative w-full sm:w-80">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder="Cari transaksi journal..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-4 py-2.5 bg-white rounded-full border border-gray-200 shadow-sm text-sm focus:outline-none focus:border-[#990000] focus:ring-2 focus:ring-red-100 transition-all"
+            />
+          </div>
           <div className="flex items-center gap-6">
             <div className="relative">
               <div className="bg-white p-1.5 rounded-full shadow-sm cursor-pointer hover:shadow-md transition-all border border-gray-100" onClick={() => setShowProfile(!showProfile)}>
@@ -162,6 +172,7 @@ const Journal = () => {
         </header>
 
         <div className="flex-1 overflow-y-auto px-4 sm:px-10 pb-10">
+          <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100 flex flex-col">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
             <div className="flex flex-col items-start gap-1">
               <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-tight">
@@ -218,10 +229,6 @@ const Journal = () => {
         <div className="p-6 border-b border-gray-100 flex flex-wrap gap-4 items-center justify-between">
           <h2 className="text-lg font-bold text-gray-800">Journal Entries</h2>
           <div className="flex flex-wrap gap-3">
-            <div className="relative">
-              <input type="text" placeholder="Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none w-48" />
-              <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
-            </div>
             <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none" title="Filter Date" />
             <select value={filterBranch} onChange={e => setFilterBranch(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none">
               <option value="">All Branches</option>
@@ -282,6 +289,7 @@ const Journal = () => {
           </table>
         </div>
       </div>
+          </div>
         </div>
 
       {/* Modal Form Add Journal */}

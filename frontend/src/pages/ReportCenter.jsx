@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
-import { FileText, PieChart, BarChart2, Activity, DollarSign, ArrowRightLeft, CreditCard, LayoutDashboard, List, Download, MapPin, UserCircle } from 'lucide-react';
+import { FileText, PieChart, BarChart2, Activity, DollarSign, ArrowRightLeft, CreditCard, LayoutDashboard, List, Download, MapPin, UserCircle, Search } from 'lucide-react';
 import { getCabangPerformance } from '../api/ownerApi';
 
 // Import sub-reports
@@ -86,6 +86,7 @@ const ReportCenter = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const [showProfile, setShowProfile] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
 
     const reportMenus = [
         { path: 'sales-report', name: 'Sales Report', icon: <List size={18} /> },
@@ -106,7 +107,17 @@ const ReportCenter = () => {
             <Sidebar />
             <main className="flex-1 flex flex-col pt-16 md:pt-0 h-screen overflow-hidden">
                 {/* TOPBAR */}
-                <header className="h-auto flex flex-col sm:flex-row items-end justify-end px-4 sm:px-10 py-4 gap-4 sm:gap-0 mb-4">
+                <header className="h-auto flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-10 py-4 gap-4 sm:gap-0 mb-4">
+                  <div className="relative w-full sm:w-72">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <input
+                      type="text"
+                      placeholder="Cari report..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-11 pr-4 py-2 bg-white rounded-full border border-gray-200 shadow-sm text-sm focus:outline-none focus:border-[#990000] focus:ring-2 focus:ring-red-100 transition-all"
+                    />
+                  </div>
                   <div className="flex items-center gap-6">
                     <div className="relative">
                       <div className="bg-white p-1.5 rounded-full shadow-sm cursor-pointer hover:shadow-md transition-all border border-gray-100" onClick={() => setShowProfile(!showProfile)}>
@@ -126,18 +137,19 @@ const ReportCenter = () => {
                 </header>
 
                 <div className="flex-1 overflow-y-auto px-4 sm:px-10 pb-10">
-                <div className="flex justify-between items-center mb-6">
-                    <div className="flex flex-col items-start gap-1">
-                        <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-tight">
-                            Reports & <span className="text-[#990000]">Analytics</span>
-                        </h1>
-                        <p className="text-gray-500 font-medium mt-1">Laporan keuangan dan kinerja cabang untuk Owner.</p>
+                  <div className="max-w-7xl mx-auto w-full">
+                    <div className="flex justify-between items-center mb-6">
+                        <div className="flex flex-col items-start gap-1">
+                            <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-tight">
+                                Reports & <span className="text-[#990000]">Analytics</span>
+                            </h1>
+                            <p className="text-gray-500 font-medium mt-1">Laporan keuangan dan kinerja cabang untuk Owner.</p>
+                        </div>
                     </div>
-                </div>
 
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row min-h-[80vh] overflow-hidden">
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row min-h-[80vh]">
                     {/* Inner Sidebar for Sub-menus */}
-                    <div className="w-full md:w-64 bg-gray-50 border-r border-gray-100 p-4 shrink-0">
+                    <div className="w-full md:w-64 bg-gray-50 border-r border-gray-100 p-4 shrink-0 rounded-l-2xl">
                         <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 pl-3">Laporan Utama</h3>
                         <nav className="space-y-1">
                             {reportMenus.map((menu) => (
@@ -160,7 +172,7 @@ const ReportCenter = () => {
                     </div>
 
                     {/* Report Content Area */}
-                    <div className="flex-1 bg-white relative p-4 md:p-6">
+                    <div className="flex-1 bg-white relative p-4 md:p-6 rounded-r-2xl">
                         <Routes>
                             <Route index element={<SemuaTransaksi />} />
                             <Route path="sales-report" element={<SemuaTransaksi />} />
@@ -176,6 +188,7 @@ const ReportCenter = () => {
                             <Route path="buku-besar" element={<BukuBesar />} />
                             <Route path="rekap-jurnal" element={<RekapJurnal />} />
                         </Routes>
+                    </div>
                     </div>
                 </div>
                 </div>
