@@ -14,11 +14,13 @@ const getFilterQuery = (startDate, endDate, cabang, dateColumn, cabangColumn = '
     return { sql, params };
 };
 
+// 1. Hutang (Accounts Payable)
 exports.getHutang = async (req, res) => {
     const { startDate, endDate, cabang } = req.query;
     try {
-        const filter = getFilterQuery(startDate, endDate, cabang, 'created_at', 'cabang');
-        const sql = `SELECT * FROM hutang WHERE 1=1 ${filter.sql} ORDER BY jatuh_tempo ASC`;
+        // Hutang is cash_in_bank where status is Unpaid or Pending or Overdue
+        const filter = getFilterQuery(startDate, endDate, cabang, 'tanggal_transaksi', 'cabang');
+        const sql = `SELECT * FROM cash_in_bank WHERE status != 'Paid' ${filter.sql} ORDER BY due_date ASC`;
         const [results] = await db.promise().query(sql, filter.params);
         res.json({ status: 'success', data: results });
     } catch (err) {
@@ -26,10 +28,10 @@ exports.getHutang = async (req, res) => {
     }
 };
 
+// 2. Piutang (Accounts Receivable)
 exports.getPiutang = async (req, res) => {
     const { startDate, endDate, cabang } = req.query;
     try {
-        // Piutang usually comes from unpaid invoices
         const filter = getFilterQuery(startDate, endDate, cabang, 'tanggal_terbit', 'cabang');
         const sql = `SELECT id, no_invoice, cabang, nama_pt as customer, deskripsi as deskripsi_pemasaran, grand_total as nominal, tanggal_jatuh_tempo as jatuh_tempo, status FROM invoice WHERE status != 'Lunas' AND status != 'Draft' ${filter.sql} ORDER BY tanggal_jatuh_tempo ASC`;
         const [results] = await db.promise().query(sql, filter.params);
@@ -39,16 +41,16 @@ exports.getPiutang = async (req, res) => {
     }
 };
 
+// 3. Rekap Jurnal
 exports.getJurnal = async (req, res) => {
     const { startDate, endDate, cabang } = req.query;
     try {
-        const filter = getFilterQuery(startDate, endDate, cabang, 'tanggal', 'cabang');
+        const filter = getFilterQuery(startDate, endDate, cabang, 'transaction_date', 'branch');
         const sql = `
-            SELECT j.*, a.nama_akun, a.kode_akun 
-            FROM jurnal_umum j 
-            JOIN akun a ON j.akun_id = a.id 
+            SELECT * 
+            FROM journals 
             WHERE 1=1 ${filter.sql} 
-            ORDER BY j.tanggal DESC, j.id DESC
+            ORDER BY transaction_date DESC, id DESC
         `;
         const [results] = await db.promise().query(sql, filter.params);
         res.json({ status: 'success', data: results });
@@ -57,29 +59,36 @@ exports.getJurnal = async (req, res) => {
     }
 };
 
+// 4. Buku Besar
 exports.getBukuBesar = async (req, res) => {
     const { akun_id, startDate, endDate, cabang } = req.query;
     try {
-        const filter = getFilterQuery(startDate, endDate, cabang, 'tanggal', 'cabang');
+        const filter = getFilterQuery(startDate, endDate, cabang, 'transaction_date', 'branch');
         let sql = `
-            SELECT j.*, a.nama_akun, a.kode_akun 
-            FROM jurnal_umum j 
-            JOIN akun a ON j.akun_id = a.id 
+            SELECT * 
+            FROM journals 
             WHERE 1=1 ${filter.sql} 
         `;
         const params = [...filter.params];
         
+        // akun_id is passed as account_name from the new system
         if (akun_id) {
-            sql += ` AND j.akun_id = ?`;
+            sql += ` AND account_name = ?`;
             params.push(akun_id);
         }
         
-        sql += ` ORDER BY j.tanggal ASC, j.id ASC`;
+        sql += ` ORDER BY transaction_date ASC, id ASC`;
 
         const [results] = await db.promise().query(sql, params);
         
-        // Also fetch list of akun for dropdown
-        const [akunList] = await db.promise().query("SELECT * FROM akun ORDER BY kode_akun");
+        // Extract unique account names
+        const [akunRows] = await db.promise().query("SELECT DISTINCT account_name as nama_akun, account_name as kode_akun FROM journals ORDER BY account_name");
+        
+        const akunList = akunRows.map(a => ({
+            id: a.nama_akun,
+            kode_akun: a.kode_akun,
+            nama_akun: a.nama_akun
+        }));
 
         res.json({ status: 'success', data: { transaksi: results, akunList } });
     } catch (err) {

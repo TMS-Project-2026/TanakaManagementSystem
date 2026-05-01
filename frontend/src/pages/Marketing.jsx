@@ -99,7 +99,7 @@ const Marketing = () => {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data, { type: 'buffer' });
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
 
       if (jsonData.length === 0) {
         alert("File Excel kosong!");
@@ -108,20 +108,39 @@ const Marketing = () => {
 
       const token = localStorage.getItem('token');
 
+      // Helper for parsing Excel dates (handles both serial numbers and strings)
+      const parseDate = (val) => {
+        if (!val) return '';
+        if (typeof val === 'number') {
+          const date = new Date(Math.round((val - 25569) * 86400 * 1000));
+          return date.toISOString().split('T')[0];
+        }
+        // If string like DD/MM/YYYY or DD-MM-YYYY
+        if (typeof val === 'string') {
+          const parts = val.split(/[-/]/);
+          if (parts.length === 3 && parts[0].length <= 2) {
+            return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+          }
+          const d = new Date(val);
+          if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+        }
+        return '';
+      };
+
       for (const row of jsonData) {
         const payload = {
-          nama_customer: row['Nama Customer'] || '',
-          produk: row['Produk'] || '',
-          qty: parseInt(row['Qty']) || 1,
-          harga_awal: row['Harga Awal'] || '',
-          diskon: row['Diskon'] || '',
-          harga_potongan: row['Harga Potongan'] || '',
-          jenis_pembayaran: row['Pembayaran'] || 'Lunas',
-          nominal_dp: row['Nominal DP'] || '',
-          tanggal_masuk: row['Tgl Masuk'] || new Date().toISOString().split('T')[0],
-          deadline_final: row['Deadline'] || '',
-          status: row['Status'] || 'Pending',
-          catatan: row['Catatan'] || ''
+          nama_customer: row['Nama Customer'] || row['nama_customer'] || 'Tanpa Nama',
+          produk: row['Produk'] || row['produk'] || 'Tanpa Produk',
+          qty: parseInt(row['Qty'] || row['qty']) || 1,
+          harga_awal: parseFloat(row['Harga Awal'] || row['harga_awal']) || null,
+          diskon: parseFloat(row['Diskon'] || row['diskon']) || 0,
+          harga_potongan: parseFloat(row['Harga Potongan'] || row['harga_potongan']) || null,
+          jenis_pembayaran: row['Pembayaran'] || row['jenis_pembayaran'] || 'Lunas',
+          nominal_dp: parseFloat(row['Nominal DP'] || row['nominal_dp']) || 0,
+          tanggal_masuk: parseDate(row['Tgl Masuk'] || row['tanggal_masuk']) || new Date().toISOString().split('T')[0],
+          deadline_final: parseDate(row['Deadline'] || row['deadline_final']) || null,
+          status: row['Status'] || row['status'] || 'Pending',
+          catatan: row['Catatan'] || row['catatan'] || ''
         };
 
         await axios.post('http://localhost:3000/api/marketing', payload, {

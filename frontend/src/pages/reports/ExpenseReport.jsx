@@ -40,7 +40,7 @@ const ExpenseReport = () => {
 
     const exportData = data ? data.list.map(d => ({
         tanggal: formatDate(d.tanggal),
-        nama: d.nama_pengeluaran,
+        nama: d.keterangan || '-',
         kategori: d.kategori,
         cabang: d.cabang || '-',
         jumlah: d.jumlah
@@ -92,7 +92,7 @@ const ExpenseReport = () => {
                                     {data.list.length > 0 ? data.list.map((item, idx) => (
                                         <tr key={idx} className="border-b border-gray-50 hover:bg-gray-50">
                                             <td className="py-3 px-3 text-gray-500 whitespace-nowrap">{formatDate(item.tanggal)}</td>
-                                            <td className="py-3 px-3 text-gray-800">{item.nama_pengeluaran}</td>
+                                            <td className="py-3 px-3 text-gray-800">{item.keterangan || '-'}</td>
                                             <td className="py-3 px-3 text-gray-600">
                                                 <span className="bg-gray-100 px-2 py-1 rounded text-xs">{item.kategori}</span>
                                             </td>

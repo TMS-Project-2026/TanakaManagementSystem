@@ -1,6 +1,6 @@
 const db = require('../config/db');
 
-const getFilterQuery = (startDate, endDate, cabang, dateColumn, cabangColumn = 'cabang') => {
+const getFilterQuery = (startDate, endDate, cabang, dateColumn, cabangColumn = 'branch') => {
     let sql = "";
     let params = [];
     if (startDate && endDate) {
@@ -14,33 +14,36 @@ const getFilterQuery = (startDate, endDate, cabang, dateColumn, cabangColumn = '
     return { sql, params };
 };
 
+// 1. Laba Rugi
 exports.getLabaRugi = async (req, res) => {
     const { startDate, endDate, cabang } = req.query;
 
     try {
-        // Revenue from invoices (excluding drafts)
-        const revFilter = getFilterQuery(startDate, endDate, cabang, 'tanggal_terbit', 'cabang');
-        const revSql = `SELECT cabang, SUM(grand_total) as total FROM invoice WHERE status != 'Draft' ${revFilter.sql} GROUP BY cabang`;
+        const filter = getFilterQuery(startDate, endDate, cabang, 'transaction_date', 'branch');
+        const sql = `SELECT branch as cabang, category, SUM(amount) as total FROM journals WHERE 1=1 ${filter.sql} GROUP BY branch, category`;
         
-        // Expense from expense table
-        const expFilter = getFilterQuery(startDate, endDate, cabang, 'tanggal', 'cabang');
-        const expSql = `SELECT cabang, SUM(jumlah) as total FROM expense WHERE 1=1 ${expFilter.sql} GROUP BY cabang`;
-
-        const [revResults] = await db.promise().query(revSql, revFilter.params);
-        const [expResults] = await db.promise().query(expSql, expFilter.params);
+        const [results] = await db.promise().query(sql, filter.params);
 
         let totalRevenue = 0;
         let totalExpense = 0;
-        const cabangData = { Banua: { revenue: 0, expense: 0 }, Tanaka: { revenue: 0, expense: 0 }, Acestreet: { revenue: 0, expense: 0 } };
+        const cabangData = { 
+            Banua: { revenue: 0, expense: 0 }, 
+            Tanaka: { revenue: 0, expense: 0 }, 
+            Acestreet: { revenue: 0, expense: 0 } 
+        };
 
-        revResults.forEach(r => {
-            totalRevenue += Number(r.total);
-            if(cabangData[r.cabang]) cabangData[r.cabang].revenue += Number(r.total);
-        });
+        results.forEach(r => {
+            const amount = Number(r.total);
+            const cab = r.cabang || 'Banua'; // Default if null
+            if (!cabangData[cab]) cabangData[cab] = { revenue: 0, expense: 0 };
 
-        expResults.forEach(r => {
-            totalExpense += Number(r.total);
-            if(cabangData[r.cabang]) cabangData[r.cabang].expense += Number(r.total);
+            if (r.category === 'Income') {
+                totalRevenue += amount;
+                cabangData[cab].revenue += amount;
+            } else if (r.category === 'Expense') {
+                totalExpense += amount;
+                cabangData[cab].expense += amount;
+            }
         });
 
         const labaBersih = totalRevenue - totalExpense;
@@ -61,26 +64,38 @@ exports.getLabaRugi = async (req, res) => {
     }
 };
 
+// 2. Expense Report
 exports.getExpenseReport = async (req, res) => {
     const { startDate, endDate, cabang } = req.query;
     try {
-        const filter = getFilterQuery(startDate, endDate, cabang, 'tanggal', 'cabang');
-        const sql = `SELECT * FROM expense WHERE 1=1 ${filter.sql} ORDER BY tanggal DESC`;
+        const filter = getFilterQuery(startDate, endDate, cabang, 'transaction_date', 'branch');
+        const sql = `SELECT * FROM journals WHERE category = 'Expense' ${filter.sql} ORDER BY transaction_date DESC`;
         const [results] = await db.promise().query(sql, filter.params);
 
-        // Group by kategori
         const byCategory = {};
         let total = 0;
         results.forEach(r => {
-            total += Number(r.jumlah);
-            if (!byCategory[r.kategori]) byCategory[r.kategori] = 0;
-            byCategory[r.kategori] += Number(r.jumlah);
+            total += Number(r.amount);
+            // using account_name as sub-category of expense
+            const kat = r.account_name || 'Uncategorized';
+            if (!byCategory[kat]) byCategory[kat] = 0;
+            byCategory[kat] += Number(r.amount);
         });
+
+        // Map fields for frontend expected structure (kategori, jumlah, tanggal, keterangan, cabang)
+        const mappedList = results.map(r => ({
+            id: r.id,
+            tanggal: r.transaction_date,
+            kategori: r.account_name,
+            keterangan: r.description,
+            jumlah: r.amount,
+            cabang: r.branch
+        }));
 
         res.json({
             status: 'success',
             data: {
-                list: results,
+                list: mappedList,
                 total,
                 byCategory
             }
@@ -90,27 +105,24 @@ exports.getExpenseReport = async (req, res) => {
     }
 };
 
+// 3. Income vs Expense
 exports.getIncomeExpense = async (req, res) => {
-    // A simplified monthly aggregation
     const { cabang } = req.query;
     try {
-        let cabangFilterRev = cabang && cabang !== 'Semua Cabang' ? `AND cabang = '${cabang}'` : '';
-        let cabangFilterExp = cabang && cabang !== 'Semua Cabang' ? `AND cabang = '${cabang}'` : '';
-
-        const revSql = `SELECT DATE_FORMAT(tanggal_terbit, '%Y-%m') as month, SUM(grand_total) as total FROM invoice WHERE status != 'Draft' ${cabangFilterRev} GROUP BY month`;
-        const expSql = `SELECT DATE_FORMAT(tanggal, '%Y-%m') as month, SUM(jumlah) as total FROM expense WHERE 1=1 ${cabangFilterExp} GROUP BY month`;
-
-        const [revResults] = await db.promise().query(revSql);
-        const [expResults] = await db.promise().query(expSql);
+        let cabangFilter = cabang && cabang !== 'Semua Cabang' ? `AND branch = '${cabang}'` : '';
+        const sql = `SELECT DATE_FORMAT(transaction_date, '%Y-%m') as month, category, SUM(amount) as total FROM journals WHERE 1=1 ${cabangFilter} GROUP BY month, category`;
+        
+        const [results] = await db.promise().query(sql);
 
         const monthlyData = {};
-        revResults.forEach(r => {
+        results.forEach(r => {
             if (!monthlyData[r.month]) monthlyData[r.month] = { month: r.month, income: 0, expense: 0 };
-            monthlyData[r.month].income += Number(r.total);
-        });
-        expResults.forEach(r => {
-            if (!monthlyData[r.month]) monthlyData[r.month] = { month: r.month, income: 0, expense: 0 };
-            monthlyData[r.month].expense += Number(r.total);
+            
+            if (r.category === 'Income') {
+                monthlyData[r.month].income += Number(r.total);
+            } else if (r.category === 'Expense') {
+                monthlyData[r.month].expense += Number(r.total);
+            }
         });
 
         res.json({ status: 'success', data: Object.values(monthlyData).sort((a,b) => a.month.localeCompare(b.month)) });
@@ -119,23 +131,26 @@ exports.getIncomeExpense = async (req, res) => {
     }
 };
 
+// 4. Arus Kas
 exports.getArusKas = async (req, res) => {
-    // In a real system, this queries the Jurnal Umum where account is Cash/Bank.
-    // We will simulate it using invoices (as operating in) and expenses (as operating out).
     const { startDate, endDate, cabang } = req.query;
     try {
-        const revFilter = getFilterQuery(startDate, endDate, cabang, 'tanggal_terbit', 'cabang');
-        const expFilter = getFilterQuery(startDate, endDate, cabang, 'tanggal', 'cabang');
-
-        const [[revRow]] = await db.promise().query(`SELECT SUM(grand_total) as total FROM invoice WHERE status = 'Lunas' ${revFilter.sql}`, revFilter.params);
-        const [[expRow]] = await db.promise().query(`SELECT SUM(jumlah) as total FROM expense WHERE 1=1 ${expFilter.sql}`, expFilter.params);
-
-        const operasionalMasuk = Number(revRow.total || 0);
-        const operasionalKeluar = Number(expRow.total || 0);
+        const filter = getFilterQuery(startDate, endDate, cabang, 'transaction_date', 'branch');
         
-        // Dummy values for Investasi & Pendanaan to show structure
-        const investasi = 0;
-        const pendanaan = 0;
+        // Simulating Arus Kas using Journals
+        const sql = `SELECT category, SUM(amount) as total FROM journals WHERE 1=1 ${filter.sql} GROUP BY category`;
+        const [results] = await db.promise().query(sql, filter.params);
+
+        let operasionalMasuk = 0;
+        let operasionalKeluar = 0;
+        let investasi = 0;
+        let pendanaan = 0;
+
+        results.forEach(r => {
+            if (r.category === 'Income') operasionalMasuk += Number(r.total);
+            else if (r.category === 'Expense') operasionalKeluar += Number(r.total);
+            // Currently no tags for investasi/pendanaan in journals, so kept 0
+        });
 
         const netCashflow = operasionalMasuk - operasionalKeluar + investasi + pendanaan;
 
@@ -154,30 +169,29 @@ exports.getArusKas = async (req, res) => {
     }
 };
 
+// 5. Semua Transaksi
 exports.getSemuaTransaksi = async (req, res) => {
     const { startDate, endDate, cabang } = req.query;
     try {
-        const filter = getFilterQuery(startDate, endDate, cabang, 'tanggal_terbit', 'cabang');
-        // invoice holds nama klien, deskripsi pemesanan, jumlah, status, dll.
+        const filter = getFilterQuery(startDate, endDate, cabang, 'transaction_date', 'branch');
         const sql = `
             SELECT 
-                tanggal_terbit as tanggal, 
-                nama_pt as klien, 
-                deskripsi as deskripsi_pemesanan, 
-                grand_total as jumlah, 
-                status as raw_status,
-                tanggal_jatuh_tempo,
-                cabang
-            FROM invoice 
-            WHERE status != 'Draft' ${filter.sql}
-            ORDER BY tanggal_terbit DESC
+                transaction_date as tanggal, 
+                account_name as klien, 
+                description as deskripsi_pemesanan, 
+                amount as jumlah, 
+                category as raw_status,
+                branch as cabang,
+                transaction_id
+            FROM journals 
+            WHERE 1=1 ${filter.sql}
+            ORDER BY transaction_date DESC
         `;
         const [results] = await db.promise().query(sql, filter.params);
 
         const data = results.map(r => {
-            let status_bayar = r.raw_status === 'Lunas' ? 'paid' : 'unpaid';
-            let keterangan = r.raw_status === 'Lunas' ? 'lunas' : 
-                             (new Date(r.tanggal_jatuh_tempo) < new Date() ? 'overdue' : 'due date');
+            let status_bayar = r.raw_status === 'Income' ? 'paid' : 'paid'; // simplify
+            let keterangan = r.raw_status; 
             return {
                 ...r,
                 status_bayar,

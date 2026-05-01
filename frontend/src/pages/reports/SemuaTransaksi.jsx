@@ -88,7 +88,7 @@ const SemuaTransaksi = () => {
                                             </span>
                                         </td>
                                         <td className="py-3 px-3">
-                                            <span className={`px-2 py-1 rounded text-xs uppercase font-medium ${item.keterangan === 'lunas' ? 'text-green-600' : item.keterangan === 'overdue' ? 'text-red-600 bg-red-50' : 'text-yellow-600'}`}>
+                                            <span className={`px-2 py-1 rounded text-xs uppercase font-medium ${item.keterangan === 'Income' ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}`}>
                                                 {item.keterangan}
                                             </span>
                                         </td>

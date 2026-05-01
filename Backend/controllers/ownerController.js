@@ -4,8 +4,8 @@ exports.getDashboard = async (req, res) => {
     try {
         const promiseDb = db.promise();
 
-        const [revenueResult] = await promiseDb.query("SELECT COALESCE(SUM(total_harga), 0) as total FROM sales_online WHERE MONTH(tanggal) = MONTH(CURRENT_DATE()) AND YEAR(tanggal) = YEAR(CURRENT_DATE())");
-        const [expenseResult] = await promiseDb.query("SELECT COALESCE(SUM(jumlah), 0) as total FROM expense WHERE MONTH(tanggal) = MONTH(CURRENT_DATE()) AND YEAR(tanggal) = YEAR(CURRENT_DATE())");
+        const [revenueResult] = await promiseDb.query("SELECT COALESCE(SUM(amount), 0) as total FROM journals WHERE category = 'Income' AND MONTH(transaction_date) = MONTH(CURRENT_DATE()) AND YEAR(transaction_date) = YEAR(CURRENT_DATE())");
+        const [expenseResult] = await promiseDb.query("SELECT COALESCE(SUM(amount), 0) as total FROM journals WHERE category = 'Expense' AND MONTH(transaction_date) = MONTH(CURRENT_DATE()) AND YEAR(transaction_date) = YEAR(CURRENT_DATE())");
         const [cashResult] = await promiseDb.query("SELECT COALESCE(SUM(total), 0) as total FROM cash_in_bank WHERE status = 'Paid'");
         const [ordersResult] = await promiseDb.query("SELECT COUNT(*) as total FROM order_offline WHERE status != 'Selesai'");
         const [unpaidResult] = await promiseDb.query("SELECT COUNT(*) as total FROM invoice WHERE status = 'unpaid'");
@@ -16,27 +16,27 @@ exports.getDashboard = async (req, res) => {
         const [lowStockItems] = await promiseDb.query("SELECT nama_barang, jumlah, minimum_stok, cabang_id FROM stok WHERE jumlah <= minimum_stok ORDER BY jumlah ASC LIMIT 5");
 
         const [revenueTrend] = await promiseDb.query(`
-            SELECT DATE_FORMAT(tanggal, '%d %b') as date, SUM(total_harga) as total
-            FROM sales_online
-            WHERE tanggal >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-            GROUP BY DATE(tanggal)
-            ORDER BY DATE(tanggal) ASC
+            SELECT DATE_FORMAT(transaction_date, '%d %b') as date, SUM(amount) as total
+            FROM journals
+            WHERE category = 'Income' AND transaction_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+            GROUP BY DATE(transaction_date)
+            ORDER BY DATE(transaction_date) ASC
         `);
 
         const [monthlyRevenue] = await promiseDb.query(`
-            SELECT MONTH(tanggal) as monthIndex, MONTHNAME(tanggal) as monthName, SUM(total_harga) as total
-            FROM sales_online
-            WHERE YEAR(tanggal) = YEAR(CURDATE())
-            GROUP BY MONTH(tanggal)
-            ORDER BY MONTH(tanggal) ASC
+            SELECT MONTH(transaction_date) as monthIndex, MONTHNAME(transaction_date) as monthName, SUM(amount) as total
+            FROM journals
+            WHERE category = 'Income' AND YEAR(transaction_date) = YEAR(CURDATE())
+            GROUP BY MONTH(transaction_date)
+            ORDER BY MONTH(transaction_date) ASC
         `);
 
         const [monthlyExpense] = await promiseDb.query(`
-            SELECT MONTH(tanggal) as monthIndex, MONTHNAME(tanggal) as monthName, SUM(jumlah) as total
-            FROM expense
-            WHERE YEAR(tanggal) = YEAR(CURDATE())
-            GROUP BY MONTH(tanggal)
-            ORDER BY MONTH(tanggal) ASC
+            SELECT MONTH(transaction_date) as monthIndex, MONTHNAME(transaction_date) as monthName, SUM(amount) as total
+            FROM journals
+            WHERE category = 'Expense' AND YEAR(transaction_date) = YEAR(CURDATE())
+            GROUP BY MONTH(transaction_date)
+            ORDER BY MONTH(transaction_date) ASC
         `);
 
         const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -131,8 +131,8 @@ exports.getMarketing = async (req, res) => {
 exports.getFinance = async (req, res) => {
     try {
         const promiseDb = db.promise();
-        const [incomeResult] = await promiseDb.query("SELECT COALESCE(SUM(jumlah), 0) as total FROM payment WHERE status = 'success'");
-        const [expenseResult] = await promiseDb.query("SELECT COALESCE(SUM(jumlah), 0) as total FROM expense");
+        const [incomeResult] = await promiseDb.query("SELECT COALESCE(SUM(amount), 0) as total FROM journals WHERE category = 'Income'");
+        const [expenseResult] = await promiseDb.query("SELECT COALESCE(SUM(amount), 0) as total FROM journals WHERE category = 'Expense'");
         const [cashAvailableResult] = await promiseDb.query("SELECT COALESCE(SUM(total), 0) as total FROM cash_in_bank WHERE status = 'Paid'");
         const [receivablesResult] = await promiseDb.query("SELECT COALESCE(SUM(grand_total), 0) as total FROM invoice WHERE status != 'Lunas'");
         const [payablesResult] = await promiseDb.query("SELECT COALESCE(SUM(total), 0) as total FROM cash_in_bank WHERE status IN ('Pending', 'Unpaid', 'Overdue')");
@@ -140,20 +140,28 @@ exports.getFinance = async (req, res) => {
         const [journalCount] = await promiseDb.query("SELECT COUNT(*) as total FROM journals");
 
         const [monthlyRevenue] = await promiseDb.query(`
-            SELECT MONTHNAME(tanggal) as month, SUM(jumlah) as total
-            FROM payment
-            WHERE status = 'success' AND YEAR(tanggal) = YEAR(CURDATE())
-            GROUP BY MONTH(tanggal)
-            ORDER BY MONTH(tanggal)
+            SELECT MONTHNAME(transaction_date) as month, SUM(amount) as total
+            FROM journals
+            WHERE category = 'Income' AND YEAR(transaction_date) = YEAR(CURDATE())
+            GROUP BY MONTH(transaction_date)
+            ORDER BY MONTH(transaction_date)
         `);
 
         const [monthlyExpense] = await promiseDb.query(`
-            SELECT MONTHNAME(tanggal) as month, SUM(jumlah) as total
-            FROM expense
-            WHERE YEAR(tanggal) = YEAR(CURDATE())
-            GROUP BY MONTH(tanggal)
-            ORDER BY MONTH(tanggal)
+            SELECT MONTHNAME(transaction_date) as month, SUM(amount) as total
+            FROM journals
+            WHERE category = 'Expense' AND YEAR(transaction_date) = YEAR(CURDATE())
+            GROUP BY MONTH(transaction_date)
+            ORDER BY MONTH(transaction_date)
         `);
+
+        const monthsData = {};
+        monthlyRevenue.forEach(r => { monthsData[r.month] = { month: r.month, in: Number(r.total), out: 0 } });
+        monthlyExpense.forEach(r => { 
+            if (!monthsData[r.month]) monthsData[r.month] = { month: r.month, in: 0, out: 0 };
+            monthsData[r.month].out = Number(r.total);
+        });
+        const cashflow = Object.values(monthsData);
 
         res.status(200).json({
             status: 'success',
@@ -166,11 +174,7 @@ exports.getFinance = async (req, res) => {
                 payables: Number(payablesResult[0].total),
                 unpaidInvoiceCount: unpaidInvoice[0].total,
                 journalCount: journalCount[0].total,
-                cashflow: [
-                    { month: 'Jan', in: 50000000, out: 30000000 },
-                    { month: 'Feb', in: 65000000, out: 35000000 },
-                    { month: 'Mar', in: 70000000, out: 40000000 }
-                ],
+                cashflow: cashflow.length ? cashflow : [{ month: 'N/A', in: 0, out: 0 }],
                 monthlyRevenue,
                 monthlyExpense
             }
@@ -254,9 +258,10 @@ exports.getCabang = async (req, res) => {
         `);
 
         const [profitByBranch] = await promiseDb.query(`
-            SELECT akun_toko as branch, COALESCE(SUM(profit), 0) as totalProfit
-            FROM sales_online
-            GROUP BY akun_toko
+            SELECT branch, SUM(CASE WHEN category = 'Income' THEN amount ELSE -amount END) as totalProfit
+            FROM journals
+            WHERE category IN ('Income', 'Expense')
+            GROUP BY branch
         `);
 
         const [topProducts] = await promiseDb.query(`
