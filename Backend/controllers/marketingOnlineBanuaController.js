@@ -2,23 +2,37 @@ const db = require('../config/db');
 
 // DASHBOARD
 exports.getDashboard = (req, res) => {
-    // 1. Total revenue hari ini
-    // 2. Total order hari ini
-    // 3. Produk terlaris
-    // 4. Grafik penjualan 7 hari terakhir
-    
     const today = new Date().toISOString().split('T')[0];
+    const firstDayOfMonth = new Date();
+    firstDayOfMonth.setDate(1);
+    const startOfMonth = firstDayOfMonth.toISOString().split('T')[0];
     
     const queries = {
         revenueToday: `SELECT SUM(total_price) as revenue FROM marketing_orders_online WHERE type = 'online' AND branch = 'Banua' AND order_date = ?`,
         ordersToday: `SELECT COUNT(id) as total_orders FROM marketing_orders_online WHERE type = 'online' AND branch = 'Banua' AND order_date = ?`,
-        topProducts: `SELECT product_name, SUM(qty) as total_qty FROM marketing_orders_online WHERE type = 'online' AND branch = 'Banua' GROUP BY product_name ORDER BY total_qty DESC LIMIT 5`,
-        salesChart: `SELECT order_date, SUM(total_price) as revenue, COUNT(id) as orders FROM marketing_orders_online WHERE type = 'online' AND branch = 'Banua' AND order_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) GROUP BY order_date ORDER BY order_date ASC`
+        monthlySummary: `SELECT 
+                            SUM(total_price) as totalRevenue,
+                            SUM(profit) as totalProfit,
+                            SUM(total_hpp_aktual) as totalHpp,
+                            SUM(qty) as totalQty,
+                            SUM(potongan_shopee) as totalPotongan
+                         FROM marketing_orders_online 
+                         WHERE type = 'online' AND branch = 'Banua' 
+                         AND order_date >= ?`,
+        topProducts: `SELECT product_name, SUM(qty) as total_qty, SUM(total_price) as total_sales FROM marketing_orders_online WHERE type = 'online' AND branch = 'Banua' GROUP BY product_name ORDER BY total_qty DESC LIMIT 10`,
+        salesChart: `SELECT order_date, SUM(total_price) as revenue, COUNT(id) as orders FROM marketing_orders_online WHERE type = 'online' AND branch = 'Banua' AND order_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) GROUP BY order_date ORDER BY order_date ASC`
     };
 
     let resultData = {
         revenueToday: 0,
         ordersToday: 0,
+        monthlySummary: {
+            totalRevenue: 0,
+            totalProfit: 0,
+            totalHpp: 0,
+            totalQty: 0,
+            totalPotongan: 0
+        },
         topProducts: [],
         salesChart: []
     };
@@ -31,15 +45,20 @@ exports.getDashboard = (req, res) => {
             if (err2) return res.status(500).json({ error: err2.message });
             resultData.ordersToday = res2[0]?.total_orders || 0;
 
-            db.query(queries.topProducts, [], (err3, res3) => {
-                if (err3) return res.status(500).json({ error: err3.message });
-                resultData.topProducts = res3 || [];
+            db.query(queries.monthlySummary, [startOfMonth], (errM, resM) => {
+                if (errM) return res.status(500).json({ error: errM.message });
+                resultData.monthlySummary = resM[0] || resultData.monthlySummary;
 
-                db.query(queries.salesChart, [], (err4, res4) => {
-                    if (err4) return res.status(500).json({ error: err4.message });
-                    resultData.salesChart = res4 || [];
+                db.query(queries.topProducts, [], (err3, res3) => {
+                    if (err3) return res.status(500).json({ error: err3.message });
+                    resultData.topProducts = res3 || [];
 
-                    res.json(resultData);
+                    db.query(queries.salesChart, [], (err4, res4) => {
+                        if (err4) return res.status(500).json({ error: err4.message });
+                        resultData.salesChart = res4 || [];
+
+                        res.json(resultData);
+                    });
                 });
             });
         });
@@ -64,17 +83,23 @@ exports.importShopee = (req, res) => {
     }
 
     const sql = `INSERT INTO marketing_orders_online 
-                 (branch, type, customer_name, product_name, qty, address, total_price, order_date, status) 
+                 (branch, type, customer_name, akun_toko, product_name, qty, price_unit, address, total_price, potongan_shopee, hpp_aktual, total_hpp_aktual, profit, order_date, status) 
                  VALUES ?`;
                  
     const values = orders.map(order => [
         'Banua',
         'online',
         order.customer_name || '-',
+        order.akun_toko || '-',
         order.product_name || '-',
         parseInt(order.qty) || 1,
+        parseFloat(order.price_unit) || 0,
         order.address || '-',
         parseFloat(order.total_price) || 0,
+        parseFloat(order.potongan_shopee) || 0,
+        parseFloat(order.hpp_aktual) || 0,
+        parseFloat(order.total_hpp_aktual) || 0,
+        parseFloat(order.profit) || 0,
         order.order_date || new Date().toISOString().split('T')[0],
         order.status || 'draft'
     ]);
@@ -88,11 +113,15 @@ exports.importShopee = (req, res) => {
     });
 };
 
-// GET INVENTORY
+// GET INVENTORY (Integrated with Warehouse Stock)
 exports.getInventory = (req, res) => {
-    const sql = `SELECT * FROM marketing_stock_inventory WHERE type = 'online' AND branch = 'Banua' ORDER BY product_name ASC`;
+    // We join with the branch information if needed, but here we'll just fetch all main stocks
+    const sql = `SELECT id, nama_barang as product_name, jumlah as stock_qty, kategori, minimum_stok FROM stok ORDER BY nama_barang ASC`;
     db.query(sql, [], (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
+        if (err) {
+            console.error("Error get inventory:", err);
+            return res.status(500).json({ error: err.message });
+        }
         res.json(results);
     });
 };
@@ -149,5 +178,27 @@ exports.ajukanKeFinance = (req, res) => {
                 res.json({ message: "Pesanan berhasil diajukan ke Finance untuk pembuatan Invoice." });
             });
         });
+    });
+};
+
+// GET PROMO STOCK (Dead Stock > 60 days)
+exports.getPromoStock = (req, res) => {
+    const sql = `
+        SELECT s.id, s.nama_barang as product_name, s.jumlah as stock_qty, s.kategori
+        FROM stok s
+        WHERE s.jumlah > 0
+        AND s.nama_barang NOT IN (
+            SELECT DISTINCT product_name 
+            FROM marketing_orders_online 
+            WHERE order_date >= DATE_SUB(CURDATE(), INTERVAL 60 DAY)
+        )
+        ORDER BY s.jumlah DESC
+    `;
+    db.query(sql, [], (err, results) => {
+        if (err) {
+            console.error("Error get promo stock:", err);
+            return res.status(500).json({ error: err.message });
+        }
+        res.json(results);
     });
 };

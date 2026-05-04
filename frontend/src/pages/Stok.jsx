@@ -16,7 +16,8 @@ const Stok = () => {
         cabang_id: '', 
         kode_rak: '', 
         ukuran: '', 
-        minimum_stok: '' 
+        minimum_stok: '',
+        created_at: new Date().toISOString().split('T')[0]
     });
     const [isEdit, setIsEdit] = useState(false);
     const [showAddModal, setShowAddModal] = useState(false);
@@ -49,7 +50,7 @@ const Stok = () => {
             } else {
                 await createStok(form);
             }
-            fetchStok();
+            await fetchStok();
             resetForm();
             setShowAddModal(false);
         } catch (error) {
@@ -85,7 +86,8 @@ const Stok = () => {
             cabang_id: '', 
             kode_rak: '', 
             ukuran: '', 
-            minimum_stok: '' 
+            minimum_stok: '',
+            created_at: new Date().toISOString().split('T')[0]
         });
         setShowAddModal(false);
     };
@@ -104,7 +106,7 @@ const Stok = () => {
         if (!acc[key]) {
             acc[key] = { ...curr, jumlah: 0, rawItems: [] };
         }
-        acc[key].jumlah += parseInt(curr.jumlah || 0, 10);
+        acc[key].jumlah += Number(curr.jumlah) || 0;
         acc[key].rawItems.push(curr);
         return acc;
     }, {}));
@@ -232,6 +234,10 @@ const Stok = () => {
                                 <label className="block text-sm font-semibold text-gray-700 mb-1">Minimal Stok</label>
                                 <input type="number" required value={form.minimum_stok} onChange={e => setForm({...form, minimum_stok: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-100 focus:border-red-600 outline-none transition-all" />
                             </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">Tanggal Masuk</label>
+                                <input type="date" required value={form.created_at ? form.created_at.split('T')[0] : ''} onChange={e => setForm({...form, created_at: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-100 focus:border-red-600 outline-none transition-all" />
+                            </div>
                             <div className="lg:col-span-4 pt-5 mt-2 border-t border-gray-100 flex justify-end gap-3">
                                 <button type="button" onClick={resetForm} className="px-6 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold transition-colors">
                                     Batal
@@ -255,9 +261,9 @@ const Stok = () => {
                                 className="border border-gray-300 rounded-lg p-2 focus:ring-red-500 focus:border-red-500"
                             >
                                 <option value="">Semua Cabang</option>
-                                {/* Anda bisa fetch list cabang dinamis jika ada */}
-                                <option value="Pusat">Pusat</option>
-                                <option value="Cabang 1">Cabang 1</option>
+                                <option value="Tanaka">Tanaka</option>
+                                <option value="Banua">Banua</option>
+                                <option value="Acestreet">Acestreet</option>
                             </select>
                         </div>
                     </div>
@@ -272,19 +278,38 @@ const Stok = () => {
                                         <th className="p-4 font-semibold">Nama Barang</th>
                                         <th className="p-4 font-semibold">Kategori</th>
                                         <th className="p-4 font-semibold text-center">Jumlah Stok</th>
+                                        <th className="p-4 font-semibold text-center">Tanggal Masuk</th>
                                         <th className="p-4 font-semibold text-center">Minimal Stok</th>
                                         <th className="p-4 font-semibold">Rak</th>
                                         <th className="p-4 font-semibold text-center">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filteredStok.map((item) => (
-                                        <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                            <td className="p-4 font-medium text-gray-600">{item.nama_brand || '-'}</td>
-                                            <td className="p-4 font-bold text-gray-800">{item.nama_barang} <span className="text-xs text-gray-500 block">({item.cabang_id})</span></td>
-                                            <td className="p-4"><span className="bg-gray-100 px-2 py-1 rounded text-xs">{item.kategori}</span></td>
-                                            <td className="p-4 text-center font-bold text-lg text-red-600">{item.jumlah}</td>
-                                            <td className="p-4 text-center text-gray-500">{item.minimum_stok}</td>
+                                    {filteredStok.map((item) => {
+                                        // Calculate days in stock based on the earliest rawItem's date
+                                        const timestamps = item.rawItems.map(r => {
+                                            const d = new Date(r.created_at || r.updated_at || new Date());
+                                            return isNaN(d.getTime()) ? new Date().getTime() : d.getTime();
+                                        });
+                                        const earliestTimestamp = timestamps.length > 0 ? Math.min(...timestamps) : new Date().getTime();
+                                        const earliestDate = new Date(earliestTimestamp);
+                                        const diffDays = Math.floor((new Date().getTime() - earliestTimestamp) / (1000 * 60 * 60 * 24));
+
+                                        return (
+                                            <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                                <td className="p-4 font-medium text-gray-600">{item.nama_brand || '-'}</td>
+                                                <td className="p-4 font-bold text-gray-800">{item.nama_barang} <span className="text-xs text-gray-500 block">({item.cabang_id})</span></td>
+                                                <td className="p-4"><span className="bg-gray-100 px-2 py-1 rounded text-xs">{item.kategori}</span></td>
+                                                <td className="p-4 text-center font-bold text-lg text-red-600">{item.jumlah}</td>
+                                                <td className="p-4 text-center">
+                                                    <div className="flex flex-col items-center">
+                                                        <span className="text-xs font-bold text-gray-700">{earliestDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                                        <span className={`mt-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${diffDays > 60 ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-400'}`}>
+                                                            {diffDays} Hari
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="p-4 text-center text-gray-500">{item.minimum_stok}</td>
                                             <td className="p-4 text-gray-600">{item.kode_rak || '-'}</td>
                                             <td className="p-4 text-center flex justify-center gap-2">
                                                 <button onClick={() => navigate(`/stok/detail?brand=${encodeURIComponent(item.nama_brand || '')}&barang=${encodeURIComponent(item.nama_barang || '')}&cabang=${encodeURIComponent(item.cabang_id || '')}`)} className="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1">
@@ -292,9 +317,10 @@ const Stok = () => {
                                                 </button>
                                             </td>
                                         </tr>
-                                    ))}
+                                        );
+                                    })}
                                     {filteredStok.length === 0 && (
-                                        <tr><td colSpan={6} className="p-6 text-center text-gray-500">Barang tidak ditemukan</td></tr>
+                                        <tr><td colSpan={7} className="p-6 text-center text-gray-500">Barang tidak ditemukan</td></tr>
                                     )}
                                 </tbody>
                             </table>

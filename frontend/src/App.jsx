@@ -84,6 +84,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     if (userRole === 'gudang') return <Navigate to='/gudang' replace />;
     if (userRole === 'produksi') return <Navigate to='/produksi/dashboard' replace />;
     if (userRole === 'admin_it') return <Navigate to='/it/dashboard' replace />;
+    if (userRole === 'marketing_online') return <Navigate to='/marketing-online/dashboard' replace />;
     return <Navigate to='/dashboard' replace />;
   }
 
@@ -99,7 +100,7 @@ function App() {
 
         {/* PROTECTED (Hanya bisa diakses kalau sudah login dan punya akses role) */}
         <Route path="/dashboard" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Marketing', 'marketing_online', 'marketing_offline']}>
+          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Marketing', 'marketing_offline']}>
             <Dashboard />
           </ProtectedRoute>
         } />
@@ -108,8 +109,9 @@ function App() {
             <Marketing />
           </ProtectedRoute>
         } />
-        <Route path="/marketing-online" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'marketing_online']}>
+        <Route path="/marketing-online" element={<Navigate to="/marketing-online/dashboard" replace />} />
+        <Route path="/marketing-online/:tab/:subtab?" element={
+          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'marketing_online', 'Marketing']}>
             <MarketingOnlineBanua />
           </ProtectedRoute>
         } />

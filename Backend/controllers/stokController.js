@@ -82,8 +82,8 @@ exports.createStok = async (req, res) => {
         }
 
         const promiseDb = db.promise();
-        const sql = "INSERT INTO stok (nama_brand, nama_barang, jumlah, kategori, cabang_id, minimum_stok, kode_rak, ukuran) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-        const [result] = await promiseDb.query(sql, [nama_brand || null, nama_barang, jumlah || 0, kategori, cabang_id, minimum_stok || 5, kode_rak || null, ukuran || null]);
+        const sql = "INSERT INTO stok (nama_brand, nama_barang, jumlah, kategori, cabang_id, minimum_stok, kode_rak, ukuran, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        const [result] = await promiseDb.query(sql, [nama_brand || null, nama_barang, jumlah || 0, kategori, cabang_id, minimum_stok || 5, kode_rak || null, ukuran || null, req.body.created_at || new Date()]);
 
         res.status(201).json({ message: "Barang berhasil ditambahkan!", id: result.insertId });
     } catch (error) {
@@ -98,8 +98,8 @@ exports.updateStok = async (req, res) => {
         const { nama_brand, nama_barang, jumlah, kategori, cabang_id, minimum_stok, kode_rak, ukuran } = req.body;
 
         const promiseDb = db.promise();
-        const sql = "UPDATE stok SET nama_brand=?, nama_barang=?, jumlah=?, kategori=?, cabang_id=?, minimum_stok=?, kode_rak=?, ukuran=? WHERE id=?";
-        const [result] = await promiseDb.query(sql, [nama_brand || null, nama_barang, jumlah, kategori, cabang_id, minimum_stok, kode_rak || null, ukuran || null, id]);
+        const sql = "UPDATE stok SET nama_brand=?, nama_barang=?, jumlah=?, kategori=?, cabang_id=?, minimum_stok=?, kode_rak=?, ukuran=?, created_at=? WHERE id=?";
+        const [result] = await promiseDb.query(sql, [nama_brand || null, nama_barang, jumlah, kategori, cabang_id, minimum_stok, kode_rak || null, ukuran || null, req.body.created_at || null, id]);
 
         if (result.affectedRows === 0) return res.status(404).json({ message: "Barang tidak ditemukan!" });
         res.status(200).json({ message: "Barang berhasil diperbarui!" });

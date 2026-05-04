@@ -31,6 +31,8 @@ const Login = () => {
                 navigate('/it/dashboard');
             } else if (userRole === 'owner') {
                 navigate('/owner/dashboard');
+            } else if (userRole === 'marketing_online') {
+                navigate('/marketing-online/dashboard');
             } else {
                 navigate('/dashboard');
             }
