@@ -19,8 +19,65 @@ exports.updateApproval = async (req, res) => {
         }
 
         await db.promise().query("UPDATE approvals SET status=?, tanggal_keputusan=NOW() WHERE id=?", [status, id]);
+        
+        // Cek apakah ini approval quotation ke invoice dan statusnya approved
+        const [appData] = await db.promise().query("SELECT * FROM approvals WHERE id=?", [id]);
+        if (appData.length > 0 && appData[0].tipe === 'quotation_to_invoice' && status === 'approved') {
+            const leadId = appData[0].reference_id;
+            const diajukanOleh = appData[0].diajukan_oleh;
+            if (leadId) {
+                if (diajukanOleh === 'Marketing Online') {
+                    // Ambil data order online
+                    const [leadData] = await db.promise().query("SELECT * FROM marketing_orders_online WHERE id=?", [leadId]);
+                    if (leadData.length > 0) {
+                        const order = leadData[0];
+                        const no_invoice = `INV/${new Date().getFullYear()}/` + Math.floor(Math.random() * 10000);
+                        const items = JSON.stringify([{
+                            rincian: order.product_name,
+                            qty: order.qty,
+                            harga_satuan: (order.total_price / order.qty) || 0,
+                            satuan: 'Pcs'
+                        }]);
+                        
+                        await db.promise().query(`
+                            INSERT INTO invoice (no_invoice, cabang, tanggal_transaksi, tanggal_terbit, tanggal_jatuh_tempo, 
+                                                nama_pt, items, subtotal, grand_total, status)
+                            VALUES (?, ?, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL 14 DAY), ?, ?, ?, ?, 'Draft')
+                        `, [no_invoice, 'Banua', order.customer_name, items, order.total_price, order.total_price]);
+                        
+                        await db.promise().query("UPDATE marketing_orders_online SET status='Invoice Created' WHERE id=?", [leadId]);
+                    }
+                } else {
+                    // Ambil data lead offline
+                    const [leadData] = await db.promise().query("SELECT * FROM marketing_leads WHERE id=?", [leadId]);
+                    if (leadData.length > 0) {
+                        const lead = leadData[0];
+                        // Insert ke tabel invoice
+                        const no_invoice = `INV/${new Date().getFullYear()}/` + Math.floor(Math.random() * 10000);
+                        const items = JSON.stringify([{
+                            rincian: lead.produk,
+                            qty: lead.qty,
+                            harga_satuan: lead.harga_awal || 0,
+                            satuan: 'Pcs'
+                        }]);
+                        const grandTotal = lead.harga_potongan || (lead.harga_awal * lead.qty);
+                        
+                        await db.promise().query(`
+                            INSERT INTO invoice (no_invoice, cabang, tanggal_transaksi, tanggal_terbit, tanggal_jatuh_tempo, 
+                                                nama_pt, items, subtotal, grand_total, status)
+                            VALUES (?, ?, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL 14 DAY), ?, ?, ?, ?, 'Draft')
+                        `, [no_invoice, lead.type === 'online' ? 'Banua' : 'Banua', lead.nama_customer, items, grandTotal, grandTotal]);
+                        
+                        // Update status lead
+                        await db.promise().query("UPDATE marketing_leads SET status='Invoice Created' WHERE id=?", [leadId]);
+                    }
+                }
+            }
+        }
+
         res.status(200).json({ status: "success", message: `Pengajuan berhasil di-${status}` });
     } catch (error) {
+        console.error(error);
         res.status(500).json({ message: error.message });
     }
 };

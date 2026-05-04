@@ -21,6 +21,59 @@ exports.getAllStok = async (req, res) => {
     }
 };
 
+exports.getAnalisisStok = async (req, res) => {
+    try {
+        const promiseDb = db.promise();
+        
+        // 1. Fast Moving (Terjual banyak dalam 30 hari terakhir)
+        // Kita menggunakan tabel marketing_orders_online sebagai proksi penjualan. 
+        // Idealnya digabungkan dengan sales_offline jika ada tabelnya.
+        const [fastMoving] = await promiseDb.query(`
+            SELECT s.nama_barang, s.jumlah, SUM(m.qty) as total_terjual 
+            FROM stok s 
+            LEFT JOIN marketing_orders_online m ON s.nama_barang = m.product_name 
+            WHERE m.order_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) 
+            GROUP BY s.nama_barang, s.jumlah 
+            ORDER BY total_terjual DESC 
+            LIMIT 5
+        `);
+
+        // 2. Dead Stock (Stok > 10, tidak ada penjualan dalam 60 hari)
+        const [deadStock] = await promiseDb.query(`
+            SELECT s.nama_barang, s.jumlah 
+            FROM stok s 
+            WHERE s.jumlah > 10 
+            AND s.nama_barang NOT IN (
+                SELECT DISTINCT product_name FROM marketing_orders_online 
+                WHERE order_date >= DATE_SUB(CURDATE(), INTERVAL 60 DAY)
+            )
+            ORDER BY s.jumlah DESC 
+            LIMIT 5
+        `);
+
+        // 3. Stok Menipis (jumlah < minimum_stok)
+        const [stokMenipis] = await promiseDb.query(`
+            SELECT nama_barang, jumlah, minimum_stok 
+            FROM stok 
+            WHERE jumlah < minimum_stok OR jumlah = 0
+            ORDER BY jumlah ASC 
+            LIMIT 5
+        `);
+
+        res.status(200).json({
+            status: "success",
+            data: {
+                fastMoving,
+                deadStock,
+                stokMenipis
+            }
+        });
+    } catch (error) {
+        console.error("Error get analisis stok:", error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
 exports.createStok = async (req, res) => {
     try {
         const { nama_brand, nama_barang, jumlah, kategori, cabang_id, minimum_stok, kode_rak, ukuran } = req.body;

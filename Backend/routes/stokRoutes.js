@@ -3,6 +3,7 @@ const router = express.Router();
 const stokController = require('../controllers/stokController');
 
 router.get('/', stokController.getAllStok);
+router.get('/analisis', stokController.getAnalisisStok);
 router.post('/', stokController.createStok);
 router.put('/:id', stokController.updateStok);
 router.delete('/:id', stokController.deleteStok);

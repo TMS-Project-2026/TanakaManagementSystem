@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import { getGudangDashboard } from '../api/gudangApi';
 import { 
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
@@ -27,8 +28,16 @@ const GudangDashboard = () => {
     const fetchDashboardData = async () => {
         try {
             const res = await getGudangDashboard();
+            const resAnalisis = await axios.get('http://localhost:3000/api/stok/analisis', {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+
             if (res.data.status === 'success') {
-                setData(res.data.data);
+                setData(prev => ({
+                    ...res.data.data,
+                    fastMoving: resAnalisis.data.data.fastMoving,
+                    deadStock: resAnalisis.data.data.deadStock
+                }));
             }
         } catch (error) {
             console.error("Gagal memuat data dashboard gudang", error);
@@ -116,6 +125,54 @@ const GudangDashboard = () => {
                                     </div>
                                 )) : (
                                     <div className="text-center text-sm text-gray-500 py-4">Semua stok aman!</div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
+                        {/* Fast Moving */}
+                        <div className="bg-green-50 p-6 rounded-2xl shadow-sm border border-green-200">
+                            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                <TrendingUp className="text-green-600" /> Fast Moving (30 Hari)
+                            </h3>
+                            <div className="space-y-3">
+                                {data.fastMoving && data.fastMoving.length > 0 ? data.fastMoving.map((item, i) => (
+                                    <div key={i} className="bg-white p-3 rounded-lg border border-green-100 flex justify-between items-center shadow-sm">
+                                        <div>
+                                            <p className="font-bold text-gray-800 text-sm">{item.nama_barang}</p>
+                                            <p className="text-xs text-gray-500">Stok Saat Ini: {item.jumlah}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-xl font-black text-green-600">{item.total_terjual}</p>
+                                            <p className="text-[10px] text-gray-500">Terjual</p>
+                                        </div>
+                                    </div>
+                                )) : (
+                                    <div className="text-center text-sm text-gray-500 py-4">Belum ada data penjualan</div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Dead Stock */}
+                        <div className="bg-red-50 p-6 rounded-2xl shadow-sm border border-red-200 lg:col-span-2">
+                            <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                <AlertTriangle className="text-red-600" /> Dead Stock / Stok Menumpuk (> 60 Hari)
+                            </h3>
+                            <p className="text-xs text-gray-500 mb-4 font-medium">Suggestion: Segera buat promo atau flash sale untuk barang di bawah ini.</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {data.deadStock && data.deadStock.length > 0 ? data.deadStock.map((item, i) => (
+                                    <div key={i} className="bg-white p-3 rounded-lg border border-red-100 flex justify-between items-center shadow-sm">
+                                        <div>
+                                            <p className="font-bold text-gray-800 text-sm">{item.nama_barang}</p>
+                                            <p className="text-xs text-gray-500 text-red-500 font-semibold mt-1">Tidak laku > 2 bulan</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-xl font-black text-red-600">{item.jumlah}</p>
+                                            <p className="text-[10px] text-gray-500">Stok Tersisa</p>
+                                        </div>
+                                    </div>
+                                )) : (
+                                    <div className="text-center text-sm text-gray-500 py-4 col-span-full">Semua stok berputar dengan baik!</div>
                                 )}
                             </div>
                         </div>

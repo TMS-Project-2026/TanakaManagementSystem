@@ -11,11 +11,13 @@ const Sidebar = () => {
   // Dapatkan info user dari localStorage
   const user = JSON.parse(localStorage.getItem('user')) || {};
   const userRole = user.role || '';
+  console.log('Sidebar userRole:', userRole);
 
   const allMenuItems = [
     { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} />, roles: ['Admin', 'Manager', 'Marketing'], group: 'Sales' },
-    { name: 'Order Offline', path: '/marketing', icon: <Users size={20} />, roles: ['Admin', 'Manager', 'Marketing'], group: 'Sales' },
+    { name: 'Order Offline', path: '/marketing', icon: <Users size={20} />, roles: ['Admin', 'Manager', 'Marketing', 'marketing_offline'], group: 'Sales' },
     { name: 'Order Marketplace', path: '/sales-online', icon: <ShoppingBag size={20} />, roles: ['Admin', 'Manager', 'Marketing'], group: 'Sales' },
+    { name: 'Marketplace Banua', path: '/marketing-online', icon: <ShoppingBag size={20} />, roles: ['marketing_online'], group: 'Sales' },
     { name: 'Dashboard Gudang', path: '/gudang', icon: <LayoutDashboard size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Barang Masuk', path: '/barang-masuk', icon: <TrendingUp size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Barang Keluar', path: '/barang-keluar', icon: <TrendingDown size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
@@ -63,13 +65,18 @@ const Sidebar = () => {
   ];
 
   // Saring menu berdasarkan role (Pastikan item memiliki properti name)
-  const menuItems = allMenuItems.filter(item => {
+  let menuItems = allMenuItems.filter(item => {
     if (!item.name) return false;
     const hasRole = item.roles.some(r => r.toLowerCase() === userRole.toLowerCase());
     // Owner tidak melihat daftar Produksi pada sidebar
     if (userRole.toLowerCase() === 'owner' && item.group === 'Produksi') return false;
     return hasRole;
   });
+  // Debug fallback: if no menu items match, show all to ensure visibility
+  if (menuItems.length === 0) {
+    console.warn('Sidebar: No menu items matched role, showing all items for debugging.');
+    menuItems = allMenuItems;
+  }
 
   const handleLogout = () => {
     if (window.confirm("Apakah Anda yakin ingin keluar?")) {

@@ -7,6 +7,7 @@ const { verifyToken } = require('../middlewares/authMiddleware');
 router.get('/', verifyToken, marketingController.getLeads);
 router.post('/', verifyToken, marketingController.addLead);
 router.put('/:id', verifyToken, marketingController.updateStatus);
+router.post('/:id/ajukan-finance', verifyToken, marketingController.ajukanKeFinance);
 router.delete('/:id', verifyToken, marketingController.deleteLead);
 
 module.exports = router;

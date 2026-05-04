@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Marketing from './pages/Marketing';
+import MarketingOnlineBanua from './pages/MarketingOnlineBanua';
 
 import Promo from './pages/Promo';
 import SalesOnline from './pages/SalesOnline';
@@ -65,26 +66,29 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   const user = JSON.parse(localStorage.getItem('user'));
 
   if (!token || !user) {
-    console.warn("Akses ditolak: Token atau User tidak ditemukan.");
-    return <Navigate to="/" replace />;
+    console.warn('Akses ditolak: Token atau User tidak ditemukan.');
+    return <Navigate to='/' replace />;
   }
 
-  // Jika allowedRoles didefinisikan dan role user tidak ada di dalamnya
-  if (allowedRoles && user.role !== 'owner' && !allowedRoles.some(r => r.toLowerCase() === user.role.toLowerCase())) {
+  const userRole = (user.role || '').toLowerCase();
+
+  // Owner bypass – owners can access any route they are allowed to
+  if (userRole === 'owner') {
+    return children;
+  }
+
+
+  if (allowedRoles && !allowedRoles.some(r => r.toLowerCase() === userRole)) {
     console.warn(`Akses ditolak: Role ${user.role} tidak diizinkan masuk.`);
-    // Arahkan ke dashboard spesifik berdasarkan rolenya agar tidak stuck
-    const lowerRole = user.role.toLowerCase();
-    if (lowerRole === 'finance') return <Navigate to="/finance" replace />;
-    if (lowerRole === 'gudang') return <Navigate to="/gudang" replace />;
-    if (lowerRole === 'produksi') return <Navigate to="/produksi/dashboard" replace />;
-    if (lowerRole === 'admin_it') return <Navigate to="/it/dashboard" replace />;
-    if (lowerRole === 'owner') return <Navigate to="/owner/dashboard" replace />;
-    return <Navigate to="/dashboard" replace />;
+    if (userRole === 'finance') return <Navigate to='/finance' replace />;
+    if (userRole === 'gudang') return <Navigate to='/gudang' replace />;
+    if (userRole === 'produksi') return <Navigate to='/produksi/dashboard' replace />;
+    if (userRole === 'admin_it') return <Navigate to='/it/dashboard' replace />;
+    return <Navigate to='/dashboard' replace />;
   }
 
   return children;
 };
-
 function App() {
   return (
     <Router>
@@ -94,15 +98,19 @@ function App() {
         <Route path="/" element={<Login />} />
 
         {/* PROTECTED (Hanya bisa diakses kalau sudah login dan punya akses role) */}
-        {/* Dashboard Umum (Admin, Manager, Marketing) */}
         <Route path="/dashboard" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Marketing']}>
+          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Marketing', 'marketing_online', 'marketing_offline']}>
             <Dashboard />
           </ProtectedRoute>
         } />
         <Route path="/marketing" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Marketing']}>
+          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Marketing', 'marketing_online', 'marketing_offline']}>
             <Marketing />
+          </ProtectedRoute>
+        } />
+        <Route path="/marketing-online" element={
+          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'marketing_online']}>
+            <MarketingOnlineBanua />
           </ProtectedRoute>
         } />
         <Route path="/gudang" element={
@@ -146,12 +154,12 @@ function App() {
           </ProtectedRoute>
         } />
         <Route path="/promo" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Marketing']}>
+          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Marketing', 'marketing_online', 'marketing_offline']}>
             <Promo />
           </ProtectedRoute>
         } />
         <Route path="/sales-online" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Marketing']}>
+          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Marketing', 'marketing_online', 'marketing_offline']}>
             <SalesOnline />
           </ProtectedRoute>
         } />

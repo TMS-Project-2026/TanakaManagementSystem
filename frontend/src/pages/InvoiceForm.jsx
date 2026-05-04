@@ -19,8 +19,10 @@ const InvoiceForm = () => {
         alamat_pt: '',
         cp_penagihan: '',
         email: '',
+        up_penagihan: '',
         deskripsi: '',
         detail_pekerjaan: '',
+        items: [{ rincian: '', qty: 1, harga_satuan: 0, satuan: 'Pcs' }],
         qty: 1,
         harga_satuan: 0,
         subtotal: 0,
@@ -46,7 +48,13 @@ const InvoiceForm = () => {
 
     // Auto calculate totals
     useEffect(() => {
-        const subtotal = Number(form.qty) * Number(form.harga_satuan);
+        let subtotal = 0;
+        if (form.items && form.items.length > 0) {
+            subtotal = form.items.reduce((acc, item) => acc + (Number(item.qty) * Number(item.harga_satuan)), 0);
+        } else {
+            subtotal = Number(form.qty) * Number(form.harga_satuan);
+        }
+
         const jumlah_ppn = subtotal * (Number(form.ppn_persen) / 100);
         const grand_total = subtotal + jumlah_ppn;
 
@@ -56,34 +64,50 @@ const InvoiceForm = () => {
             jumlah_ppn,
             grand_total
         }));
-    }, [form.qty, form.harga_satuan, form.ppn_persen]);
+    }, [form.qty, form.harga_satuan, form.ppn_persen, form.items]);
 
     // Auto update note based on cabang
     useEffect(() => {
         let defaultNote = '';
         if (form.cabang === 'Banua') {
-            defaultNote = `PAYMENT METHODE :
-Silahkan lakukan pembayaran melalui :
-Nama Bank      : BANK RAKYAT INDONESIA (BRI)
-Cabang Bank    : Yogyakarta
-Nomor Rekening : 2099 0100 0545 304
-Nama Rekening  : PT BANUA MITRA LESTARI
-SWIFT Code     : BRINIDJA`;
+            defaultNote = `PAYMENT METHOD :
+Term of Payment           : 
+Bank                      : BANK RAKYAT INDONESIA (BRI)
+Cabang                    : Yogyakarta
+No. Rekening              : 2099 0100 0545 304
+Atas Nama                 : PT BANUA MITRA LESTARI`;
         } else if (form.cabang === 'Tanaka') {
-            defaultNote = `PAYMENT METHODE :
-Silahkan lakukan pembayaran melalui :
-Nama Bank      : BANK RAKYAT INDONESIA (BRI)
-Cabang Bank    : Yogyakarta
-Nomor Rekening : 2099 0100 0495 305
-Nama Rekening  : PT TANAKA RIZQI BAROKAH
-SWIFT Code     : BRINIDJA`;
+            defaultNote = `PAYMENT METHOD :
+Term of Payment           : 
+Bank                      : BANK RAKYAT INDONESIA (BRI)
+Cabang                    : Yogyakarta
+No. Rekening              : 2099 0100 0495 305
+Atas Nama                 : PT TANAKA RIZQI BAROKAH`;
         }
-        
+
         setForm(prev => ({
             ...prev,
             note: defaultNote
         }));
     }, [form.cabang]);
+
+    const handleItemChange = (index, e) => {
+        const { name, value } = e.target;
+        const newItems = [...form.items];
+        newItems[index][name] = value;
+        setForm({ ...form, items: newItems });
+    };
+
+    const addItem = () => {
+        setForm({ ...form, items: [...form.items, { rincian: '', qty: 1, harga_satuan: 0, satuan: 'Pcs' }] });
+    };
+
+    const removeItem = (index) => {
+        if (form.items.length > 1) {
+            const newItems = form.items.filter((_, i) => i !== index);
+            setForm({ ...form, items: newItems });
+        }
+    };
 
     const fetchInvoice = async () => {
         try {
@@ -95,6 +119,7 @@ SWIFT Code     : BRINIDJA`;
                     tanggal_transaksi: data.tanggal_transaksi ? data.tanggal_transaksi.split('T')[0] : '',
                     tanggal_terbit: data.tanggal_terbit ? data.tanggal_terbit.split('T')[0] : '',
                     tanggal_jatuh_tempo: data.tanggal_jatuh_tempo ? data.tanggal_jatuh_tempo.split('T')[0] : '',
+                    items: typeof data.items === 'string' ? JSON.parse(data.items) : (data.items || [{ rincian: '', qty: data.qty || 1, harga_satuan: data.harga_satuan || 0, satuan: 'Pcs' }]),
                     materai: Boolean(data.materai),
                     ttd: Boolean(data.ttd)
                 });
@@ -160,9 +185,9 @@ SWIFT Code     : BRINIDJA`;
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">Cabang Asal *</label>
                                     <select name="cabang" value={form.cabang} onChange={handleChange} required className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 focus:border-[#990000] outline-none bg-white">
-                                        <option value="Banua">Banua</option>
-                                        <option value="Tanaka">Tanaka</option>
-                                        <option value="Acestreet">Acestreet</option>
+                                        <option value="Banua">PT Banua Mitra Lestari</option>
+                                        <option value="Tanaka">PT Tanaka Rizqi Barokah</option>
+                                        <option value="Acestreet">PT Acestreet</option>
                                     </select>
                                 </div>
                                 <div>
@@ -207,8 +232,12 @@ SWIFT Code     : BRINIDJA`;
                                     <textarea name="alamat_pt" value={form.alamat_pt} onChange={handleChange} required rows={2} placeholder="Alamat lengkap pengiriman invoice..." className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none resize-none"></textarea>
                                 </div>
                                 <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">UP (Nama) Penagihan</label>
+                                    <input type="text" name="up_penagihan" value={form.up_penagihan} onChange={handleChange} placeholder="Bpk. Budi" className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none" />
+                                </div>
+                                <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">Contact Person (CP) Penagihan</label>
-                                    <input type="text" name="cp_penagihan" value={form.cp_penagihan} onChange={handleChange} placeholder="Bpk. Budi (0812...)" className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none" />
+                                    <input type="text" name="cp_penagihan" value={form.cp_penagihan} onChange={handleChange} placeholder="0812..." className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none" />
                                 </div>
                             </div>
                         </div>
@@ -216,32 +245,46 @@ SWIFT Code     : BRINIDJA`;
                         {/* 3. Detail Tagihan */}
                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                             <h3 className="text-lg font-bold border-b border-gray-100 pb-3 mb-4 text-[#990000]">DETAIL TAGIHAN</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
-                                <div className="md:col-span-6">
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Deskripsi Utama</label>
-                                    <input type="text" name="deskripsi" value={form.deskripsi} onChange={handleChange} placeholder="Pembayaran Termin 1 / Tagihan Order..." className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none mb-4" />
 
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Detail Pekerjaan / Item</label>
-                                    <textarea name="detail_pekerjaan" value={form.detail_pekerjaan} onChange={handleChange} rows={4} placeholder="Rincian pekerjaan yang ditagihkan..." className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none resize-none"></textarea>
-                                </div>
+                            <div className="mb-6">
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">Deskripsi Utama</label>
+                                <input type="text" name="deskripsi" value={form.deskripsi} onChange={handleChange} placeholder="Pembayaran Termin 1 / Tagihan Order..." className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none" />
+                            </div>
 
-                                <div className="md:col-span-6 space-y-4 bg-gray-50 p-4 rounded-xl border border-gray-200">
-                                    <div className="flex items-center justify-between gap-4">
-                                        <label className="text-sm font-semibold text-gray-700 w-1/3">Qty</label>
-                                        <input type="number" name="qty" value={form.qty} onChange={handleChange} min="1" className="w-2/3 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-right" />
+                            <div className="space-y-4 mb-6">
+                                <label className="block text-sm font-semibold text-gray-700">Rincian Item / Pekerjaan</label>
+                                {form.items && form.items.map((item, index) => (
+                                    <div key={index} className="flex gap-4 items-center bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                        <div className="flex-1">
+                                            <input type="text" name="rincian" value={item.rincian} onChange={(e) => handleItemChange(index, e)} placeholder="Rincian (contoh: Seragam Ukuran XL)" className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none" />
+                                        </div>
+                                        <div className="w-24">
+                                            <input type="number" name="qty" value={item.qty} onChange={(e) => handleItemChange(index, e)} min="1" placeholder="Qty" className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-center" />
+                                        </div>
+                                        <div className="w-24">
+                                            <input type="text" name="satuan" value={item.satuan} onChange={(e) => handleItemChange(index, e)} placeholder="Pcs/Unit" className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-center" />
+                                        </div>
+                                        <div className="w-40">
+                                            <input type="number" name="harga_satuan" value={item.harga_satuan} onChange={(e) => handleItemChange(index, e)} min="0" placeholder="Harga Satuan" className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-right" />
+                                        </div>
+                                        <div className="w-10 text-center">
+                                            <button type="button" onClick={() => removeItem(index)} className="text-red-500 hover:text-red-700 font-bold p-2 bg-white rounded-md border border-red-200">X</button>
+                                        </div>
                                     </div>
+                                ))}
+                                <button type="button" onClick={addItem} className="text-sm font-semibold text-[#990000] bg-red-50 px-4 py-2 rounded-lg border border-red-100 hover:bg-red-100 transition-colors">+ Tambah Item</button>
+                            </div>
+
+                            <div className="flex justify-end">
+                                <div className="w-full md:w-1/2 lg:w-1/3 space-y-4 bg-gray-50 p-5 rounded-xl border border-gray-200">
                                     <div className="flex items-center justify-between gap-4">
-                                        <label className="text-sm font-semibold text-gray-700 w-1/3">Harga Satuan (Rp)</label>
-                                        <input type="number" name="harga_satuan" value={form.harga_satuan} onChange={handleChange} min="0" className="w-2/3 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-right" />
-                                    </div>
-                                    <div className="flex items-center justify-between gap-4 pt-2 border-t border-gray-200">
                                         <label className="text-sm font-semibold text-gray-700 w-1/3">Subtotal</label>
                                         <span className="w-2/3 text-right font-bold text-gray-800">Rp {form.subtotal.toLocaleString('id-ID')}</span>
                                     </div>
                                     <div className="flex items-center justify-between gap-4">
                                         <label className="text-sm font-semibold text-gray-700 w-1/3">PPN (%)</label>
-                                        <input type="number" name="ppn_persen" value={form.ppn_persen} onChange={handleChange} min="0" max="100" className="w-1/4 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-right" />
-                                        <span className="w-5/12 text-right text-sm text-gray-600">Rp {form.jumlah_ppn.toLocaleString('id-ID')}</span>
+                                        <input type="number" name="ppn_persen" value={form.ppn_persen} onChange={handleChange} min="0" max="100" className="w-1/3 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-right" />
+                                        <span className="w-1/3 text-right text-sm text-gray-600">Rp {form.jumlah_ppn.toLocaleString('id-ID')}</span>
                                     </div>
                                     <div className="flex items-center justify-between gap-4 pt-4 border-t-2 border-gray-300">
                                         <label className="text-base font-extrabold text-[#990000] w-1/3">GRAND TOTAL</label>
@@ -263,25 +306,21 @@ SWIFT Code     : BRINIDJA`;
                                 <div className="space-y-4">
                                     <div className="flex gap-4">
                                         <label className="flex items-center gap-2 cursor-pointer bg-gray-50 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors">
-                                            <input type="checkbox" name="materai" checked={form.materai} onChange={handleChange} className="w-4 h-4 text-[#990000] focus:ring-[#990000] rounded" />
-                                            <span className="text-sm font-medium text-gray-700">Tampilkan Materai</span>
-                                        </label>
-                                        <label className="flex items-center gap-2 cursor-pointer bg-gray-50 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors">
                                             <input type="checkbox" name="ttd" checked={form.ttd} onChange={handleChange} className="w-4 h-4 text-[#990000] focus:ring-[#990000] rounded" />
                                             <span className="text-sm font-medium text-gray-700">Tempat Tanda Tangan</span>
                                         </label>
                                     </div>
                                     <div className="pt-2 border-t border-gray-100">
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Accounting (Kiri)</label>
-                                        <input type="text" name="nama_accounting" value={form.nama_accounting} onChange={handleChange} placeholder="Nama Staf Accounting" className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none" />
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Pembuat (Prepared by - Kiri)</label>
+                                        <input type="text" name="nama_accounting" value={form.nama_accounting} onChange={handleChange} placeholder="Nama Staf Marketing" className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none" />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Direktur (Kanan)</label>
-                                        <input type="text" name="penanggung_jawab" value={form.penanggung_jawab} onChange={handleChange} placeholder="Ahmad Tanaka" className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none" />
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Penyetuju (Approved by - Kanan)</label>
+                                        <input type="text" name="penanggung_jawab" value={form.penanggung_jawab} onChange={handleChange} placeholder="Nama Accounting" className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none" />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Jabatan (Kanan)</label>
-                                        <input type="text" name="jabatan" value={form.jabatan} onChange={handleChange} placeholder="Direktur Utama" className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none" />
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Jabatan Penyetuju (Kanan)</label>
+                                        <input type="text" name="jabatan" value={form.jabatan} onChange={handleChange} placeholder="Accounting" className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none" />
                                     </div>
                                 </div>
                             </div>
