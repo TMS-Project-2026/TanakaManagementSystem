@@ -16,6 +16,7 @@ const produkRoutes = require('./routes/produkRoutes');
 const marketingRoutes = require('./routes/marketingRoutes');
 const salesOnlineRoutes = require('./routes/salesOnlineRoutes'); // Khusus Excel
 const marketingOnlineBanuaRoutes = require('./routes/marketingOnlineBanuaRoutes'); // Khusus Marketing Online Banua
+const marketingOfflineBanuaRoutes = require('./routes/marketingOfflineBanuaRoutes');
 const salesRoutes = require('./routes/salesRoutes'); // Untuk Order B2B
 const promoRoutes = require('./routes/promoRoutes'); // Menambahkan rute promo
 const financeRoutes = require('./routes/financeRoutes');
@@ -42,6 +43,7 @@ app.use('/api/produk', produkRoutes);
 app.use('/api/marketing', marketingRoutes);
 app.use('/api/sales-online', salesOnlineRoutes); 
 app.use('/api/marketing-online-banua', marketingOnlineBanuaRoutes);
+app.use('/api/marketing-offline', marketingOfflineBanuaRoutes);
 app.use('/api/sales', salesRoutes);
 app.use('/api/promo', promoRoutes); // Mendaftarkan API Promo
 app.use('/api/finance', financeRoutes);

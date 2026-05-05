@@ -18,6 +18,7 @@ router.get('/users', ownerController.getUsers);
 router.get('/report', reportController.getReport);
 
 // Approval Center
+router.get('/approval/pending/count', approvalController.getPendingCount);
 router.get('/approval', approvalController.getApprovals);
 router.put('/approval/:id', approvalController.updateApproval);
 

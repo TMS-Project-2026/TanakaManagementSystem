@@ -36,7 +36,7 @@ const ApprovalCenter = () => {
                 <div className="max-w-7xl mx-auto">
                     <div className="mb-8 border-l-4 border-[#990000] pl-4">
                         <h1 className="text-3xl font-black text-gray-900 tracking-tight">Approval <span className="text-[#990000]">Center</span></h1>
-                        <p className="text-gray-500 font-medium mt-1">Pusat persetujuan khusus Owner (Pengeluaran, Pembelian, Refund).</p>
+                        <p className="text-gray-500 font-medium mt-1">Pusat persetujuan khusus Finance (Pengeluaran, Pembelian, Refund, Quotation).</p>
                     </div>
 
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">

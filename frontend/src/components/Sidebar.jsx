@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import axios from 'axios';
 import { LayoutDashboard, Users, Package, Gift, LogOut, ShoppingBag, DollarSign, Menu, X, CreditCard, Receipt, FileText, PieChart, Settings, TrendingUp, TrendingDown, ArrowRightLeft, AlertTriangle, Monitor, Shield, Activity, HardDrive, Sliders, MapPin, Layers, Calendar, Clock, CheckCircle } from 'lucide-react';
 import LogoTanaka from '../assets/logotanaka.jpeg';
 
@@ -11,13 +12,39 @@ const Sidebar = () => {
   // Dapatkan info user dari localStorage
   const user = JSON.parse(localStorage.getItem('user')) || {};
   const userRole = user.role || '';
-  console.log('Sidebar userRole:', userRole);
+  
+  const [pendingApprovals, setPendingApprovals] = useState(0);
+
+  useEffect(() => {
+    if (['Finance', 'Admin', 'Manager', 'owner'].includes(userRole)) {
+      const fetchPendingCount = async () => {
+        try {
+          const res = await axios.get('http://localhost:3000/api/owner/approval/pending/count', {
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+          });
+          setPendingApprovals(res.data.count);
+        } catch (err) {
+          console.error('Error fetching pending approvals:', err);
+        }
+      };
+      fetchPendingCount();
+      // Optional: Polling setiap 30 detik agar realtime
+      const intervalId = setInterval(fetchPendingCount, 30000);
+      return () => clearInterval(intervalId);
+    }
+  }, [userRole]);
 
   const allMenuItems = [
     { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} />, roles: ['Admin', 'Manager', 'Marketing'], group: 'Sales' },
-    { name: 'Order Offline', path: '/marketing', icon: <Users size={20} />, roles: ['Admin', 'Manager', 'Marketing', 'marketing_offline'], group: 'Sales' },
+    { name: 'Order Offline', path: '/marketing', icon: <Users size={20} />, roles: ['Admin', 'Manager', 'Marketing'], group: 'Sales' },
     { name: 'Order Marketplace', path: '/sales-online', icon: <ShoppingBag size={20} />, roles: ['Admin', 'Manager', 'Marketing'], group: 'Sales' },
-    { name: 'Marketplace Banua', path: '/marketing-online', icon: <ShoppingBag size={20} />, roles: ['marketing_online'], group: 'Sales' },
+    { name: 'Marketplace Banua', path: '/marketing-online-banua', icon: <ShoppingBag size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_online'], group: 'Sales' },
+    { name: 'Dashboard Banua', path: '/marketing-offline/dashboard', icon: <TrendingUp size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline'], group: 'Offline Banua' },
+    { name: 'Customers', path: '/marketing-offline/customers', icon: <Users size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline'], group: 'Offline Banua' },
+    { name: 'Quotations', path: '/marketing-offline/quotations', icon: <FileText size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline'], group: 'Offline Banua' },
+    { name: 'Order Manual', path: '/marketing-offline/orders', icon: <ShoppingBag size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline'], group: 'Offline Banua' },
+    { name: 'Reports', path: '/marketing-offline/reports', icon: <Activity size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline'], group: 'Offline Banua' },
+    { name: 'Stok Inventory', path: '/marketing-offline/inventory', icon: <Package size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline'], group: 'Offline Banua' },
     { name: 'Dashboard Gudang', path: '/gudang', icon: <LayoutDashboard size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Barang Masuk', path: '/barang-masuk', icon: <TrendingUp size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Barang Keluar', path: '/barang-keluar', icon: <TrendingDown size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
@@ -31,6 +58,7 @@ const Sidebar = () => {
     { name: 'Journal', path: '/journal', icon: <FileText size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Finance' },
     { name: 'Chart of Accounts', path: '/chart-of-accounts', icon: <Activity size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Finance' },
     { name: 'Invoice', path: '/invoice', icon: <Receipt size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Finance' },
+    { name: 'Approval Center', path: '/finance/approval', icon: <Shield size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Finance', hasBadge: true },
     { name: 'Report Center', path: '/report/laba-rugi', icon: <FileText size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Finance' },
 
     { name: 'Dashboard IT', path: '/it/dashboard', icon: <Monitor size={20} />, roles: ['admin_it', 'Admin'], group: 'System' },
@@ -48,7 +76,6 @@ const Sidebar = () => {
     { name: 'Warehouse Overview', path: '/owner/gudang', icon: <Package size={20} />, roles: ['owner'], group: 'Owner' },
     { name: 'Branch Performance', path: '/owner/cabang', icon: <MapPin size={20} />, roles: ['owner'], group: 'Owner' },
     { name: 'Reports & Analytics', path: '/owner/report', icon: <FileText size={20} />, roles: ['owner'], group: 'Owner' },
-    { name: 'Approval Center', path: '/owner/approval', icon: <Shield size={20} />, roles: ['owner'], group: 'Owner' },
     { name: 'User Summary', path: '/owner/users', icon: <Users size={20} />, roles: ['owner'], group: 'Owner' },
 
     // MENU PRODUKSI
@@ -144,16 +171,26 @@ const Sidebar = () => {
                   )}
 
                   <div
-                    onClick={() => navigate(item.path)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all duration-200 ${isActive
+                    onClick={() => {
+                      if (item.path && !item.subMenu) navigate(item.path);
+                    }}
+                    className={`w-full flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-300
+                      ${isActive
                       ? 'bg-red-800 text-white font-bold shadow-md'
                       : 'text-gray-600 hover:bg-red-50 hover:text-red-800'
                       }`}
                   >
-                    <div className={isActive ? 'text-white' : 'text-gray-400'}>
-                      {item.icon}
+                    <div className="flex items-center gap-3">
+                      <div className={isActive ? 'text-white' : 'text-gray-400'}>
+                        {item.icon}
+                      </div>
+                      <span className="text-sm">{item.name}</span>
                     </div>
-                    <span className="text-sm">{item.name}</span>
+                    {item.hasBadge && pendingApprovals > 0 && (
+                      <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm">
+                        {pendingApprovals}
+                      </span>
+                    )}
                   </div>
 
                   {/* Submenu (Hanya jika ada) */}

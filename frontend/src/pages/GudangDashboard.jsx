@@ -16,7 +16,6 @@ const GudangDashboard = () => {
         stokMenipisCount: 0,
         totalSparepart: 0,
         chartData: [],
-        chartData: [],
         hampirHabis: []
     });
     const [showProfile, setShowProfile] = useState(false);
@@ -156,7 +155,7 @@ const GudangDashboard = () => {
                         {/* Dead Stock */}
                         <div className="bg-red-50 p-6 rounded-2xl shadow-sm border border-red-200 lg:col-span-2">
                             <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                <AlertTriangle className="text-red-600" /> Dead Stock / Stok Menumpuk (> 60 Hari)
+                                <AlertTriangle className="text-red-600" /> Dead Stock / Stok Menumpuk ({'>'}60 Hari)
                             </h3>
                             <p className="text-xs text-gray-500 mb-4 font-medium">Suggestion: Segera buat promo atau flash sale untuk barang di bawah ini.</p>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -164,7 +163,7 @@ const GudangDashboard = () => {
                                     <div key={i} className="bg-white p-3 rounded-lg border border-red-100 flex justify-between items-center shadow-sm">
                                         <div>
                                             <p className="font-bold text-gray-800 text-sm">{item.nama_barang}</p>
-                                            <p className="text-xs text-gray-500 text-red-500 font-semibold mt-1">Tidak laku > 2 bulan</p>
+                                            <p className="text-xs text-gray-500 text-red-500 font-semibold mt-1">Tidak laku {'>'}2 bulan</p>
                                         </div>
                                         <div className="text-right">
                                             <p className="text-xl font-black text-red-600">{item.jumlah}</p>

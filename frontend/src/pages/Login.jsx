@@ -31,6 +31,10 @@ const Login = () => {
                 navigate('/it/dashboard');
             } else if (userRole === 'owner') {
                 navigate('/owner/dashboard');
+            } else if (userRole === 'marketing_online') {
+                navigate('/marketing-online-banua');
+            } else if (userRole === 'marketing_offline') {
+                navigate('/marketing-offline/dashboard');
             } else {
                 navigate('/dashboard');
             }

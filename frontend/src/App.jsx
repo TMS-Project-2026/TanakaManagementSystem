@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Marketing from './pages/Marketing';
 import MarketingOnlineBanua from './pages/MarketingOnlineBanua';
+import MarketingOfflineBanua from './pages/MarketingOfflineBanua';
 
 import Promo from './pages/Promo';
 import SalesOnline from './pages/SalesOnline';
@@ -108,11 +109,22 @@ function App() {
             <Marketing />
           </ProtectedRoute>
         } />
-        <Route path="/marketing-online" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'marketing_online']}>
-            <MarketingOnlineBanua />
-          </ProtectedRoute>
-        } />
+        <Route 
+          path="/marketing-online-banua" 
+          element={
+            <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'marketing_online']}>
+              <MarketingOnlineBanua />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/marketing-offline/*" 
+          element={
+            <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'marketing_offline']}>
+              <MarketingOfflineBanua />
+            </ProtectedRoute>
+          } 
+        />
         <Route path="/gudang" element={
           <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Gudang']}>
             <GudangDashboard />
@@ -253,7 +265,7 @@ function App() {
         <Route path="/owner/gudang" element={<ProtectedRoute allowedRoles={['owner']}><GudangOverview /></ProtectedRoute>} />
         <Route path="/owner/produksi" element={<ProtectedRoute allowedRoles={['owner']}><ProduksiOverview /></ProtectedRoute>} />
         <Route path="/owner/report/*" element={<ProtectedRoute allowedRoles={['owner']}><ReportCenter /></ProtectedRoute>} />
-        <Route path="/owner/approval" element={<ProtectedRoute allowedRoles={['owner']}><ApprovalCenter /></ProtectedRoute>} />
+        <Route path="/finance/approval" element={<ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance']}><ApprovalCenter /></ProtectedRoute>} />
         <Route path="/owner/cabang" element={<ProtectedRoute allowedRoles={['owner']}><CabangPerformance /></ProtectedRoute>} />
         <Route path="/owner/users" element={<ProtectedRoute allowedRoles={['owner']}><UserSummary /></ProtectedRoute>} />
 
