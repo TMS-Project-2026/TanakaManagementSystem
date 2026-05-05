@@ -30,9 +30,9 @@ exports.createBarangMasuk = async (req, res) => {
         const sqlInsert = "INSERT INTO barang_masuk (transaksi_id, barang_id, jumlah, tanggal, supplier) VALUES (?, ?, ?, ?, ?)";
         await promiseDb.query(sqlInsert, [transaksi_id || null, barang_id, jumlah, tanggal, supplier]);
         
-        // 2. Update stok
-        const sqlUpdate = "UPDATE stok SET jumlah = jumlah + ? WHERE id = ?";
-        await promiseDb.query(sqlUpdate, [jumlah, barang_id]);
+        // 2. Update stok (jumlah dan tanggal masuk terbaru)
+        const sqlUpdate = "UPDATE stok SET jumlah = jumlah + ?, created_at = ? WHERE id = ?";
+        await promiseDb.query(sqlUpdate, [jumlah, tanggal, barang_id]);
 
         res.status(201).json({ message: "Barang masuk berhasil dicatat dan stok bertambah!" });
     } catch (error) {

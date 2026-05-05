@@ -32,9 +32,11 @@ const Login = () => {
             } else if (userRole === 'owner') {
                 navigate('/owner/dashboard');
             } else if (userRole === 'marketing_online') {
-                navigate('/marketing-online-banua');
+                navigate('/marketing-online/dashboard');
             } else if (userRole === 'marketing_offline') {
                 navigate('/marketing-offline/dashboard');
+            } else if (userRole === 'marketing') {
+                navigate('/marketing');
             } else {
                 navigate('/dashboard');
             }

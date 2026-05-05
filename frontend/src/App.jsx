@@ -85,6 +85,8 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     if (userRole === 'gudang') return <Navigate to='/gudang' replace />;
     if (userRole === 'produksi') return <Navigate to='/produksi/dashboard' replace />;
     if (userRole === 'admin_it') return <Navigate to='/it/dashboard' replace />;
+    if (userRole === 'marketing_online') return <Navigate to='/marketing-online/dashboard' replace />;
+    if (userRole === 'marketing_offline') return <Navigate to='/marketing-offline/dashboard' replace />;
     return <Navigate to='/dashboard' replace />;
   }
 
@@ -100,7 +102,7 @@ function App() {
 
         {/* PROTECTED (Hanya bisa diakses kalau sudah login dan punya akses role) */}
         <Route path="/dashboard" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Marketing', 'marketing_online', 'marketing_offline']}>
+          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Marketing', 'marketing_offline']}>
             <Dashboard />
           </ProtectedRoute>
         } />
@@ -110,14 +112,6 @@ function App() {
           </ProtectedRoute>
         } />
         <Route 
-          path="/marketing-online-banua" 
-          element={
-            <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'marketing_online']}>
-              <MarketingOnlineBanua />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
           path="/marketing-offline/*" 
           element={
             <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'marketing_offline']}>
@@ -125,6 +119,12 @@ function App() {
             </ProtectedRoute>
           } 
         />
+        <Route path="/marketing-online" element={<Navigate to="/marketing-online/dashboard" replace />} />
+        <Route path="/marketing-online/:tab/:subtab?" element={
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'marketing_online', 'Marketing']}>
+            <MarketingOnlineBanua />
+          </ProtectedRoute>
+        } />
         <Route path="/gudang" element={
           <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Gudang']}>
             <GudangDashboard />

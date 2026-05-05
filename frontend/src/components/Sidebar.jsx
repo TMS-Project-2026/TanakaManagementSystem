@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { LayoutDashboard, Users, Package, Gift, LogOut, ShoppingBag, DollarSign, Menu, X, CreditCard, Receipt, FileText, PieChart, Settings, TrendingUp, TrendingDown, ArrowRightLeft, AlertTriangle, Monitor, Shield, Activity, HardDrive, Sliders, MapPin, Layers, Calendar, Clock, CheckCircle } from 'lucide-react';
+import { LayoutDashboard, Users, Package, Gift, LogOut, ShoppingBag, DollarSign, Menu, X, CreditCard, Receipt, FileText, PieChart, Settings, TrendingUp, TrendingDown, ArrowRightLeft, AlertTriangle, Monitor, Shield, Activity, HardDrive, Sliders, MapPin, Layers, Calendar, Clock, CheckCircle, ChevronDown } from 'lucide-react';
 import LogoTanaka from '../assets/logotanaka.jpeg';
 
 const Sidebar = () => {
@@ -38,19 +38,33 @@ const Sidebar = () => {
     { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} />, roles: ['Admin', 'Manager', 'Marketing'], group: 'Sales' },
     { name: 'Order Offline', path: '/marketing', icon: <Users size={20} />, roles: ['Admin', 'Manager', 'Marketing'], group: 'Sales' },
     { name: 'Order Marketplace', path: '/sales-online', icon: <ShoppingBag size={20} />, roles: ['Admin', 'Manager', 'Marketing'], group: 'Sales' },
-    { name: 'Marketplace Banua', path: '/marketing-online-banua', icon: <ShoppingBag size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_online'], group: 'Sales' },
     { name: 'Dashboard Banua', path: '/marketing-offline/dashboard', icon: <TrendingUp size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline'], group: 'Offline Banua' },
     { name: 'Customers', path: '/marketing-offline/customers', icon: <Users size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline'], group: 'Offline Banua' },
     { name: 'Quotations', path: '/marketing-offline/quotations', icon: <FileText size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline'], group: 'Offline Banua' },
     { name: 'Order Manual', path: '/marketing-offline/orders', icon: <ShoppingBag size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline'], group: 'Offline Banua' },
     { name: 'Reports', path: '/marketing-offline/reports', icon: <Activity size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline'], group: 'Offline Banua' },
     { name: 'Stok Inventory', path: '/marketing-offline/inventory', icon: <Package size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline'], group: 'Offline Banua' },
+    { name: 'Dashboard Online', path: '/marketing-online/dashboard', icon: <LayoutDashboard size={20} />, roles: ['marketing_online', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE BANUA' },
+    { name: 'Order Marketplace', path: '/marketing-online/orders', icon: <ShoppingBag size={20} />, roles: ['marketing_online', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE BANUA' },
+    { name: 'Stok Inventori', path: '/marketing-online/inventory', icon: <Package size={20} />, roles: ['marketing_online', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE BANUA' },
+    { name: 'Promo Online', path: '/marketing-online/promo', icon: <Gift size={20} />, roles: ['marketing_online', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE BANUA' },
+    { 
+      name: 'Laporan Online', 
+      path: '/marketing-online/reports', 
+      icon: <FileText size={20} />, 
+      roles: ['marketing_online', 'Admin', 'Manager', 'Marketing'], 
+      group: 'MARKETPLACE BANUA',
+      subMenu: [
+        { title: 'Laporan Harian', path: '/marketing-online/reports/harian' },
+        { title: 'Laporan Bulanan', path: '/marketing-online/reports/bulanan' }
+      ]
+    },
     { name: 'Dashboard Gudang', path: '/gudang', icon: <LayoutDashboard size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Barang Masuk', path: '/barang-masuk', icon: <TrendingUp size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Barang Keluar', path: '/barang-keluar', icon: <TrendingDown size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Mutasi Barang', path: '/mutasi', icon: <ArrowRightLeft size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Stok Barang', path: '/stok', icon: <Package size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
-    { name: 'Suku Cadang', path: '/sparepart', icon: <Settings size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
+    { name: 'Suku Cadang', path: '/sparepart', icon: <Settings size={20} />, roles: ['Admin', 'Manager'], group: 'Warehouse' },
     { name: 'Warning Stok', path: '/warning-stok', icon: <AlertTriangle size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Promo', path: '/promo', icon: <Gift size={20} />, roles: ['Admin', 'Manager', 'Marketing'], group: 'Sales' },
     { name: 'Finance Dashboard', path: '/finance', icon: <PieChart size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Finance' },
@@ -184,18 +198,24 @@ const Sidebar = () => {
                       <div className={isActive ? 'text-white' : 'text-gray-400'}>
                         {item.icon}
                       </div>
-                      <span className="text-sm">{item.name}</span>
+                      <span className="text-sm flex-1">{item.name}</span>
                     </div>
                     {item.hasBadge && pendingApprovals > 0 && (
                       <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm">
                         {pendingApprovals}
                       </span>
                     )}
+                    {item.subMenu && (
+                      <ChevronDown 
+                        size={14} 
+                        className={`transition-transform duration-200 ${isActive ? 'rotate-180' : ''}`} 
+                      />
+                    )}
                   </div>
 
                   {/* Submenu (Hanya jika ada) */}
-                  {item.subMenu && (location.pathname.includes(item.path) || ['/payment', '/expense', '/invoice', '/report'].includes(location.pathname) && item.name === 'Finance') && (
-                    <ul className="ml-12 mt-1 space-y-1 border-l-2 border-red-100 pl-4">
+                  {item.subMenu && (location.pathname.startsWith(item.path) || ['/payment', '/expense', '/invoice', '/report'].includes(location.pathname) && item.name === 'Finance') && (
+                    <ul className="ml-12 mt-2 space-y-2 border-l-2 border-red-200 pl-4 mb-3">
                       {item.subMenu.map(sub => {
                         const isSubActive = location.pathname === (sub.path || '');
                         return (
@@ -205,9 +225,13 @@ const Sidebar = () => {
                               e.stopPropagation();
                               if (sub.path) navigate(sub.path);
                             }}
-                            className={`text-[11px] font-medium cursor-pointer py-1 transition ${isSubActive ? 'text-red-900 font-bold' : 'text-red-700 hover:text-red-900'}`}
+                            className={`text-[13px] cursor-pointer py-2 px-4 rounded-xl transition-all duration-200 flex items-center gap-2 ${
+                              isSubActive 
+                                ? 'bg-red-800 text-white font-black shadow-sm' 
+                                : 'text-gray-600 font-bold hover:bg-red-50 hover:text-red-800'
+                            }`}
                           >
-                            • {sub.title || sub}
+                            {sub.title || sub}
                           </li>
                         );
                       })}

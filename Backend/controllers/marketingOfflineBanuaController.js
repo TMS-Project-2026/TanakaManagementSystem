@@ -113,17 +113,17 @@ exports.ajukanQuotation = (req, res) => {
 
 // ================= ORDER MANUAL =================
 exports.getOrders = (req, res) => {
-    db.query("SELECT * FROM marketing_orders_offline WHERE type = 'offline' AND branch = 'Banua' ORDER BY created_at DESC", (err, results) => {
+    db.query("SELECT *, DATEDIFF(deadline, CURDATE()) as sisa_hari FROM marketing_orders_offline WHERE type = 'offline' AND branch = 'Banua' ORDER BY created_at DESC", (err, results) => {
         if (err) return res.status(500).json({ message: err.message });
         res.json(results);
     });
 };
 
 exports.createOrder = (req, res) => {
-    const { customer, produk, qty, harga, deadline, status } = req.body;
+    const { customer, produk, qty, harga, deadline, status, payment_type, status_produksi, lokasi_proses } = req.body;
     db.query(
-        "INSERT INTO marketing_orders_offline (customer, produk, qty, harga, deadline, status, type, branch) VALUES (?, ?, ?, ?, ?, ?, 'offline', 'Banua')",
-        [customer, produk, qty, harga, deadline || null, status || 'Pending'],
+        "INSERT INTO marketing_orders_offline (customer, produk, qty, harga, deadline, status, jenis_pembayaran, status_produksi, lokasi_proses, type, branch) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'offline', 'Banua')",
+        [customer, produk, qty, harga, deadline || null, status || 'Pending', payment_type || 'DP', status_produksi || 'Beli Kain', lokasi_proses || 'Internal'],
         (err, result) => {
             if (err) return res.status(500).json({ message: err.message });
             res.status(201).json({ id: result.insertId, message: "Order manual berhasil ditambahkan" });
@@ -132,10 +132,10 @@ exports.createOrder = (req, res) => {
 };
 
 exports.updateOrder = (req, res) => {
-    const { customer, produk, qty, harga, deadline, status } = req.body;
+    const { customer, produk, qty, harga, deadline, status, payment_type, status_produksi, lokasi_proses } = req.body;
     db.query(
-        "UPDATE marketing_orders_offline SET customer=?, produk=?, qty=?, harga=?, deadline=?, status=? WHERE id=? AND type='offline' AND branch='Banua'",
-        [customer, produk, qty, harga, deadline || null, status, req.params.id],
+        "UPDATE marketing_orders_offline SET customer=?, produk=?, qty=?, harga=?, deadline=?, status=?, jenis_pembayaran=?, status_produksi=?, lokasi_proses=? WHERE id=? AND type='offline' AND branch='Banua'",
+        [customer, produk, qty, harga, deadline || null, status, payment_type, status_produksi, lokasi_proses, req.params.id],
         (err) => {
             if (err) return res.status(500).json({ message: err.message });
             res.json({ message: "Order manual berhasil diupdate" });

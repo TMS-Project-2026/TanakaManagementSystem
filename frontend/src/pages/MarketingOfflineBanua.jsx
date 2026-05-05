@@ -57,6 +57,8 @@ export default function MarketingOfflineBanua() {
     qty: 1,
     harga: 0,
     payment_type: 'DP',
+    status_produksi: 'Beli Kain',
+    lokasi_proses: 'Internal',
     entry_date: '',
     deadline: '',
     status: 'New Order'
@@ -448,7 +450,9 @@ export default function MarketingOfflineBanua() {
                           payment_type: 'DP',
                           entry_date: new Date().toISOString().split('T')[0],
                           deadline: '',
-                          status: 'New Order'
+                          status: 'New Order',
+                          status_produksi: 'Beli Kain',
+                          lokasi_proses: 'Internal'
                         });
                         setShowOrderModal(true);
                       }} className="bg-[#990000] hover:bg-red-800 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-colors shadow-sm">
@@ -468,12 +472,15 @@ export default function MarketingOfflineBanua() {
                           <th className="py-4 px-6 text-center">Payment</th>
                           <th className="py-4 px-6">Entry Date</th>
                           <th className="py-4 px-6">Deadline</th>
+                          <th className="py-4 px-6">Status Produksi</th>
+                          <th className="py-4 px-6">Lokasi</th>
                           <th className="py-4 px-6 text-center">Action</th>
                         </tr>
                       </thead>
                       <tbody className="text-sm divide-y divide-slate-100">
                         {loading ? <tr><td colSpan="9" className="text-center py-10"><Loader2 className="animate-spin text-[#990000] mx-auto" /></td></tr> : orders.map(o => (
-                          <tr key={o.id} className="hover:bg-slate-50">
+                          <tr key={o.id} className={`hover:bg-slate-50 ${o.sisa_hari < 5 ? "bg-red-50" : ""}`}>
+
                             <td className="py-4 px-6 font-bold text-slate-900">{o.customer}</td>
                             <td className="py-4 px-6">{o.produk}</td>
                             <td className="py-4 px-6 text-center font-bold">{o.qty}</td>
@@ -644,12 +651,32 @@ export default function MarketingOfflineBanua() {
                         </div>
                       </div>
 
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-bold text-slate-700 mb-1">Payment Type</label>
+                          <select required value={orderForm.payment_type} onChange={e => setOrderForm({ ...orderForm, payment_type: e.target.value })} className="w-full p-2.5 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-[#990000]">
+                            <option value="DP">DP (Down Payment)</option>
+                            <option value="Fullpayment">Fullpayment</option>
+                            <option value="Non DP">Non DP</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-bold text-slate-700 mb-1">Lokasi Proses</label>
+                          <select required value={orderForm.lokasi_proses} onChange={e => setOrderForm({ ...orderForm, lokasi_proses: e.target.value })} className="w-full p-2.5 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-[#990000]">
+                            <option value="Internal">Internal</option>
+                            <option value="Eksternal">Eksternal</option>
+                          </select>
+                        </div>
+                      </div>
+
                       <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-1">Payment Type</label>
-                        <select required value={orderForm.payment_type} onChange={e => setOrderForm({ ...orderForm, payment_type: e.target.value })} className="w-full p-2.5 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-[#990000]">
-                          <option value="DP">DP (Down Payment)</option>
-                          <option value="Fullpayment">Fullpayment</option>
-                          <option value="Non DP">Non DP</option>
+                        <label className="block text-sm font-bold text-slate-700 mb-1">Status Produksi</label>
+                        <select required value={orderForm.status_produksi} onChange={e => setOrderForm({ ...orderForm, status_produksi: e.target.value })} className="w-full p-2.5 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-[#990000]">
+                          <option>Beli Kain</option>
+                          <option>Proses Potong</option>
+                          <option>Proses Jahit</option>
+                          <option>Finishing</option>
+                          <option>Selesai</option>
                         </select>
                       </div>
 

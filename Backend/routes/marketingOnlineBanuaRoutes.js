@@ -9,5 +9,6 @@ router.post('/orders/:id/ajukan-finance', verifyToken, controller.ajukanKeFinanc
 router.post('/import', verifyToken, controller.importShopee);
 router.get('/inventory', verifyToken, controller.getInventory);
 router.get('/reports', verifyToken, controller.getReports);
+router.get('/promo', verifyToken, controller.getPromoStock);
 
 module.exports = router;
