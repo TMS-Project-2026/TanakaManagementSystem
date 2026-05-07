@@ -3,11 +3,15 @@ import { useNavigate, useParams } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import { createInvoice, getInvoiceById, updateInvoice } from '../api/invoiceApi';
 import { Save, X, ArrowLeft, Receipt } from 'lucide-react';
+import axios from 'axios';
 
 const InvoiceForm = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const isEdit = Boolean(id);
+
+    const [customers, setCustomers] = useState([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
 
     const [form, setForm] = useState({
         no_invoice: '',
@@ -45,6 +49,16 @@ const InvoiceForm = () => {
             fetchInvoice();
         }
     }, [id]);
+
+    useEffect(() => {
+        const fetchCustomers = async () => {
+            try {
+                const res = await axios.get('http://localhost:3000/api/marketing-offline/customers', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+                setCustomers(res.data);
+            } catch (err) { console.error('Gagal fetch customer', err); }
+        };
+        fetchCustomers();
+    }, []);
 
     // Auto calculate totals
     useEffect(() => {
@@ -219,9 +233,50 @@ Atas Nama                 : PT TANAKA RIZQI BAROKAH`;
                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                             <h3 className="text-lg font-bold border-b border-gray-100 pb-3 mb-4 text-[#990000]">DATA CUSTOMER</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
+                                <div className="relative">
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">Nama PT / Perusahaan *</label>
-                                    <input type="text" name="nama_pt" value={form.nama_pt} onChange={handleChange} required placeholder="Contoh: PT. ABC Kaltim" className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none" />
+                                    <input 
+                                        type="text" 
+                                        name="nama_pt" 
+                                        value={form.nama_pt} 
+                                        onChange={(e) => {
+                                            handleChange(e);
+                                            setShowSuggestions(true);
+                                        }}
+                                        onFocus={() => setShowSuggestions(true)}
+                                        onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                                        required 
+                                        placeholder="Contoh: PT. ABC Kaltim" 
+                                        className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none" 
+                                    />
+                                    {showSuggestions && form.nama_pt && (
+                                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                                            {customers.filter(c => c.nama_customer.toLowerCase().includes(form.nama_pt.toLowerCase())).length > 0 ? (
+                                                customers.filter(c => c.nama_customer.toLowerCase().includes(form.nama_pt.toLowerCase())).map(c => (
+                                                    <div 
+                                                        key={c.id} 
+                                                        className="p-3 hover:bg-red-50 cursor-pointer border-b border-gray-50 last:border-0"
+                                                        onClick={() => {
+                                                            setForm(prev => ({
+                                                                ...prev,
+                                                                nama_pt: c.nama_customer,
+                                                                alamat_pt: c.alamat || '',
+                                                                cp_penagihan: c.no_hp || '',
+                                                                email: c.email || '',
+                                                                up_penagihan: c.up_penagihan || ''
+                                                            }));
+                                                            setShowSuggestions(false);
+                                                        }}
+                                                    >
+                                                        <p className="font-bold text-sm text-gray-800">{c.nama_customer}</p>
+                                                        <p className="text-xs text-gray-500 line-clamp-1">{c.alamat}</p>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="p-3 text-sm text-gray-500 italic">Customer belum ada, akan disimpan manual nanti.</div>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">Email Penagihan</label>

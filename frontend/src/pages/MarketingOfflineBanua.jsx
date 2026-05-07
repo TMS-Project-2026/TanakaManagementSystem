@@ -3,12 +3,12 @@ import axios from 'axios';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import {
-  Users, FileText, ShoppingBag, Plus, Edit, Trash2, Send, X,
+  Users, FileText, ShoppingBag, Plus, Edit, Trash2, Send, X, Search, UserCircle, ChevronDown, Gift,
   Loader2, Download, TrendingUp, TrendingDown, Activity, AlertTriangle, CheckCircle, Package
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
+  XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
   AreaChart, Area
 } from 'recharts';
 
@@ -18,6 +18,7 @@ export default function MarketingOfflineBanua() {
 
   const pathParts = location.pathname.split('/');
   const currentTab = pathParts[2] || 'dashboard';
+  const currentSubTab = pathParts[3] || 'harian';
   const activeTab = currentTab;
 
   const [loading, setLoading] = useState(false);
@@ -26,6 +27,7 @@ export default function MarketingOfflineBanua() {
   const [dashboardData, setDashboardData] = useState({
     daily: [],
     monthly: [],
+    tahunan: [],
     summary: {},
     comparisons: {
       revenue_today: 0,
@@ -39,6 +41,14 @@ export default function MarketingOfflineBanua() {
   const [quotations, setQuotations] = useState([]);
   const [orders, setOrders] = useState([]);
   const [inventory, setInventory] = useState([]);
+  const [promoStock, setPromoStock] = useState([]);
+  const [reportSubTab, setReportSubTab] = useState(currentSubTab);
+
+  useEffect(() => {
+    if (pathParts[3]) setReportSubTab(pathParts[3]);
+  }, [location.pathname]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showProfile, setShowProfile] = useState(false);
 
   // Modals
   const [showCustomerModal, setShowCustomerModal] = useState(false);
@@ -61,20 +71,26 @@ export default function MarketingOfflineBanua() {
     lokasi_proses: 'Internal',
     entry_date: '',
     deadline: '',
-    status: 'New Order'
+    status: 'New Order',
+    catatan: ''
   });
+  
+  // Date Range States
+  const [startDate, setStartDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]); // Awal bulan
+  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]); // Hari ini
 
   // Fetchers
   const fetchDashboard = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('http://localhost:3000/api/marketing-offline/reports', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
-      setDashboardData({
-        daily: res.data.harian.reverse(),
-        monthly: res.data.bulanan.reverse(),
-        summary: res.data.summary,
-        comparisons: res.data.comparisons
-      });
+      const res = await axios.get(`http://localhost:3000/api/marketing-offline/reports?start=${startDate}&end=${endDate}`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+      setDashboardData(prev => ({
+        daily: res.data.harian || [],
+        monthly: res.data.bulanan || [],
+        tahunan: res.data.tahunan || [],
+        summary: res.data.summary || {},
+        comparisons: { ...prev.comparisons, ...(res.data.comparisons || {}) }
+      }));
     } catch (err) { console.error(err); } finally { setLoading(false); }
   };
 
@@ -89,7 +105,7 @@ export default function MarketingOfflineBanua() {
   const fetchQuotations = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('http://localhost:3000/api/marketing-offline/quotations', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+      const res = await axios.get(`http://localhost:3000/api/marketing-offline/quotations?start=${startDate}&end=${endDate}`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
       setQuotations(res.data);
     } catch (err) { console.error(err); } finally { setLoading(false); }
   };
@@ -97,7 +113,7 @@ export default function MarketingOfflineBanua() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('http://localhost:3000/api/marketing-offline/orders', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+      const res = await axios.get(`http://localhost:3000/api/marketing-offline/orders?start=${startDate}&end=${endDate}`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
       setOrders(res.data);
     } catch (err) { console.error(err); } finally { setLoading(false); }
   };
@@ -106,8 +122,16 @@ export default function MarketingOfflineBanua() {
   const fetchInventory = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('http://localhost:3000/api/marketing-offline/inventory', { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
+      const res = await axios.get(`http://localhost:3000/api/marketing-offline/inventory?start=${startDate}&end=${endDate}`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
       setInventory(res.data);
+    } catch (err) { console.error(err); } finally { setLoading(false); }
+  };
+
+  const fetchPromo = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get('http://localhost:3000/api/marketing-offline/promo', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+      setPromoStock(res.data);
     } catch (err) { console.error(err); } finally { setLoading(false); }
   };
 
@@ -117,7 +141,8 @@ export default function MarketingOfflineBanua() {
     if (activeTab === 'quotations') fetchQuotations();
     if (activeTab === 'orders') fetchOrders();
     if (activeTab === 'inventory') fetchInventory();
-  }, [activeTab]);
+    if (activeTab === 'promo') fetchPromo();
+  }, [activeTab, startDate, endDate]);
 
   // Handlers Customer
   const saveCustomer = async (e) => {
@@ -207,23 +232,73 @@ export default function MarketingOfflineBanua() {
     } catch (err) { alert('Error: ' + err.message); }
   };
 
+  const submitOrder = async (id) => {
+    if (!window.confirm("Submit to Finance for approval?")) return;
+    try {
+      await axios.post(`http://localhost:3000/api/marketing-offline/orders/${id}/submit`, {}, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+      alert("Submitted to Finance successfully!");
+      fetchOrders();
+    } catch (err) { alert('Failed to submit: ' + (err.response?.data?.message || err.message)); }
+  };
+
+  const handleOrderFromStock = (item) => {
+    navigate('/marketing-offline/create-order', { 
+      state: { 
+        orderData: { 
+          customer: '',
+          items: [{ 
+            rincian: item.product_name, 
+            qty: 1, 
+            harga_satuan: 0, 
+            satuan: 'Pcs' 
+          }],
+          status: 'New Order'
+        } 
+      } 
+    });
+  };
+
   const handleExportExcel = () => {
-    const dataToExport = orders.map(o => ({
-      Customer: o.customer,
-      Product: o.produk,
-      Qty: o.qty,
-      'Unit Price': o.harga,
-      'Total Price': o.qty * o.harga,
-      'Payment Type': o.payment_type,
-      'Entry Date': o.created_at ? new Date(o.created_at).toLocaleDateString('id-ID') : '-',
-      Deadline: o.deadline ? new Date(o.deadline).toLocaleDateString('id-ID') : '-',
-      Status: o.status
-    }));
+    let dataToExport = [];
+    let fileName = "";
+
+    if (activeTab === 'reports') {
+      const rawData = reportSubTab === 'tahunan' ? dashboardData.tahunan : 
+                      reportSubTab === 'bulanan' ? dashboardData.monthly : 
+                      reportSubTab === 'berjalan' ? (dashboardData.daily || []).filter(d => {
+                        const dateStr = d.tanggal ? (d.tanggal instanceof Date ? d.tanggal.toISOString() : String(d.tanggal)) : '';
+                        return dateStr.startsWith(new Date().toISOString().substring(0, 7));
+                      }) : dashboardData.daily;
+      
+      dataToExport = rawData.map(r => ({
+        'Periode': r.tahun || r.bulan || (r.tanggal ? new Date(r.tanggal).toLocaleDateString('id-ID') : '-'),
+        'Pendapatan': r.pendapatan,
+        'Jumlah Order': r.jumlah_quotation,
+        'Status': 'Success'
+      }));
+      fileName = `Report_Offline_${reportSubTab}_${new Date().toISOString().split('T')[0]}`;
+    } else {
+      dataToExport = orders.map(o => ({
+        Customer: o.customer,
+        Product: o.produk,
+        Qty: o.qty,
+        'Unit Price': o.harga,
+        'Total Price': o.grand_total || (o.qty * o.harga),
+        'Payment Type': o.payment_type,
+        'Entry Date': o.created_at ? new Date(o.created_at).toLocaleDateString('id-ID') : '-',
+        Deadline: o.deadline ? new Date(o.deadline).toLocaleDateString('id-ID') : '-',
+        'Status Produksi': o.status_produksi,
+        Lokasi: o.lokasi_proses,
+        Catatan: o.catatan,
+        Status: o.status
+      }));
+      fileName = `Orders_Offline_Banua_${new Date().toISOString().split('T')[0]}`;
+    }
 
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Orders");
-    XLSX.writeFile(wb, `Orders_Offline_Banua_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, activeTab === 'reports' ? "Reports" : "Orders");
+    XLSX.writeFile(wb, `${fileName}.xlsx`);
   };
 
   const formatRupiah = (angka) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka || 0);
@@ -234,121 +309,250 @@ export default function MarketingOfflineBanua() {
     return { text: `${diff > 0 ? '+' : ''}${diff.toFixed(1)}%`, isUp: diff >= 0 };
   };
 
-  const dayToDay = getPercentageDiff(dashboardData.comparisons.revenue_today, dashboardData.comparisons.revenue_yesterday);
-  const monthToMonth = getPercentageDiff(dashboardData.comparisons.revenue_this_month, dashboardData.comparisons.revenue_last_month);
-  const yearToYearMonth = getPercentageDiff(dashboardData.comparisons.revenue_this_month, dashboardData.comparisons.revenue_thismonth_lastyear);
+  const dayToDay = getPercentageDiff(dashboardData?.comparisons?.revenue_today, dashboardData?.comparisons?.revenue_yesterday);
+  const monthToMonth = getPercentageDiff(dashboardData?.comparisons?.revenue_this_month, dashboardData?.comparisons?.revenue_last_month);
+  const yearToYearMonth = getPercentageDiff(dashboardData?.comparisons?.revenue_this_month, dashboardData?.comparisons?.revenue_thismonth_lastyear);
 
   return (
-    <div className="flex bg-gray-50 min-h-screen font-sans">
+    <div className="flex bg-[#f3f4f6] min-h-screen font-sans relative">
       <Sidebar />
-      <div className="flex-1 overflow-auto">
-        <div className="p-8 max-w-7xl mx-auto text-slate-800">
-          <div className="mb-8">
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight">Offline Marketing - Banua</h1>
-            <p className="text-slate-500 mt-1 capitalize">Current Section: {activeTab.replace('-', ' ')}</p>
+      <main className="flex-1 flex flex-col pt-16 md:pt-0 h-screen overflow-hidden">
+        {/* TOPBAR SEARCH */}
+        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center px-10 sticky top-0 z-30 justify-between shrink-0">
+          <div className="relative w-full max-w-lg">
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            <input
+              type="text"
+              placeholder="Cari data marketing offline..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-14 pr-6 py-3 bg-gray-50 border border-gray-100 rounded-full text-sm focus:outline-none focus:ring-4 focus:ring-red-50 focus:bg-white focus:border-red-200 transition-all shadow-inner"
+            />
           </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-2xl border border-gray-100">
+              <div className="bg-gray-100 p-2 rounded-full cursor-pointer hover:bg-gray-200 transition-colors" onClick={() => setShowProfile(!showProfile)}>
+                <UserCircle className="text-gray-400" size={24} />
+              </div>
+              <ChevronDown size={14} className="text-gray-400" />
+              {showProfile && (
+                <div className="absolute right-10 top-16 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                  <div className="p-4 bg-red-50/50">
+                    <p className="text-sm font-black text-gray-900">Admin</p>
+                    <p className="text-[10px] font-bold text-[#990000] uppercase tracking-wider mt-0.5">Marketing Offline</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        {/* Content Area */}
+        <div className="flex-1 overflow-y-auto px-10 py-10 bg-[#f8fafc]">
+            {/* Dynamic Header Module Title */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
+              <div>
+                <h1 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                  {activeTab === 'dashboard' && 'Dashboard Offline'}
+                  {activeTab === 'customers' && 'Database Pelanggan'}
+                  {activeTab === 'quotations' && 'Quotation Management'}
+                  {activeTab === 'orders' && 'Offline Orders (Banua)'}
+                  {activeTab === 'inventory' && 'Stok Inventori Banua'}
+                  {activeTab === 'reports' && 'Reports & Analytics'}
+                  {activeTab === 'promo' && 'Promo Offline'}
+                </h1>
+                <p className="text-gray-500 mt-2 text-sm font-medium capitalize">
+                  Current Section: {activeTab.replace('-', ' ')}
+                </p>
+              </div>
+
+              {/* Action Buttons for Orders & Reports */}
+              {(activeTab === 'orders' || activeTab === 'reports') && (
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={handleExportExcel}
+                    className="flex items-center gap-2 bg-[#2563eb] text-white px-4 py-2.5 rounded-xl text-xs font-black hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-100"
+                  >
+                    <Download size={18} /> Eksport Excel
+                  </button>
+                  {activeTab === 'orders' && (
+                    <button 
+                      onClick={() => navigate('/marketing-offline/create-order')}
+                      className="flex items-center gap-2 bg-[#990000] text-white px-4 py-2.5 rounded-xl text-xs font-black hover:bg-red-800 transition-all active:scale-95 shadow-lg shadow-red-100"
+                    >
+                      <Plus size={18} /> Add Order
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Date Filter (Used in Dashboard & Reports) */}
+              {(activeTab === 'dashboard' || activeTab === 'reports') && (
+                <div className="bg-white p-2 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-2">
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">From</span>
+                    <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent border-none outline-none text-sm font-bold text-slate-700" />
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">To</span>
+                    <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent border-none outline-none text-sm font-bold text-slate-700" />
+                  </div>
+                </div>
+              )}
+            </div>
 
           <div className="flex flex-col gap-6">
             <div className="w-full">
 
               {/* === TAB DASHBOARD === */}
               {activeTab === 'dashboard' && (
-                <div className="space-y-6 animate-in fade-in duration-500">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
-                      <div className="w-14 h-14 bg-red-50 text-[#990000] rounded-2xl flex items-center justify-center"><Users size={24} /></div>
-                      <div><p className="text-sm font-bold text-slate-500">Total Customers</p><p className="text-2xl font-black">{dashboardData.summary.total_customers || 0}</p></div>
-                    </div>
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
-                      <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center"><FileText size={24} /></div>
-                      <div><p className="text-sm font-bold text-slate-500">Pending Quotations</p><p className="text-2xl font-black">{dashboardData.summary.pending_quotations || 0}</p></div>
-                    </div>
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
-                      <div className="w-14 h-14 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center"><ShoppingBag size={24} /></div>
-                      <div><p className="text-sm font-bold text-slate-500">Total Orders</p><p className="text-2xl font-black">{dashboardData.summary.total_orders || 0}</p></div>
-                    </div>
+                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {[
+                      { title: 'Total Customers', value: dashboardData.summary.total_customers || 0, icon: <Users />, bg: 'bg-red-50', text: 'text-gray-900', color: 'text-[#990000]' },
+                      { title: 'Revenue Range', value: formatRupiah(dashboardData.summary.range_revenue), icon: <TrendingUp />, bg: 'bg-emerald-50', text: 'text-gray-900', color: 'text-emerald-600' },
+                      { title: 'Total Orders', value: `${dashboardData.summary.total_orders || 0} Orders`, icon: <ShoppingBag />, bg: 'bg-blue-50', text: 'text-gray-900', color: 'text-blue-600' },
+                      { title: 'Pending Quotations', value: dashboardData.summary.pending_quotations || 0, icon: <FileText />, bg: 'bg-purple-50', text: 'text-gray-900', color: 'text-purple-600' }
+                    ].map((card, index) => (
+                      <div key={index} className={`${card.bg} p-6 rounded-[2rem] shadow-sm flex flex-col justify-center min-h-[140px] transition-transform hover:scale-[1.02] border border-white/50`}>
+                        <div className={`mb-3 p-2 w-10 h-10 rounded-xl flex items-center justify-center ${card.bg.replace('50', '100')} ${card.color}`}>
+                          {React.cloneElement(card.icon, { size: 20 })}
+                        </div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">{card.title}</p>
+                        <h3 className="text-xl font-black text-gray-900">{card.value}</h3>
+                      </div>
+                    ))}
                   </div>
-                  <div className="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-xl flex items-center gap-3">
-                    <Activity size={20} className="text-blue-600" />
-                    <p className="font-medium text-sm">Untuk melihat laporan detail keuangan dan perbandingan omset, silakan buka menu <b>Reports & Analytics</b> di Sidebar.</p>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="lg:col-span-2 bg-white p-8 rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100">
+                       <h3 className="text-xl font-black text-gray-900 mb-8 flex items-center gap-3">
+                          <Activity className="text-[#990000]" size={24} /> Daily Revenue Trend
+                       </h3>
+                       <div className="h-80 w-full">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={dashboardData?.daily || []}>
+                              <defs>
+                                <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#990000" stopOpacity={0.1} />
+                                  <stop offset="95%" stopColor="#990000" stopOpacity={0} />
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                              <XAxis dataKey="tanggal" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 10 }} />
+                              <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 10 }} tickFormatter={(value) => `Rp${value / 1000000}M`} />
+                              <RechartsTooltip cursor={{ stroke: '#990000', strokeWidth: 2 }} contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }} />
+                              <Area type="monotone" dataKey="pendapatan" stroke="#990000" strokeWidth={4} fillOpacity={1} fill="url(#colorRev)" />
+                            </AreaChart>
+                          </ResponsiveContainer>
+                       </div>
+                    </div>
+
+                    <div className="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100">
+                        <h3 className="text-xl font-black text-gray-900 mb-8">Monthly Overview</h3>
+                        <div className="space-y-4 overflow-y-auto max-h-80 pr-2 custom-scrollbar">
+                           {(dashboardData?.monthly || []).map((m, i) => (
+                             <div key={i} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between group hover:bg-[#990000] transition-all cursor-default">
+                                <div>
+                                  <p className="text-xs font-black text-gray-400 uppercase group-hover:text-white/60">{m.bulan}</p>
+                                  <p className="text-sm font-black text-gray-900 group-hover:text-white">{formatRupiah(m.pendapatan)}</p>
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-[10px] font-black px-2 py-1 bg-white text-[#990000] rounded-lg shadow-sm">{m.jumlah_quotation} Orders</span>
+                                </div>
+                             </div>
+                           ))}
+                        </div>
+                    </div>
                   </div>
                 </div>
               )}
 
               {/* === TAB REPORTS & ANALYTICS === */}
               {activeTab === 'reports' && (
-                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                    <h2 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-2">
-                      <Activity className="text-[#990000]" /> Financial Reports & Analytics
-                    </h2>
+                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                  {/* Report Sub-Tabs */}
+                  <div className="flex bg-white p-1.5 rounded-2xl shadow-sm border border-gray-100 self-start w-fit">
+                    {['harian', 'bulanan', 'tahunan', 'berjalan'].map((sub) => (
+                      <button
+                        key={sub}
+                        onClick={() => {
+                          setReportSubTab(sub);
+                          navigate(`/marketing-offline/reports/${sub}`);
+                        }}
+                        className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${reportSubTab === sub ? 'bg-[#990000] text-white shadow-lg' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'}`}
+                      >
+                        {sub}
+                      </button>
+                    ))}
+                  </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                      <div className="p-6 border border-slate-100 bg-slate-50 rounded-2xl">
-                        <p className="text-sm font-bold text-slate-500 mb-1">Today's Revenue</p>
-                        <p className="text-2xl font-black text-slate-800">{formatRupiah(dashboardData.comparisons.revenue_today)}</p>
-                        <div className={`flex items-center gap-1 text-xs font-bold mt-2 ${dayToDay.isUp ? 'text-emerald-600' : 'text-red-600'}`}>
-                          {dayToDay.isUp ? <TrendingUp size={14} /> : <TrendingDown size={14} />} {dayToDay.text} vs Yesterday
-                        </div>
-                      </div>
-                      <div className="p-6 border border-slate-100 bg-[#990000] text-white rounded-2xl shadow-md">
-                        <p className="text-sm font-bold text-red-200 mb-1">Month-to-Date (Bulan Berjalan)</p>
-                        <p className="text-2xl font-black">{formatRupiah(dashboardData.comparisons.revenue_this_month)}</p>
-                        <div className="flex items-center gap-1 text-xs font-bold mt-2 text-red-100">
-                          {monthToMonth.isUp ? <TrendingUp size={14} /> : <TrendingDown size={14} />} {monthToMonth.text} vs Last Month
-                        </div>
-                      </div>
-                      <div className="p-6 border border-slate-100 bg-slate-800 text-white rounded-2xl shadow-md">
-                        <p className="text-sm font-bold text-slate-400 mb-1">vs Same Month Last Year</p>
-                        <p className="text-2xl font-black text-white">{formatRupiah(dashboardData.comparisons.revenue_this_month)}</p>
-                        <div className={`flex items-center gap-1 text-xs font-bold mt-2 ${yearToYearMonth.isUp ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {yearToYearMonth.isUp ? <TrendingUp size={14} /> : <TrendingDown size={14} />} {yearToYearMonth.text} vs {new Date().getFullYear() - 1}
-                        </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="bg-white p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 transition-all hover:scale-[1.02]">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Today's Revenue</p>
+                      <h3 className="text-2xl font-black text-gray-900">{formatRupiah(dashboardData?.comparisons?.revenue_today)}</h3>
+                      <div className={`flex items-center gap-1 text-[10px] font-black mt-3 ${dayToDay.isUp ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {dayToDay.isUp ? <TrendingUp size={14} /> : <TrendingDown size={14} />} {dayToDay.text} vs Yesterday
                       </div>
                     </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="p-5 border border-slate-200 rounded-xl">
-                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">Monthly Revenue (Laporan Bulanan)</h3>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-left text-sm">
-                            <thead className="text-xs text-slate-400 font-bold uppercase border-b border-slate-100">
-                              <tr><th className="py-2">Month</th><th className="py-2 text-right">Revenue</th><th className="py-2 text-center">Orders</th></tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-50">
-                              {dashboardData.monthly.map((m, i) => (
-                                <tr key={i} className="hover:bg-slate-50">
-                                  <td className="py-3 font-medium">{m.bulan}</td>
-                                  <td className="py-3 text-right font-bold text-[#990000]">{formatRupiah(m.pendapatan)}</td>
-                                  <td className="py-3 text-center text-slate-500">{m.jumlah_quotation}</td>
-                                </tr>
-                              ))}
-                              {dashboardData.monthly.length === 0 && <tr><td colSpan="3" className="py-4 text-center text-slate-400">No data available</td></tr>}
-                            </tbody>
-                          </table>
-                        </div>
+                    <div className="bg-[#990000] p-8 rounded-[2rem] shadow-xl shadow-red-200/50 border border-red-800 transition-all hover:scale-[1.02]">
+                      <p className="text-[10px] font-black text-white/60 uppercase tracking-[0.2em] mb-2">Month-to-Date</p>
+                      <h3 className="text-2xl font-black text-white">{formatRupiah(dashboardData?.comparisons?.revenue_this_month)}</h3>
+                      <div className="flex items-center gap-1 text-[10px] font-black mt-3 text-white/80">
+                        {monthToMonth.isUp ? <TrendingUp size={14} /> : <TrendingDown size={14} />} {monthToMonth.text} vs Last Month
                       </div>
-
-                      <div className="p-5 border border-slate-200 rounded-xl">
-                        <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">Daily Revenue Trend</h3>
-                        <div className="h-64">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={dashboardData.daily}>
-                              <defs>
-                                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#990000" stopOpacity={0.3} />
-                                  <stop offset="95%" stopColor="#990000" stopOpacity={0} />
-                                </linearGradient>
-                              </defs>
-                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                              <XAxis dataKey="tanggal" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 10 }} />
-                              <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 10 }} tickFormatter={(value) => `Rp${value / 1000000}M`} />
-                              <RechartsTooltip cursor={{ stroke: '#990000', strokeWidth: 2, strokeDasharray: '4 4' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                              <Area type="monotone" dataKey="pendapatan" stroke="#990000" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
-                            </AreaChart>
-                          </ResponsiveContainer>
-                        </div>
+                    </div>
+                    <div className="bg-gray-900 p-8 rounded-[2rem] shadow-xl shadow-gray-900/20 border border-gray-800 transition-all hover:scale-[1.02]">
+                      <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-2">vs Same Month LY</p>
+                      <h3 className="text-2xl font-black text-white">{formatRupiah(dashboardData?.comparisons?.revenue_this_month)}</h3>
+                      <div className={`flex items-center gap-1 text-[10px] font-black mt-3 ${yearToYearMonth.isUp ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {yearToYearMonth.isUp ? <TrendingUp size={14} /> : <TrendingDown size={14} />} {yearToYearMonth.text} vs {new Date().getFullYear() - 1}
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Dynamic Table based on Sub-Tab */}
+                  <div className="bg-white rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
+                    <div className="p-8 border-b border-gray-50 flex justify-between items-center">
+                      <h3 className="text-xl font-black text-gray-900 capitalize">Detail Laporan {reportSubTab}</h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead className="bg-gray-50 text-gray-400 uppercase text-[10px] font-black tracking-widest border-b border-gray-100">
+                          <tr>
+                            <th className="py-5 px-8">No</th>
+                            <th className="py-5 px-8">{reportSubTab === 'tahunan' ? 'Tahun' : reportSubTab === 'bulanan' ? 'Bulan' : 'Tanggal'}</th>
+                            <th className="py-5 px-8 text-right">Pendapatan</th>
+                            <th className="py-5 px-8 text-center">Jumlah Orders</th>
+                            <th className="py-5 px-8 text-center">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-sm divide-y divide-gray-50 font-bold">
+                          {loading ? (
+                             <tr><td colSpan="5" className="py-20 text-center"><Loader2 className="w-10 h-10 animate-spin text-[#990000] mx-auto" /></td></tr>
+                          ) : (
+                            (reportSubTab === 'tahunan' ? dashboardData.tahunan : 
+                             reportSubTab === 'bulanan' ? dashboardData.monthly : 
+                             reportSubTab === 'berjalan' ? (dashboardData.daily || []).filter(d => {
+                               const dateStr = d.tanggal ? (d.tanggal instanceof Date ? d.tanggal.toISOString() : String(d.tanggal)) : '';
+                               return dateStr.startsWith(new Date().toISOString().substring(0, 7));
+                             }) : 
+                             dashboardData.daily).map((row, idx) => (
+                              <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                                <td className="py-4 px-8 text-gray-400 font-medium">{idx + 1}</td>
+                                <td className="py-4 px-8 text-gray-900">
+                                  {row.tahun || row.bulan || (row.tanggal ? new Date(row.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-')}
+                                </td>
+                                <td className="py-4 px-8 text-right text-[#990000] font-black">{formatRupiah(row.pendapatan)}</td>
+                                <td className="py-4 px-8 text-center text-gray-600">{row.jumlah_quotation}</td>
+                                <td className="py-4 px-8 text-center">
+                                  <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase">Verified</span>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 </div>
@@ -440,22 +644,7 @@ export default function MarketingOfflineBanua() {
                       <button onClick={handleExportExcel} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-colors shadow-sm">
                         <Download size={18} /> Export Excel
                       </button>
-                      <button onClick={() => {
-                        setOrderForm({
-                          id: null,
-                          customer: '',
-                          produk: '',
-                          qty: 1,
-                          harga: 0,
-                          payment_type: 'DP',
-                          entry_date: new Date().toISOString().split('T')[0],
-                          deadline: '',
-                          status: 'New Order',
-                          status_produksi: 'Beli Kain',
-                          lokasi_proses: 'Internal'
-                        });
-                        setShowOrderModal(true);
-                      }} className="bg-[#990000] hover:bg-red-800 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-colors shadow-sm">
+                      <button onClick={() => navigate('/marketing-offline/create-order')} className="bg-[#990000] hover:bg-red-800 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-colors shadow-sm">
                         <Plus size={18} />Add Order
                       </button>
                     </div>
@@ -474,18 +663,20 @@ export default function MarketingOfflineBanua() {
                           <th className="py-4 px-6">Deadline</th>
                           <th className="py-4 px-6">Status Produksi</th>
                           <th className="py-4 px-6">Lokasi</th>
+                          <th className="py-4 px-6">Catatan</th>
+                          <th className="py-4 px-6 text-center">Status</th>
                           <th className="py-4 px-6 text-center">Action</th>
                         </tr>
                       </thead>
                       <tbody className="text-sm divide-y divide-slate-100">
-                        {loading ? <tr><td colSpan="9" className="text-center py-10"><Loader2 className="animate-spin text-[#990000] mx-auto" /></td></tr> : orders.map(o => (
+                        {loading ? <tr><td colSpan="12" className="text-center py-10"><Loader2 className="animate-spin text-[#990000] mx-auto" /></td></tr> : orders.map(o => (
                           <tr key={o.id} className={`hover:bg-slate-50 ${o.sisa_hari < 5 ? "bg-red-50" : ""}`}>
 
                             <td className="py-4 px-6 font-bold text-slate-900">{o.customer}</td>
                             <td className="py-4 px-6">{o.produk}</td>
                             <td className="py-4 px-6 text-center font-bold">{o.qty}</td>
                             <td className="py-4 px-6 text-right font-medium">{formatRupiah(o.harga)}</td>
-                            <td className="py-4 px-6 text-right font-black text-[#990000]">{formatRupiah(o.qty * o.harga)}</td>
+                            <td className="py-4 px-6 text-right font-black text-[#990000]">{formatRupiah(o.grand_total || (o.qty * o.harga))}</td>
                             <td className="py-4 px-6 text-center">
                               <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${o.payment_type === 'Fullpayment' ? 'bg-emerald-100 text-emerald-700' :
                                   o.payment_type === 'DP' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
@@ -495,19 +686,26 @@ export default function MarketingOfflineBanua() {
                             </td>
                             <td className="py-4 px-6 whitespace-nowrap text-slate-600">{o.created_at ? new Date(o.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</td>
                             <td className="py-4 px-6 whitespace-nowrap text-red-600 font-semibold">{o.deadline ? new Date(o.deadline).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</td>
+                            <td className="py-4 px-6">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${o.status_produksi === 'Selesai' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>
+                                {o.status_produksi}
+                              </span>
+                            </td>
+                            <td className="py-4 px-6 text-xs text-slate-500">{o.lokasi_proses}</td>
+                            <td className="py-4 px-6 text-xs text-slate-400 italic max-w-[150px] truncate" title={o.catatan}>{o.catatan || '-'}</td>
+                            <td className="py-4 px-6 text-center">
+                              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${o.status === 'Invoice Created' ? 'bg-emerald-100 text-emerald-700' : o.status === 'Pending Finance' ? 'bg-amber-100 text-amber-700' : o.status === 'Rejected' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'}`}>{o.status}</span>
+                            </td>
                             <td className="py-4 px-6 flex justify-center gap-2">
-                              <button onClick={() => {
-                                setOrderForm({
-                                  ...o,
-                                  entry_date: o.created_at ? new Date(o.entry_date).toISOString().split('T')[0] : '',
-                                  deadline: o.deadline ? new Date(o.deadline).toISOString().split('T')[0] : ''
-                                }); setShowOrderModal(true);
-                              }} className="p-2 text-slate-400 hover:text-blue-600 bg-white border border-slate-200 rounded-lg shadow-sm" title="Edit"><Edit size={16} /></button>
+                              {(o.status === 'New Order' || o.status === 'Pending' || o.status === 'Rejected') && (
+                                <button onClick={() => submitOrder(o.id)} title="Submit to Finance" className="p-2 text-slate-400 hover:text-emerald-600 bg-white border border-slate-200 rounded-lg shadow-sm"><Send size={16} /></button>
+                              )}
+                              <button onClick={() => navigate('/marketing-offline/create-order', { state: { orderData: { ...o, items: typeof o.items === 'string' ? JSON.parse(o.items) : o.items } } })} className="p-2 text-slate-400 hover:text-blue-600 bg-white border border-slate-200 rounded-lg shadow-sm" title="Edit"><Edit size={16} /></button>
                               <button onClick={() => deleteOrder(o.id)} className="p-2 text-slate-400 hover:text-red-600 bg-white border border-slate-200 rounded-lg shadow-sm" title="Delete"><Trash2 size={16} /></button>
                             </td>
                           </tr>
                         ))}
-                        {orders.length === 0 && !loading && <tr><td colSpan="9" className="text-center py-10 text-slate-500">No orders found.</td></tr>}
+                        {orders.length === 0 && !loading && <tr><td colSpan="12" className="text-center py-10 text-slate-500">No orders found.</td></tr>}
                       </tbody>
                     </table>
                   </div>
@@ -517,46 +715,118 @@ export default function MarketingOfflineBanua() {
 
               {/* === TAB INVENTORY === */}
               {activeTab === 'inventory' && (
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <div className="p-6 border-b border-slate-200 flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-slate-800">Stock Inventory (Banua Branch)</h2>
-                    <div className="flex items-center gap-2 text-sm text-slate-500">
-                      <Package size={16} /> Connected to Warehouse
+                <div className="bg-white rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700">
+                  <div className="p-8 border-b border-gray-50 flex justify-between items-center">
+                    <h2 className="text-xl font-black text-gray-900">Stock Inventory</h2>
+                    <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50 px-4 py-2 rounded-xl border border-gray-100">
+                      <Package size={14} /> Live Warehouse Data
                     </div>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
-                      <thead className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 uppercase tracking-wider font-bold">
+                      <thead className="bg-gray-50 text-gray-400 uppercase text-[10px] font-black tracking-widest border-b border-gray-100">
                         <tr>
-                          <th className="py-4 px-6">Product Name</th>
-                          <th className="py-4 px-6 text-center">Stock Qty</th>
-                          <th className="py-4 px-6 text-center">Min. Stock</th>
-                          <th className="py-4 px-6 text-center">Status</th>
+                          <th className="py-5 px-8">Product Name</th>
+                          <th className="py-5 px-8 text-center">Stock Qty</th>
+                          <th className="py-5 px-8 text-center">Status</th>
+                          <th className="py-5 px-8 text-center">Action</th>
                         </tr>
                       </thead>
-                      <tbody className="text-sm divide-y divide-slate-100">
-                        {loading ? <tr><td colSpan="4" className="text-center py-10"><Loader2 className="animate-spin text-[#990000] mx-auto" /></td></tr> : inventory.map(item => (
-                          <tr key={item.id} className="hover:bg-slate-50">
-                            <td className="py-4 px-6 font-bold text-slate-900">{item.product_name}</td>
-                            <td className="py-4 px-6 text-center font-black">{item.stock_qty}</td>
-                            <td className="py-4 px-6 text-center text-slate-500">{item.minimum_stok}</td>
-                            <td className="py-4 px-6 text-center">
-                              {item.stock_qty <= item.minimum_stok ? (
-                                <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-red-100 text-red-700 flex items-center gap-1 justify-center">
-                                  <AlertTriangle size={12} /> Low Stock
-                                </span>
-                              ) : (
-                                <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700 flex items-center gap-1 justify-center">
-                                  <CheckCircle size={12} /> Available
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                        {inventory.length === 0 && !loading && <tr><td colSpan="4" className="text-center py-10 text-slate-500">No inventory data found for Banua branch.</td></tr>}
+                      <tbody className="text-sm divide-y divide-gray-50 font-bold">
+                        {loading ? (
+                          <tr><td colSpan="4" className="text-center py-20"><Loader2 className="animate-spin text-[#990000] mx-auto" /></td></tr>
+                        ) : inventory.length === 0 ? (
+                          <tr><td colSpan="4" className="text-center py-20 text-gray-400 italic">Belum ada data inventori.</td></tr>
+                        ) : (
+                          inventory.map(item => (
+                            <tr key={item.id} className="hover:bg-gray-50/50 transition-colors group">
+                              <td className="py-4 px-8 font-black text-gray-900 flex items-center gap-4">
+                                <div className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center group-hover:bg-red-50 transition-colors">
+                                  <Package className="text-gray-400 group-hover:text-[#990000]" size={20} />
+                                </div>
+                                {item.product_name}
+                              </td>
+                              <td className="py-4 px-8 text-center font-black text-xl text-[#990000]">{item.stock_qty}</td>
+                              <td className="py-4 px-8 text-center">
+                                {item.stock_qty > item.minimum_stok ? (
+                                  <span className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">Available</span>
+                                ) : item.stock_qty > 0 ? (
+                                  <span className="bg-orange-50 text-orange-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">Low Stock</span>
+                                ) : (
+                                  <span className="bg-red-50 text-red-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">Out of Stock</span>
+                                )}
+                              </td>
+                              <td className="py-4 px-8 text-center">
+                                <button 
+                                  onClick={() => handleOrderFromStock(item)}
+                                  disabled={item.stock_qty <= 0}
+                                  className={`flex items-center gap-2 mx-auto px-6 py-2.5 rounded-xl text-xs font-black transition-all active:scale-95 shadow-lg ${item.stock_qty > 0 ? 'bg-[#990000] text-white hover:bg-red-800 shadow-red-100' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                                >
+                                  <ShoppingBag size={14} /> Pesan Sekarang
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
                       </tbody>
                     </table>
                   </div>
+                </div>
+              )}
+
+              {/* === TAB PROMO === */}
+              {activeTab === 'promo' && (
+                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                   <div className="bg-[#990000] p-8 rounded-[2.5rem] shadow-xl shadow-red-200/50 border border-red-800 text-white flex flex-col md:flex-row justify-between items-center gap-6">
+                      <div className="flex-1">
+                        <h2 className="text-2xl font-black mb-2 flex items-center gap-3"><Gift size={32} /> Promo Cuci Gudang</h2>
+                        <p className="text-red-100 font-medium">Daftar produk mengendap (tidak terjual dalam 60 hari terakhir). Segera buat program promo untuk menghabiskan stok!</p>
+                      </div>
+                      <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 text-center min-w-[150px]">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-red-100">Total Produk</p>
+                        <p className="text-3xl font-black">{promoStock.length}</p>
+                      </div>
+                   </div>
+
+                   <div className="bg-white rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead className="bg-gray-50 text-gray-400 uppercase text-[10px] font-black tracking-widest border-b border-gray-100">
+                            <tr>
+                              <th className="py-5 px-8">Nama Produk</th>
+                              <th className="py-5 px-8 text-center">Stok Mengendap</th>
+                              <th className="py-5 px-8 text-center">Status</th>
+                              <th className="py-5 px-8 text-center">Aksi</th>
+                            </tr>
+                          </thead>
+                          <tbody className="text-sm divide-y divide-gray-50 font-bold">
+                            {loading ? (
+                              <tr><td colSpan="4" className="text-center py-20"><Loader2 className="animate-spin text-[#990000] mx-auto" /></td></tr>
+                            ) : promoStock.length === 0 ? (
+                              <tr><td colSpan="4" className="text-center py-20 text-gray-400 italic font-medium">Tidak ada produk mengendap saat ini.</td></tr>
+                            ) : (
+                              promoStock.map(item => (
+                                <tr key={item.id} className="hover:bg-gray-50/50 transition-colors group">
+                                  <td className="py-4 px-8 font-black text-gray-900">{item.product_name}</td>
+                                  <td className="py-4 px-8 text-center font-black text-xl text-orange-600">{item.stock_qty}</td>
+                                  <td className="py-4 px-8 text-center">
+                                    <span className="bg-orange-50 text-orange-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">Stok Lama</span>
+                                  </td>
+                                  <td className="py-4 px-8 text-center">
+                                    <button 
+                                      onClick={() => handleOrderFromStock(item)}
+                                      className="flex items-center gap-2 mx-auto bg-orange-50 text-orange-600 px-6 py-2.5 rounded-xl text-xs font-black hover:bg-orange-600 hover:text-white transition-all active:scale-95 shadow-lg shadow-orange-100 border border-orange-100"
+                                    >
+                                      <Gift size={14} /> Buat Promo
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                   </div>
                 </div>
               )}
 
@@ -624,11 +894,8 @@ export default function MarketingOfflineBanua() {
 
                     <form onSubmit={saveOrder} className="p-6 space-y-4">
                       <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-1">Customer</label>
-                        <select required value={orderForm.customer} onChange={e => setOrderForm({ ...orderForm, customer: e.target.value })} className="w-full p-2.5 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-[#990000]">
-                          <option value="">Select Customer...</option>
-                          {customers.map(c => <option key={c.id} value={c.nama_customer}>{c.nama_customer}</option>)}
-                        </select>
+                        <label className="block text-sm font-bold text-slate-700 mb-1">Customer Name</label>
+                        <input required type="text" value={orderForm.customer} onChange={e => setOrderForm({ ...orderForm, customer: e.target.value })} placeholder="Contoh: PT Akansa" className="w-full p-2.5 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-[#990000]" />
                       </div>
 
                       <div>
@@ -691,6 +958,11 @@ export default function MarketingOfflineBanua() {
                         </div>
                       </div>
 
+                      <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-1">Catatan (Optional)</label>
+                        <textarea value={orderForm.catatan} onChange={e => setOrderForm({ ...orderForm, catatan: e.target.value })} placeholder="Tambahkan instruksi khusus..." className="w-full p-2.5 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-[#990000]" rows="2"></textarea>
+                      </div>
+
                       <button type="submit" className="w-full py-3 bg-[#990000] hover:bg-red-800 text-white font-bold rounded-xl transition-colors mt-4 shadow-md">Save Order</button>
                     </form>
                   </div>
@@ -723,7 +995,7 @@ export default function MarketingOfflineBanua() {
                         <div className="text-right">
                           <h2 className="text-3xl font-black text-slate-800 mb-2">QUOTATION</h2>
                           <p className="text-sm font-bold text-slate-600">No: <span className="font-medium">QT-{previewQuotation.id.toString().padStart(5, '0')}</span></p>
-                          <p className="text-sm font-bold text-slate-600">Date: <span className="font-medium">{new Date(previewQuotation.created_at || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span></p>
+                          <p className="text-sm font-bold text-slate-600">Date: <span className="font-medium">{previewQuotation.created_at ? new Date(previewQuotation.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}</span></p>
                         </div>
                       </div>
 
@@ -789,7 +1061,7 @@ export default function MarketingOfflineBanua() {
             </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

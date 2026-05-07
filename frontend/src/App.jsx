@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import Marketing from './pages/Marketing';
 import MarketingOnlineBanua from './pages/MarketingOnlineBanua';
 import MarketingOfflineBanua from './pages/MarketingOfflineBanua';
+import CreateOrderOfflineBanua from './pages/CreateOrderOfflineBanua';
 
 import Promo from './pages/Promo';
 import SalesOnline from './pages/SalesOnline';
@@ -111,6 +112,14 @@ function App() {
             <Marketing />
           </ProtectedRoute>
         } />
+        <Route 
+          path="/marketing-offline/create-order" 
+          element={
+            <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'marketing_offline']}>
+              <CreateOrderOfflineBanua />
+            </ProtectedRoute>
+          } 
+        />
         <Route 
           path="/marketing-offline/*" 
           element={

@@ -22,9 +22,11 @@ router.post('/orders', verifyToken, controller.createOrder);
 router.put('/orders/:id', verifyToken, controller.updateOrder);
 router.delete('/orders/:id', verifyToken, controller.deleteOrder);
 router.post('/orders/bulk', verifyToken, controller.bulkCreateOrders);
+router.post('/orders/:id/submit', verifyToken, controller.ajukanOrder);
 
 // INVENTORY & REPORTS
 router.get('/inventory', verifyToken, controller.getInventory);
 router.get('/reports', verifyToken, controller.getReports);
+router.get('/promo', verifyToken, controller.getPromoStock);
 
 module.exports = router;

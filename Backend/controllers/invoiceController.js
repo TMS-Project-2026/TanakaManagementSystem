@@ -112,6 +112,12 @@ exports.updateInvoice = (req, res) => {
         return res.status(400).json({ status: "error", message: "Data update kosong!" });
     }
 
+    // Remove invalid columns
+    delete fields.id;
+    delete fields.Diskon;
+    delete fields.created_at;
+    delete fields.updated_at;
+
     let setClause = [];
     let values = [];
 
