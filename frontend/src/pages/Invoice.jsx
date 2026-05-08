@@ -44,7 +44,7 @@ const Invoice = () => {
         }
     };
 
-    const formatRupiah = (number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(number);
+    const formatRupiah = (number) => 'Rp ' + Number(number || 0).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
     const filteredInvoices = invoices.filter(inv => {
         const matchesSearch = inv.no_invoice?.toLowerCase().includes(search.toLowerCase()) ||

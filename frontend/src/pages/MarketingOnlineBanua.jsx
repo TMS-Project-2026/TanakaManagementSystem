@@ -257,24 +257,60 @@ const MarketingOnlineBanua = () => {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data, { type: 'array' });
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+      // ========== AUTO-DETECT HEADER ROW ==========
+      // Read raw data as 2D array first to find where the actual headers are
+      const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+      console.log('📊 Raw Excel rows (first 5):', rawRows.slice(0, 5));
+
+      // Known header keywords to detect the header row
+      const knownHeaders = ['date', 'tanggal', 'product', 'produk', 'qty', 'quantity', 'price', 'harga', 'hpp', 'profit', 'item code', 'potongan'];
+      
+      let headerRowIndex = 0; // default to first row
+      for (let i = 0; i < Math.min(rawRows.length, 20); i++) {
+        const rowValues = (rawRows[i] || []).map(v => String(v).toLowerCase().trim());
+        const matchCount = rowValues.filter(v => knownHeaders.some(h => v.includes(h))).length;
+        if (matchCount >= 3) { // At least 3 known headers found = this is the header row
+          headerRowIndex = i;
+          console.log(`✅ Header row detected at row index ${i}:`, rawRows[i]);
+          break;
+        }
+      }
+
+      // Re-read with correct header row using range option
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { range: headerRowIndex, defval: '' });
+      
+      console.log('📋 Parsed JSON data count:', jsonData.length);
+      if (jsonData.length > 0) {
+        console.log('🔑 Column headers detected:', Object.keys(jsonData[0]));
+        console.log('📄 First row data:', jsonData[0]);
+      }
 
       if (jsonData.length === 0) {
-        alert("File Excel kosong!");
+        alert("File Excel kosong atau header tidak ditemukan!");
         return;
       }
 
-      // Map Shopee fields to DB fields
-      const mappedData = jsonData.map(row => {
-        const getField = (possibleNames) => {
-          const key = Object.keys(row).find(k => 
-            possibleNames.some(p => k.toLowerCase().trim() === p.toLowerCase().trim()) ||
-            possibleNames.some(p => k.toLowerCase().includes(p.toLowerCase()))
+      // Map Excel/Shopee fields to DB fields
+      const mappedData = jsonData.map((row, rowIndex) => {
+        // Smart field matcher: prioritizes exact match, then includes match
+        // Uses excludeKeys to avoid ambiguous substring collisions (e.g. "HPP" matching "HPP ACTUAL")
+        const getField = (possibleNames, excludeKeys = []) => {
+          const keys = Object.keys(row).filter(k => !excludeKeys.some(ex => k.toLowerCase().trim() === ex.toLowerCase().trim()));
+          // 1. Try exact match first
+          const exactKey = keys.find(k => 
+            possibleNames.some(p => k.toLowerCase().trim() === p.toLowerCase().trim())
           );
-          return key ? row[key] : '';
+          if (exactKey) return row[exactKey];
+          // 2. Try includes match
+          const includeKey = keys.find(k => 
+            possibleNames.some(p => k.toLowerCase().trim().includes(p.toLowerCase().trim()))
+          );
+          if (includeKey) return row[includeKey];
+          return '';
         };
 
-        // Helper to convert Excel date number to YYYY-MM-DD
+        // Helper to convert Excel date serial number to YYYY-MM-DD
         const excelDateToJS = (serial) => {
           if (typeof serial !== 'number') return serial;
           const utc_days  = Math.floor(serial - 25569);
@@ -283,11 +319,27 @@ const MarketingOnlineBanua = () => {
           return date_info.toISOString().split('T')[0];
         };
 
-        let rawTanggal = getField(['tanggal', 'waktu', 'date', 'order time', 'waktu pesanan dibuat', 'order creation date', 'waktu pesanan']);
+        // Helper to parse "6 May 2026" or "14 May 2026" format
+        const parseTextDate = (str) => {
+          if (!str || typeof str !== 'string') return null;
+          const d = new Date(str);
+          if (!isNaN(d.getTime())) {
+            return d.toISOString().split('T')[0];
+          }
+          return null;
+        };
+
+        let rawTanggal = getField(['date', 'tanggal', 'waktu', 'order time', 'waktu pesanan dibuat', 'order creation date', 'waktu pesanan']);
         let tanggal = typeof rawTanggal === 'number' ? excelDateToJS(rawTanggal) : rawTanggal;
 
-        if (!tanggal) tanggal = new Date().toISOString().split('T')[0];
-        if (typeof tanggal === 'string' && (tanggal.includes('/') || tanggal.includes('-'))) {
+        if (!tanggal) {
+          tanggal = new Date().toISOString().split('T')[0];
+        } else if (typeof tanggal === 'string') {
+          // Try parsing text date like "6 May 2026" or "14 May 2026"
+          const textParsed = parseTextDate(tanggal);
+          if (textParsed) {
+            tanggal = textParsed;
+          } else if (tanggal.includes('/') || tanggal.includes('-')) {
             // Clean up timestamp if present
             const datePart = tanggal.split(' ')[0];
             const separator = datePart.includes('/') ? '/' : '-';
@@ -297,33 +349,62 @@ const MarketingOnlineBanua = () => {
               if (parts[0].length === 4) tanggal = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
               else if (parts[2].length === 4) tanggal = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
             }
+          }
         }
 
-        const qty = parseInt(getField(['qty', 'jumlah', 'quantity', 'kuantitas', 'jumlah produk yang dipesan', 'jumlah produk'])) || 1;
-        const priceUnit = parseFloat(getField(['price', 'harga satuan', 'unit price', 'harga awal', 'deal price', 'harga asli'])) || 0;
-        const totalPrice = parseFloat(getField(['total price', 'total harga', 'subtotal', 'total bayar', 'total pembayaran', 'total real', 'total penghasilan'])) || (qty * priceUnit);
-        const hppUnit = parseFloat(getField(['hpp', 'cost', 'modal', 'hpp satuan', 'cost unit'])) || 0;
-        const totalHpp = parseFloat(getField(['total hpp', 'total cost', 'total modal'])) || (qty * hppUnit);
-        const discount = parseFloat(getField(['potongan shopee', 'diskon shopee', 'shopee discount', 'diskon dari shopee', 'voucher shopee', 'potongan'])) || 0;
-        const profit = parseFloat(getField(['profit', 'laba', 'keuntungan'])) || (totalPrice - totalHpp - discount);
+        // Parse numeric values - handles both number type and string type
+        const parseNum = (val) => {
+          if (val === undefined || val === null || val === '' || val === '-') return 0;
+          if (typeof val === 'number') return val;
+          // Remove thousand separators and whitespace
+          const cleaned = String(val).replace(/\s/g, '').replace(/,/g, '');
+          return parseFloat(cleaned) || 0;
+        };
 
-        return {
+        const qty = parseInt(getField(['qty', 'jumlah', 'quantity', 'kuantitas', 'jumlah produk yang dipesan', 'jumlah produk'])) || 1;
+        const priceUnit = parseNum(getField(['price', 'harga satuan', 'unit price', 'harga awal', 'deal price', 'harga asli'], ['total price']));
+        const totalPrice = parseNum(getField(['total price', 'total harga', 'subtotal', 'total bayar', 'total pembayaran', 'total real', 'total penghasilan'])) || (qty * priceUnit);
+        
+        // HPP fields - use excludeKeys to prevent "HPP" from matching "HPP ACTUAL" or "TOTAL HPP"
+        const hppActual = parseNum(getField(['hpp actual', 'hpp aktual', 'hpp_actual', 'hpp_aktual'], ['total hpp']));
+        const hppUnit = parseNum(getField(['hpp', 'hpp satuan', 'cost', 'modal', 'cost unit'], ['hpp actual', 'hpp aktual', 'hpp_actual', 'hpp_aktual', 'total hpp', 'total hpp aktual']));
+        const totalHpp = parseNum(getField(['total hpp', 'total hpp aktual', 'total cost', 'total modal']));
+        
+        // Use HPP ACTUAL if available, otherwise use HPP
+        const finalHppUnit = hppActual || hppUnit;
+        const finalTotalHpp = totalHpp || (qty * finalHppUnit);
+
+        const discount = parseNum(getField(['potongan shopee', 'potongan', 'diskon shopee', 'shopee discount', 'diskon dari shopee', 'voucher shopee'], ['total']));
+        const satuan = parseNum(getField(['satuan']));
+        const actual = parseNum(getField(['actual'], ['hpp actual', 'hpp aktual', 'hpp_actual']));
+        const profit = parseNum(getField(['profit', 'laba', 'keuntungan'])) || (totalPrice - finalTotalHpp - discount);
+        const catatan = getField(['catatan', 'note', 'notes', 'keterangan', 'remark']);
+
+        const result = {
           customer_name: getField(['nama', 'pembeli', 'username', 'customer', 'username pembeli', 'nama customer']) || 'Anonim',
-          akun_toko: getField(['akun', 'toko', 'shop', 'account', 'username penjual', 'akun toko']) || '-',
-          product_name: getField(['produk', 'barang', 'product', 'nama produk', 'product name', 'nama barang']) || 'Produk Tidak Diketahui',
+          akun_toko: getField(['item code', 'item_code', 'kode item', 'akun', 'toko', 'shop', 'account', 'username penjual', 'akun toko']) || '-',
+          product_name: getField(['product', 'produk', 'barang', 'nama produk', 'product name', 'nama barang']) || 'Produk Tidak Diketahui',
           qty: qty,
-          price_unit: priceUnit,
+          price_unit: priceUnit || satuan || 0,
           total_price: totalPrice,
           potongan_shopee: discount,
-          hpp_aktual: hppUnit,
-          total_hpp_aktual: totalHpp,
+          hpp_aktual: finalHppUnit,
+          total_hpp_aktual: finalTotalHpp,
           profit: profit,
           order_date: tanggal,
           address: getField(['alamat', 'address', 'kota', 'alamat pengiriman', 'shipping address']) || '-',
           status: getField(['status', 'order status', 'status pesanan']) || 'Pesanan Selesai'
         };
+
+        // Debug log first row mapping
+        if (rowIndex === 0) {
+          console.log('🔄 First row mapping result:', result);
+        }
+
+        return result;
       });
 
+      console.log('✅ Total mapped rows:', mappedData.length);
       setImportPreview(mappedData);
       setShowImportModal(true);
     } catch (err) {

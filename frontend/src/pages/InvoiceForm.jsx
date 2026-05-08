@@ -83,6 +83,13 @@ Bank                      : BANK RAKYAT INDONESIA (BRI)
 Cabang                    : Yogyakarta
 No. Rekening              : 2099 0100 0495 305
 Atas Nama                 : PT TANAKA RIZQI BAROKAH`;
+        } else if (form.cabang === 'Acestreet') {
+            defaultNote = `PAYMENT METHOD :
+Term of Payment           : 
+Bank                      : BANK RAKYAT INDONESIA (BRI)
+Cabang                    : Yogyakarta
+No. Rekening              : 2099 0100 0545 304
+Atas Nama                 : ACESTREET`;
         }
 
         setForm(prev => ({

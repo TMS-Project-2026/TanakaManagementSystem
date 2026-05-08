@@ -6,6 +6,7 @@ import LogoTanaka from '../assets/logotanaka.jpeg';
 
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [expandedMenus, setExpandedMenus] = useState({});
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -186,7 +187,11 @@ const Sidebar = () => {
 
                   <div
                     onClick={() => {
-                      if (item.path && !item.subMenu) navigate(item.path);
+                      if (item.subMenu) {
+                        setExpandedMenus(prev => ({ ...prev, [item.name]: !prev[item.name] }));
+                      } else if (item.path) {
+                        navigate(item.path);
+                      }
                     }}
                     className={`w-full flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-300
                       ${isActive
@@ -208,13 +213,13 @@ const Sidebar = () => {
                     {item.subMenu && (
                       <ChevronDown 
                         size={14} 
-                        className={`transition-transform duration-200 ${isActive ? 'rotate-180' : ''}`} 
+                        className={`transition-transform duration-200 ${(expandedMenus[item.name] || location.pathname.startsWith(item.path)) ? 'rotate-180' : ''}`} 
                       />
                     )}
                   </div>
 
                   {/* Submenu (Hanya jika ada) */}
-                  {item.subMenu && (location.pathname.startsWith(item.path) || ['/payment', '/expense', '/invoice', '/report'].includes(location.pathname) && item.name === 'Finance') && (
+                  {item.subMenu && (expandedMenus[item.name] || location.pathname.startsWith(item.path) || (['/payment', '/expense', '/invoice', '/report'].includes(location.pathname) && item.name === 'Finance')) && (
                     <ul className="ml-12 mt-2 space-y-2 border-l-2 border-red-200 pl-4 mb-3">
                       {item.subMenu.map(sub => {
                         const isSubActive = location.pathname === (sub.path || '');

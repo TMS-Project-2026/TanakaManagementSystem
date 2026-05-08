@@ -6,14 +6,14 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import Sidebar from '../components/Sidebar';
 import LogoBanua from '../assets/LOGO BANUA.png';
-import LogoTanaka from '../assets/logotanaka.jpeg';
+import LogoTanaka from '../assets/kop_tanaka.png';
 import LogoAcestreet from '../assets/logoacestreet.png';
 const addresses = {
-    Banua: 'Geblagan, Tamantirto, Kasihan, Bantul Regency, Special Region of Yogyakarta 55184 | Telp: (0541) 123456 | Email: finance@banua.com',
-    'PT BANUA MITRA LESTARI': 'Geblagan, Tamantirto, Kasihan, Bantul Regency, Special Region of Yogyakarta 55184 | Telp: (0541) 123456 | Email: finance@banua.com',
-    Tanaka: 'Jl. Demakan Jl. Wiratama No.50, Tegalrejo, Kec. Tegalrejo, Kota Yogyakarta, Daerah Istimewa Yogyakarta 55244 | Telp: (0541) 654321 | Email: finance@tanaka.com',
-    'PT TANAKA RIZQI BAROKAH': 'Jl. Demakan Jl. Wiratama No.50, Tegalrejo, Kec. Tegalrejo, Kota Yogyakarta, Daerah Istimewa Yogyakarta 55244 | Telp: (0541) 654321 | Email: finance@tanaka.com',
-    Acestreet: 'Jl. Ambarbinangun, Brajan, Tamantirto, Kec. Kasihan, Kabupaten Bantul, Daerah Istimewa Yogyakarta 55184 | Email: finance@acestreet.com'
+    Banua: 'Geblagan, Tamantirto, Kasihan, Bantul Regency,\nSpecial Region of Yogyakarta 55184\nTelp: (0541) 123456 | Email: finance@banua.com',
+    'PT BANUA MITRA LESTARI': 'Geblagan, Tamantirto, Kasihan, Bantul Regency,\nSpecial Region of Yogyakarta 55184\nTelp: (0541) 123456 | Email: finance@banua.com',
+    Tanaka: 'Jl. Demakan Jl. Wiratama No.50, Tegalrejo, Kec. Tegalrejo,\nKota Yogyakarta, Daerah Istimewa Yogyakarta 55244\nTelp: (0541) 654321 | Email: finance@tanaka.com',
+    'PT TANAKA RIZQI BAROKAH': 'Jl. Demakan Jl. Wiratama No.50, Tegalrejo, Kec. Tegalrejo,\nKota Yogyakarta, Daerah Istimewa Yogyakarta 55244\nTelp: (0541) 654321 | Email: finance@tanaka.com',
+    Acestreet: 'Jl. Ambarbinangun, Brajan, Tamantirto, Kec. Kasihan,\nKabupaten Bantul, Daerah Istimewa Yogyakarta 55184\nEmail: finance@acestreet.com'
 };
 
 const InvoicePreview = () => {
@@ -40,10 +40,28 @@ const InvoicePreview = () => {
         window.print();
     };
 
-    const handleDownloadPdf = () => {
+    const handleDownloadPdf = async () => {
         if (!invoice) return;
         try {
             const doc = new jsPDF('p', 'mm', 'a4');
+
+            // Helper to load image as base64 for jsPDF
+            const loadImageBase64 = (src) => {
+                return new Promise((resolve) => {
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+                        resolve(canvas.toDataURL('image/png'));
+                    };
+                    img.onerror = () => resolve(null);
+                    img.src = src;
+                });
+            };
 
             const ptNames = {
                 Banua: 'PT BANUA MITRA LESTARI',
@@ -51,45 +69,77 @@ const InvoicePreview = () => {
                 Acestreet: 'ACESTREET'
             };
             const cabangName = ptNames[invoice.cabang] || invoice.cabang;
+            const isBanua = invoice.cabang === 'Banua';
 
-            // Add basic header text (simulating logo)
-            doc.setFontSize(22);
-            doc.setTextColor(153, 0, 0); // Dark red
-            doc.text(cabangName, 14, 20);
+            // Format Rupiah for PDF (with dots, no decimals)
+            const fmtRp = (val) => 'Rp ' + Number(val || 0).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
-            doc.setFontSize(10);
-            doc.setTextColor(100, 100, 100);
-            const addressLines = (addresses[invoice.cabang] || '').split(' | ');
-            doc.text(addressLines[0] || '', 14, 26);
-            if (addressLines.length > 1) {
-                doc.text(addressLines.slice(1).join(' | '), 14, 31);
+            // Add logo + header text
+            let addressStartY = 24;
+            let yOffset = 0; // extra offset for branches with large kop surat
+            if (invoice.cabang === 'Banua') {
+                const logoData = await loadImageBase64(LogoBanua);
+                if (logoData) {
+                    doc.addImage(logoData, 'PNG', 14, 6, 40, 18);
+                    addressStartY = 26;
+                }
+            } else if (invoice.cabang === 'Tanaka') {
+                // Kop surat - full width banner, proper aspect ratio (871x190 = 4.58:1)
+                const logoData = await loadImageBase64(LogoTanaka);
+                if (logoData) {
+                    const kopHeight = 210 / 4.58; // ~46mm
+                    doc.addImage(logoData, 'PNG', 0, 0, 210, kopHeight);
+                    yOffset = kopHeight - 10; // shift all content below kop
+                    addressStartY = kopHeight + 4;
+                }
+            } else if (invoice.cabang === 'Acestreet') {
+                const logoData = await loadImageBase64(LogoAcestreet);
+                if (logoData) {
+                    doc.addImage(logoData, 'PNG', 14, 2, 35, 39);
+                    addressStartY = 26;
+                }
+            } else {
+                doc.setFontSize(22);
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(153, 0, 0);
+                doc.text(cabangName, 14, 20);
             }
 
-            // INVOICE Title
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(100, 100, 100);
+            const addressLines = (addresses[invoice.cabang] || '').split('\n');
+            addressLines.forEach((line, i) => {
+                doc.text(line.trim(), 14, addressStartY + (i * 4));
+            });
+
+            // INVOICE Title - positioned on the right
             doc.setFontSize(28);
+            doc.setFont('helvetica', 'bold');
             doc.setTextColor(50, 50, 50);
-            doc.text("INVOICE", 140, 25);
+            doc.text("INVOICE", 196, 20 + yOffset, { align: 'right' });
 
             doc.setFontSize(10);
-            doc.text(`No Invoice: ${invoice.no_invoice || ''}`, 140, 32);
-            doc.text(`Date: ${invoice.tanggal_terbit ? new Date(invoice.tanggal_terbit).toLocaleDateString('id-ID') : ''}`, 140, 37);
-            doc.text(`Due Date: ${invoice.tanggal_jatuh_tempo ? new Date(invoice.tanggal_jatuh_tempo).toLocaleDateString('id-ID') : ''}`, 140, 42);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`No Invoice: ${invoice.no_invoice || ''}`, 196, 28 + yOffset, { align: 'right' });
+            doc.text(`Date: ${invoice.tanggal_terbit ? new Date(invoice.tanggal_terbit).toLocaleDateString('id-ID') : ''}`, 196, 34 + yOffset, { align: 'right' });
+            doc.text(`Due Date: ${invoice.tanggal_jatuh_tempo ? new Date(invoice.tanggal_jatuh_tempo).toLocaleDateString('id-ID') : ''}`, 196, 40 + yOffset, { align: 'right' });
 
             // Line separator
             doc.setDrawColor(200, 200, 200);
-            doc.line(14, 48, 196, 48);
+            doc.line(14, 48 + yOffset, 196, 48 + yOffset);
 
             // Bill to
             doc.setFontSize(11);
             doc.setTextColor(0, 0, 0);
             doc.setFont("helvetica", "bold");
-            doc.text("Billed To:", 14, 58);
+            doc.text("Billed To:", 14, 58 + yOffset);
 
             doc.setFont("helvetica", "normal");
-            doc.text(invoice.nama_pt || '', 14, 64);
-            doc.text(invoice.alamat_pt || '', 14, 69, { maxWidth: 80 });
-            if (invoice.up_penagihan) doc.text(`UP: ${invoice.up_penagihan}`, 14, 75);
-            if (invoice.cp_penagihan) doc.text(`CP: ${invoice.cp_penagihan}`, 14, 80);
+            doc.text(invoice.nama_pt || '', 14, 64 + yOffset);
+            doc.text(invoice.alamat_pt || '', 14, 69 + yOffset, { maxWidth: 80 });
+            if (invoice.up_penagihan) doc.text(`UP: ${invoice.up_penagihan}`, 14, 75 + yOffset);
+            if (invoice.cp_penagihan) doc.text(`CP: ${invoice.cp_penagihan}`, 14, 80 + yOffset);
 
             // Table
             const tableColumn = ["Deskripsi", "Rincian", "Qty", "Satuan", "Harga Satuan", "Total"];
@@ -108,8 +158,8 @@ const InvoicePreview = () => {
                         item.rincian || '',
                         item.qty || 0,
                         item.satuan || 'Pcs',
-                        `Rp ${Number(item.harga_satuan || 0).toLocaleString('id-ID')}`,
-                        `Rp ${(Number(item.qty || 0) * Number(item.harga_satuan || 0)).toLocaleString('id-ID')}`
+                        fmtRp(item.harga_satuan),
+                        fmtRp(Number(item.qty || 0) * Number(item.harga_satuan || 0))
                     ]);
                 });
             } else {
@@ -119,60 +169,82 @@ const InvoicePreview = () => {
                         invoice.detail_pekerjaan || '',
                         invoice.qty || 0,
                         'Pcs',
-                        `Rp ${Number(invoice.harga_satuan || 0).toLocaleString('id-ID')}`,
-                        `Rp ${Number(invoice.subtotal || 0).toLocaleString('id-ID')}`
+                        fmtRp(invoice.harga_satuan),
+                        fmtRp(invoice.subtotal)
                     ]
                 ];
             }
 
             autoTable(doc, {
-                startY: 90,
+                startY: 90 + yOffset,
                 head: [tableColumn],
                 body: tableRows,
                 theme: 'grid',
-                headStyles: { fillColor: [153, 0, 0], textColor: [255, 255, 255] },
-                styles: { fontSize: 10, cellPadding: 4 }
+                headStyles: { fillColor: isBanua ? [30, 64, 175] : [153, 0, 0], textColor: [255, 255, 255] },
+                styles: { fontSize: 10, cellPadding: 4, font: 'helvetica' }
             });
 
             const finalY = doc.lastAutoTable.finalY || 90;
 
-            // Totals
+            // Totals - aligned colons
             doc.setFontSize(10);
-            doc.text("Subtotal:", 130, finalY + 10);
-            doc.text(`Rp ${invoice.subtotal.toLocaleString('id-ID')}`, 196, finalY + 10, { align: 'right' });
+            doc.setFont('helvetica', 'normal');
+            doc.text('Subtotal', 130, finalY + 10);
+            doc.text(':', 158, finalY + 10);
+            doc.text(fmtRp(invoice.subtotal), 196, finalY + 10, { align: 'right' });
 
-            if (invoice.ppn_persen > 0) {
-                doc.text(`PPN (${invoice.ppn_persen}%):`, 130, finalY + 16);
-                doc.text(`Rp ${invoice.jumlah_ppn.toLocaleString('id-ID')}`, 196, finalY + 16, { align: 'right' });
-            }
+            doc.text('PPN', 130, finalY + 16);
+            doc.text(':', 158, finalY + 16);
+            doc.text(fmtRp(invoice.jumlah_ppn), 196, finalY + 16, { align: 'right' });
 
-            doc.setFont("helvetica", "bold");
-            doc.text("GRAND TOTAL:", 130, finalY + 24);
-            doc.text(`Rp ${invoice.grand_total.toLocaleString('id-ID')}`, 196, finalY + 24, { align: 'right' });
+            doc.setFont('helvetica', 'bold');
+            doc.text('GRAND TOTAL', 130, finalY + 24);
+            doc.text(':', 158, finalY + 24);
+            doc.text(fmtRp(invoice.grand_total), 196, finalY + 24, { align: 'right' });
 
-            // Notes
-            doc.setFont("courier", "normal");
+            // Notes - render as aligned key-value pairs
+            doc.setFont('helvetica', 'normal');
             doc.setFontSize(9);
-            doc.setTextColor(100, 100, 100);
-            doc.text(invoice.note || "Terima kasih atas kerja samanya.", 14, finalY + 10, { maxWidth: 100 });
+            doc.setTextColor(80, 80, 80);
+            const noteText = invoice.note || "Terima kasih atas kerja samanya.";
+            const noteLines = noteText.split('\n');
+            let noteY = finalY + 10;
+            noteLines.forEach((line) => {
+                const colonIdx = line.indexOf(':');
+                if (colonIdx > 0 && colonIdx < line.length - 1) {
+                    const label = line.substring(0, colonIdx).trim();
+                    const value = line.substring(colonIdx + 1).trim();
+                    doc.text(label, 14, noteY);
+                    doc.text(': ' + value, 55, noteY);
+                } else {
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(line.trim(), 14, noteY);
+                    doc.setFont('helvetica', 'normal');
+                }
+                noteY += 4.5;
+            });
 
             // TTD
             if (invoice.ttd) {
                 doc.setTextColor(0, 0, 0);
+                doc.setFont('helvetica', 'normal');
+
+                // Marketing name defaults per branch
+                const isTanaka = invoice.cabang === 'Tanaka';
+                const marketingName = invoice.nama_accounting || (isBanua ? 'Aji Pangestu' : isTanaka ? 'M.Rangga Maulana' : '(.........................)');
 
                 // Left Signature (Prepared by)
                 doc.text("Prepared by,", 40, finalY + 50, { align: 'center' });
-                doc.setFont("helvetica", "bold");
-                doc.text(invoice.nama_accounting || '(.........................)', 40, finalY + 80, { align: 'center' });
-                doc.setFont("helvetica", "normal");
+                doc.setFont('helvetica', 'bold');
+                doc.text(marketingName, 40, finalY + 80, { align: 'center' });
+                doc.setFont('helvetica', 'normal');
                 doc.text("Marketing", 40, finalY + 85, { align: 'center' });
 
                 // Right Signature (Approved by)
                 doc.text("Approved by,", 150, finalY + 50, { align: 'center' });
-                doc.setTextColor(0, 0, 0);
-                doc.setFont("helvetica", "bold");
-                doc.text(invoice.penanggung_jawab || '(.........................)', 150, finalY + 80, { align: 'center' });
-                doc.setFont("helvetica", "normal");
+                doc.setFont('helvetica', 'bold');
+                doc.text(invoice.penanggung_jawab || (isBanua || isTanaka || invoice.cabang === 'Acestreet' ? 'Hanifah Abdillah' : '(..........................)'), 150, finalY + 80, { align: 'center' });
+                doc.setFont('helvetica', 'normal');
                 doc.text(invoice.jabatan || "Accounting", 150, finalY + 85, { align: 'center' });
             }
 
@@ -185,7 +257,7 @@ const InvoicePreview = () => {
 
     if (!invoice) return <div className="p-8 text-center">Memuat...</div>;
 
-    const formatRupiah = (number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(number);
+    const formatRupiah = (number) => 'Rp ' + Number(number || 0).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
     return (
         <div className="flex bg-gray-100 min-h-screen font-sans">
@@ -214,38 +286,62 @@ const InvoicePreview = () => {
                 <div className="max-w-4xl mx-auto bg-white min-h-[297mm] p-10 md:p-16 shadow-xl print:shadow-none print:p-0">
 
                     {/* Header */}
-                    <div className="flex justify-between items-start border-b-2 border-gray-100 pb-8 mb-8">
-                        <div>
-                            {(() => {
-                                const ptNames = {
-                                    Banua: 'PT BANUA MITRA LESTARI',
-                                    Tanaka: 'PT TANAKA RIZQI BAROKAH',
-                                    Acestreet: 'ACESTREET'
-                                };
-                                const cabangName = ptNames[invoice.cabang] || invoice.cabang;
-                                return (
-                                    <div className="flex items-center gap-4 mb-3">
-                                        {invoice.cabang === 'Banua' && (
-                                            <img src={LogoBanua} alt="Logo Banua" className="h-14 object-contain" />
-                                        )}
-                                        {invoice.cabang === 'Tanaka' && (
-                                            <img src={LogoTanaka} alt="Logo Tanaka" className="h-14 object-contain" />
-                                        )}
-                                        <h2 className="text-2xl font-bold text-gray-900">{cabangName}</h2>
+                    {(() => {
+                        const ptNames = {
+                            Banua: 'PT BANUA MITRA LESTARI',
+                            Tanaka: 'PT TANAKA RIZQI BAROKAH',
+                            Acestreet: 'ACESTREET'
+                        };
+                        const cabangName = ptNames[invoice.cabang] || invoice.cabang;
+                        const isBanua = invoice.cabang === 'Banua';
+                        return (
+                            <div className="border-b-2 border-gray-100 pb-8 mb-8">
+                                {/* Tanaka: Full-width kop surat */}
+                                {invoice.cabang === 'Tanaka' && (
+                                    <div className="-mx-10 md:-mx-16 -mt-10 md:-mt-16 mb-6">
+                                        <img src={LogoTanaka} alt="Kop Surat Tanaka" className="w-full object-cover" />
                                     </div>
-                                );
-                            })()}
-                            <p className="text-gray-500 text-sm whitespace-pre-line">{addresses[invoice.cabang] || ''}</p>
-                        </div>
-                        <div className="text-right">
-                            <h1 className="text-4xl font-black text-gray-200 tracking-widest mb-2">INVOICE</h1>
-                            <p className="font-bold text-gray-800 text-lg">{invoice.no_invoice}</p>
-                            <div className="text-sm text-gray-500 mt-2">
-                                <p>Date: <span className="font-medium text-gray-800">{new Date(invoice.tanggal_terbit).toLocaleDateString('id-ID')}</span></p>
-                                <p>Due Date: <span className="font-medium text-gray-800">{new Date(invoice.tanggal_jatuh_tempo).toLocaleDateString('id-ID')}</span></p>
+                                )}
+                                {/* Other branches: Logo + INVOICE side by side */}
+                                {invoice.cabang !== 'Tanaka' && (
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex items-center gap-4">
+                                            {invoice.cabang === 'Banua' && (
+                                                <img src={LogoBanua} alt="Logo Banua" className="h-16 object-contain" />
+                                            )}
+                                            {invoice.cabang === 'Acestreet' && (
+                                                <img src={LogoAcestreet} alt="Logo Acestreet" className="h-20 object-contain" />
+                                            )}
+                                        </div>
+                                        <div className="text-right shrink-0 ml-8">
+                                            <h1 className="text-4xl font-black text-gray-200 tracking-widest mb-2">INVOICE</h1>
+                                            <p className="font-bold text-gray-800 text-lg">{invoice.no_invoice}</p>
+                                            <div className="text-sm text-gray-500 mt-2">
+                                                <p>Date: <span className="font-medium text-gray-800">{new Date(invoice.tanggal_terbit).toLocaleDateString('id-ID')}</span></p>
+                                                <p>Due Date: <span className="font-medium text-gray-800">{new Date(invoice.tanggal_jatuh_tempo).toLocaleDateString('id-ID')}</span></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                {/* Tanaka: INVOICE info below kop surat */}
+                                {invoice.cabang === 'Tanaka' && (
+                                    <div className="flex justify-between items-start">
+                                        <div></div>
+                                        <div className="text-right">
+                                            <h1 className="text-4xl font-black text-gray-200 tracking-widest mb-2">INVOICE</h1>
+                                            <p className="font-bold text-gray-800 text-lg">{invoice.no_invoice}</p>
+                                            <div className="text-sm text-gray-500 mt-2">
+                                                <p>Date: <span className="font-medium text-gray-800">{new Date(invoice.tanggal_terbit).toLocaleDateString('id-ID')}</span></p>
+                                                <p>Due Date: <span className="font-medium text-gray-800">{new Date(invoice.tanggal_jatuh_tempo).toLocaleDateString('id-ID')}</span></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                                {/* Address */}
+                                <p className={`text-sm whitespace-pre-line mt-1 max-w-md ${isBanua ? 'text-blue-700/70' : 'text-gray-500'}`}>{addresses[invoice.cabang] || ''}</p>
                             </div>
-                        </div>
-                    </div>
+                        );
+                    })()}
 
                     {/* Customer */}
                     <div className="mb-10">
@@ -260,7 +356,7 @@ const InvoicePreview = () => {
                     <div className="mb-8">
                         <table className="w-full text-left">
                             <thead>
-                                <tr className="bg-[#990000] text-white">
+                                <tr className={`${invoice.cabang === 'Banua' ? 'bg-blue-800' : 'bg-[#990000]'} text-white`}>
                                     <th className="p-3 font-semibold text-sm">Main Description</th>
                                     <th className="p-3 font-semibold text-sm">Details</th>
                                     <th className="p-3 font-semibold text-sm text-center">Qty</th>
@@ -309,25 +405,58 @@ const InvoicePreview = () => {
                     {/* Totals & Notes */}
                     <div className="flex flex-col md:flex-row justify-between items-start gap-8">
                         <div className="flex-1">
-                            <p className="text-xs text-gray-600 whitespace-pre-wrap border-l-4 border-gray-200 pl-3 font-mono leading-relaxed">
-                                {invoice.note || "Terima kasih atas kerja sama Anda."}
-                            </p>
+                            <div className="border-l-4 border-gray-200 pl-3">
+                                {(() => {
+                                    const noteText = invoice.note || "Terima kasih atas kerja sama Anda.";
+                                    const noteLines = noteText.split('\n');
+                                    return (
+                                        <table className="text-xs text-gray-700 font-sans">
+                                            <tbody>
+                                                {noteLines.map((line, idx) => {
+                                                    const colonIdx = line.indexOf(':');
+                                                    if (colonIdx > 0 && colonIdx < line.length - 1) {
+                                                        const label = line.substring(0, colonIdx).trim();
+                                                        const value = line.substring(colonIdx + 1).trim();
+                                                        return (
+                                                            <tr key={idx}>
+                                                                <td className="pr-1 py-0.5 whitespace-nowrap align-top">{label}</td>
+                                                                <td className="py-0.5 whitespace-nowrap align-top">: {value}</td>
+                                                            </tr>
+                                                        );
+                                                    } else {
+                                                        return (
+                                                            <tr key={idx}>
+                                                                <td colSpan="2" className="py-0.5 font-bold">{line.trim()}</td>
+                                                            </tr>
+                                                        );
+                                                    }
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    );
+                                })()}
+                            </div>
                         </div>
-                        <div className="w-full md:w-72">
-                            <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                                <span className="text-gray-600">Subtotal</span>
-                                <span className="font-semibold text-gray-800">{formatRupiah(invoice.subtotal)}</span>
-                            </div>
-                            {invoice.ppn_persen > 0 && (
-                                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                                    <span className="text-gray-600">PPN ({invoice.ppn_persen}%)</span>
-                                    <span className="font-semibold text-gray-800">{formatRupiah(invoice.jumlah_ppn)}</span>
-                                </div>
-                            )}
-                            <div className="flex justify-between items-center py-4 mt-2 bg-gray-50 rounded-lg px-4 border border-gray-200">
-                                <span className="font-bold text-[#990000]">GRAND TOTAL</span>
-                                <span className="font-black text-xl text-[#990000]">{formatRupiah(invoice.grand_total)}</span>
-                            </div>
+                        <div className="w-full md:w-80">
+                            <table className="w-full text-sm">
+                                <tbody>
+                                    <tr className="border-b border-gray-100">
+                                        <td className="py-2 text-gray-600">Subtotal</td>
+                                        <td className="py-2 text-gray-600">:</td>
+                                        <td className="py-2 text-right font-semibold text-gray-800">{formatRupiah(invoice.subtotal)}</td>
+                                    </tr>
+                                    <tr className="border-b border-gray-100">
+                                        <td className="py-2 text-gray-600">PPN</td>
+                                        <td className="py-2 text-gray-600">:</td>
+                                        <td className="py-2 text-right font-semibold text-gray-800">{formatRupiah(invoice.jumlah_ppn)}</td>
+                                    </tr>
+                                    <tr>
+                                        <td className={`py-3 font-bold ${invoice.cabang === 'Banua' ? 'text-blue-800' : 'text-[#990000]'}`}>GRAND TOTAL</td>
+                                        <td className={`py-3 font-bold ${invoice.cabang === 'Banua' ? 'text-blue-800' : 'text-[#990000]'}`}>:</td>
+                                        <td className={`py-3 text-right font-black text-xl ${invoice.cabang === 'Banua' ? 'text-blue-800' : 'text-[#990000]'}`}>{formatRupiah(invoice.grand_total)}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 
@@ -339,7 +468,7 @@ const InvoicePreview = () => {
                                 <p className="text-gray-600 mb-4">Prepared by,</p>
                                 <div className="h-24"></div>
                                 <p className="font-bold text-gray-800 underline decoration-gray-300 underline-offset-4">
-                                    {invoice.nama_accounting || '(.........................)'}
+                                    {invoice.nama_accounting || (invoice.cabang === 'Banua' ? 'Aji Pangestu' : invoice.cabang === 'Tanaka' ? 'M.Rangga Maulana' : '(.........................)')}
                                 </p>
                                 <p className="text-gray-500 text-sm mt-1">Marketing</p>
                             </div>
@@ -352,7 +481,7 @@ const InvoicePreview = () => {
                                 </div>
 
                                 <p className="font-bold text-gray-800 underline decoration-gray-300 underline-offset-4">
-                                    {invoice.penanggung_jawab || '(.........................)'}
+                                    {invoice.penanggung_jawab || ((invoice.cabang === 'Banua' || invoice.cabang === 'Tanaka' || invoice.cabang === 'Acestreet') ? 'Hanifah Abdillah' : '(.........................)')}
                                 </p>
                                 <p className="text-gray-500 text-sm mt-1">{invoice.jabatan || 'Accounting'}</p>
                             </div>
