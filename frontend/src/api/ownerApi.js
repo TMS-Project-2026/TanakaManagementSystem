@@ -12,4 +12,5 @@ export const getUserSummary = () => api.get('/owner/users');
 export const getReportCenter = (filter) => api.get(`/owner/report?filter=${filter}`);
 
 export const getApprovals = () => api.get('/owner/approval');
+export const getApprovalDetail = (id) => api.get(`/owner/approval/${id}/detail`);
 export const updateApprovalStatus = (id, status) => api.put(`/owner/approval/${id}`, { status });

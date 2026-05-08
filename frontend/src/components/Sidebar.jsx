@@ -13,7 +13,7 @@ const Sidebar = () => {
   // Dapatkan info user dari localStorage
   const user = JSON.parse(localStorage.getItem('user')) || {};
   const userRole = user.role || '';
-  
+
   const [pendingApprovals, setPendingApprovals] = useState(0);
 
   useEffect(() => {
@@ -40,20 +40,31 @@ const Sidebar = () => {
     { name: 'Order Offline', path: '/marketing', icon: <Users size={20} />, roles: ['Admin', 'Manager', 'Marketing'], group: 'Sales' },
     { name: 'Order Marketplace', path: '/sales-online', icon: <ShoppingBag size={20} />, roles: ['Admin', 'Manager', 'Marketing'], group: 'Sales' },
     { name: 'Dashboard Banua', path: '/marketing-offline/dashboard', icon: <TrendingUp size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline'], group: 'Offline Banua' },
-    { name: 'Customers', path: '/marketing-offline/customers', icon: <Users size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline'], group: 'Offline Banua' },
-    { name: 'Quotations', path: '/marketing-offline/quotations', icon: <FileText size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline'], group: 'Offline Banua' },
-    { name: 'Order Manual', path: '/marketing-offline/orders', icon: <ShoppingBag size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline'], group: 'Offline Banua' },
-    { name: 'Reports', path: '/marketing-offline/reports', icon: <Activity size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline'], group: 'Offline Banua' },
+    { name: 'Order Offline', path: '/marketing-offline/orders', icon: <ShoppingBag size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline'], group: 'Offline Banua' },
+    {
+      name: 'Report',
+      path: '/marketing-offline/reports',
+      icon: <FileText size={20} />,
+      roles: ['owner', 'Admin', 'Manager', 'marketing_offline'],
+      group: 'Offline Banua',
+      subMenu: [
+        { title: 'Laporan Harian', path: '/marketing-offline/reports/harian' },
+        { title: 'Laporan Bulanan', path: '/marketing-offline/reports/bulanan' },
+        { title: 'Laporan Tahunan', path: '/marketing-offline/reports/tahunan' },
+        { title: 'Laporan Berjalan', path: '/marketing-offline/reports/berjalan' }
+      ]
+    },
     { name: 'Stok Inventory', path: '/marketing-offline/inventory', icon: <Package size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline'], group: 'Offline Banua' },
+    { name: 'Promo', path: '/marketing-offline/promo', icon: <Gift size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline'], group: 'Offline Banua' },
     { name: 'Dashboard Online', path: '/marketing-online/dashboard', icon: <LayoutDashboard size={20} />, roles: ['marketing_online', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE BANUA' },
     { name: 'Order Marketplace', path: '/marketing-online/orders', icon: <ShoppingBag size={20} />, roles: ['marketing_online', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE BANUA' },
     { name: 'Stok Inventori', path: '/marketing-online/inventory', icon: <Package size={20} />, roles: ['marketing_online', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE BANUA' },
     { name: 'Promo Online', path: '/marketing-online/promo', icon: <Gift size={20} />, roles: ['marketing_online', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE BANUA' },
-    { 
-      name: 'Laporan Online', 
-      path: '/marketing-online/reports', 
-      icon: <FileText size={20} />, 
-      roles: ['marketing_online', 'Admin', 'Manager', 'Marketing'], 
+    {
+      name: 'Report',
+      path: '/marketing-online/reports',
+      icon: <FileText size={20} />,
+      roles: ['marketing_online', 'Admin', 'Manager', 'Marketing'],
       group: 'MARKETPLACE BANUA',
       subMenu: [
         { title: 'Laporan Harian', path: '/marketing-online/reports/harian' },
@@ -195,8 +206,8 @@ const Sidebar = () => {
                     }}
                     className={`w-full flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-300
                       ${isActive
-                      ? 'bg-red-800 text-white font-bold shadow-md'
-                      : 'text-gray-600 hover:bg-red-50 hover:text-red-800'
+                        ? 'bg-red-800 text-white font-bold shadow-md'
+                        : 'text-gray-600 hover:bg-red-50 hover:text-red-800'
                       }`}
                   >
                     <div className="flex items-center gap-3">
@@ -213,7 +224,7 @@ const Sidebar = () => {
                     {item.subMenu && (
                       <ChevronDown 
                         size={14} 
-                        className={`transition-transform duration-200 ${(expandedMenus[item.name] || location.pathname.startsWith(item.path)) ? 'rotate-180' : ''}`} 
+                        className={`transition-transform duration-200 ${(expandedMenus[item.name] || location.pathname.startsWith(item.path)) ? 'rotate-180' : ''}`}
                       />
                     )}
                   </div>
@@ -230,11 +241,10 @@ const Sidebar = () => {
                               e.stopPropagation();
                               if (sub.path) navigate(sub.path);
                             }}
-                            className={`text-[13px] cursor-pointer py-2 px-4 rounded-xl transition-all duration-200 flex items-center gap-2 ${
-                              isSubActive 
-                                ? 'bg-red-800 text-white font-black shadow-sm' 
+                            className={`text-[13px] cursor-pointer py-2 px-4 rounded-xl transition-all duration-200 flex items-center gap-2 ${isSubActive
+                                ? 'bg-red-800 text-white font-black shadow-sm'
                                 : 'text-gray-600 font-bold hover:bg-red-50 hover:text-red-800'
-                            }`}
+                              }`}
                           >
                             {sub.title || sub}
                           </li>

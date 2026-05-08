@@ -18,6 +18,37 @@ exports.getPendingCount = async (req, res) => {
     }
 };
 
+exports.getApprovalDetail = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [appRows] = await db.promise().query("SELECT * FROM approvals WHERE id = ?", [id]);
+        if (appRows.length === 0) return res.status(404).json({ message: "Approval tidak ditemukan" });
+        
+        const approval = appRows[0];
+        let detailData = null;
+
+        if (approval.tipe === 'order_to_invoice') {
+            const [refRows] = await db.promise().query("SELECT * FROM marketing_orders_offline WHERE id = ?", [approval.reference_id]);
+            detailData = refRows.length > 0 ? refRows[0] : null;
+        } else if (approval.tipe === 'quotation_to_invoice') {
+            if (approval.diajukan_oleh === 'Marketing Online') {
+                const [refRows] = await db.promise().query("SELECT * FROM marketing_orders_online WHERE id = ?", [approval.reference_id]);
+                detailData = refRows.length > 0 ? refRows[0] : null;
+            } else if (approval.diajukan_oleh === 'Marketing Offline Banua') {
+                const [refRows] = await db.promise().query("SELECT * FROM marketing_quotations WHERE id = ?", [approval.reference_id]);
+                detailData = refRows.length > 0 ? refRows[0] : null;
+            } else {
+                const [refRows] = await db.promise().query("SELECT * FROM marketing_leads WHERE id = ?", [approval.reference_id]);
+                detailData = refRows.length > 0 ? refRows[0] : null;
+            }
+        }
+
+        res.status(200).json({ status: "success", data: { approval, detail: detailData } });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 exports.updateApproval = async (req, res) => {
     try {
         const { id } = req.params;
@@ -116,6 +147,36 @@ exports.updateApproval = async (req, res) => {
                         // Update status lead
                         await db.promise().query("UPDATE marketing_leads SET status='Invoice Created' WHERE id=?", [leadId]);
                     }
+                }
+            }
+        } else if (appData.length > 0 && appData[0].tipe === 'order_to_invoice') {
+            const orderId = appData[0].reference_id;
+            if (orderId) {
+                if (status === 'approved') {
+                    const [orderData] = await db.promise().query("SELECT * FROM marketing_orders_offline WHERE id=?", [orderId]);
+                    if (orderData.length > 0) {
+                        const order = orderData[0];
+                        const no_invoice = `INV/${new Date().getFullYear()}/` + Math.floor(Math.random() * 10000);
+                        
+                        await db.promise().query(`
+                            INSERT INTO invoice (
+                                no_invoice, cabang, tanggal_transaksi, tanggal_terbit, tanggal_jatuh_tempo, 
+                                nama_pt, alamat_pt, up_penagihan, cp_penagihan, email,
+                                deskripsi, detail_pekerjaan, items, qty, harga_satuan, subtotal, 
+                                ppn_persen, jumlah_ppn, grand_total, keterangan, note, materai, ttd, 
+                                nama_accounting, penanggung_jawab, jabatan, status
+                            )
+                            VALUES (?, ?, NOW(), NOW(), DATE_ADD(NOW(), INTERVAL 14 DAY), ?, ?, ?, ?, ?, '', '', ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, '', '', '', 'Draft')
+                        `, [
+                            no_invoice, order.branch || 'Banua', order.customer, order.alamat_pt || '', order.up_penagihan || '', order.cp_penagihan || '', order.email || '', 
+                            order.items || '[]', order.qty || 1, order.harga || 0, order.subtotal || 0, 
+                            order.ppn_persen || 0, order.jumlah_ppn || 0, order.grand_total || 0, order.catatan || '', order.catatan || ''
+                        ]);
+                        
+                        await db.promise().query("UPDATE marketing_orders_offline SET status='Invoice Created' WHERE id=?", [orderId]);
+                    }
+                } else if (status === 'rejected') {
+                    await db.promise().query("UPDATE marketing_orders_offline SET status='Rejected' WHERE id=?", [orderId]);
                 }
             }
         }
