@@ -66,20 +66,7 @@ exports.createInvoice = (req, res) => {
         status = 'Draft'
     } = req.body;
     
-    let generatedNoInvoice = no_invoice;
-    if (!generatedNoInvoice) {
-        const dateObj = new Date();
-        const year = dateObj.getFullYear();
-        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-        const randomStr = Math.floor(1000 + Math.random() * 9000);
-        
-        let prefix = 'INV';
-        if (cabang === 'Banua') prefix = 'INV/BML';
-        else if (cabang === 'Tanaka') prefix = 'INV/TRB';
-        else if (cabang === 'Acestreet' || cabang === 'Accestret') prefix = 'INV/AC';
-
-        generatedNoInvoice = `${prefix}/${year}/${month}/${randomStr}`;
-    }
+    const generatedNoInvoice = (no_invoice && no_invoice.trim() !== '') ? no_invoice.trim() : null;
 
     const sql = `
         INSERT INTO invoice (

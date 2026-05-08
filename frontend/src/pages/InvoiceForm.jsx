@@ -201,7 +201,7 @@ Atas Nama                 : ACESTREET`;
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">No Invoice</label>
-                                    <input type="text" name="no_invoice" value={form.no_invoice} onChange={handleChange} placeholder="Otomatis jika dikosongkan" disabled={isEdit} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 focus:border-[#990000] outline-none" />
+                                    <input type="text" name="no_invoice" value={form.no_invoice} onChange={handleChange} disabled={isEdit} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 focus:border-[#990000] outline-none" />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">Cabang Asal *</label>
@@ -240,7 +240,7 @@ Atas Nama                 : ACESTREET`;
                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                             <h3 className="text-lg font-bold border-b border-gray-100 pb-3 mb-4 text-[#990000]">DATA CUSTOMER</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="relative">
+                                <div className="relative md:col-span-2">
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">Nama PT / Perusahaan *</label>
                                     <input 
                                         type="text" 
@@ -284,10 +284,6 @@ Atas Nama                 : ACESTREET`;
                                             )}
                                         </div>
                                     )}
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Email Penagihan</label>
-                                    <input type="email" name="email" value={form.email} onChange={handleChange} placeholder="finance@abc.com" className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none" />
                                 </div>
                                 <div className="md:col-span-2">
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">Alamat Lengkap Perusahaan *</label>
