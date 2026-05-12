@@ -36,6 +36,7 @@ const mutasiRoutes = require('./routes/mutasiRoutes');
 const itRoutes = require('./routes/itRoutes');
 const ownerRoutes = require('./routes/ownerRoutes');
 const produksiRoutes = require('./routes/produksiRoutes');
+const quotationRoutes = require('./routes/quotationRoutes');
 
 // 4. Daftarkan Route ke API
 app.use('/api/auth', authRoutes);
@@ -63,6 +64,11 @@ app.use('/api/mutasi', mutasiRoutes);
 app.use('/api/it', itRoutes);
 app.use('/api/owner', ownerRoutes);
 app.use('/api/produksi', produksiRoutes);
+app.use('/api/quotation', quotationRoutes);
+
+// Serve uploaded files
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // 5. Test Route
 app.get('/', (req, res) => {

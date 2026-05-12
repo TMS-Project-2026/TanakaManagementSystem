@@ -1,8 +1,12 @@
 import axiosInstance from './axios';
 
 export const journalApi = {
-  getAllJournals: async () => {
-    const response = await axiosInstance.get('/journal');
+  getAllJournals: async (params = {}) => {
+    const response = await axiosInstance.get('/journal', { params });
+    return response.data;
+  },
+  getStats: async (type) => {
+    const response = await axiosInstance.get('/journal/stats/summary', { params: type ? { type } : {} });
     return response.data;
   },
   getJournalById: async (id) => {
@@ -19,6 +23,12 @@ export const journalApi = {
   },
   deleteJournal: async (id) => {
     const response = await axiosInstance.delete(`/journal/${id}`);
+    return response.data;
+  },
+  uploadFiles: async (id, formData) => {
+    const response = await axiosInstance.post(`/journal/${id}/upload`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
     return response.data;
   }
 };

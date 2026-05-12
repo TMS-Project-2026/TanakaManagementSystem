@@ -9,6 +9,7 @@ export const getInvoices = (filters = {}) => {
 };
 
 export const getInvoiceById = (id) => api.get(`/invoice/${id}`);
+export const getNextInvoiceNumber = (cabang) => api.get(`/invoice/next-number?cabang=${cabang || 'Banua'}`);
 export const createInvoice = (data) => api.post('/invoice', data);
 export const updateInvoice = (id, data) => api.put(`/invoice/${id}`, data);
 export const deleteInvoice = (id) => api.delete(`/invoice/${id}`);

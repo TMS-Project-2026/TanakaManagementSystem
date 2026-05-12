@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { getApprovals, getApprovalDetail, updateApprovalStatus } from '../api/ownerApi';
-import { Check, X, Clock, ShieldCheck, Eye } from 'lucide-react';
+import { getApprovals, getApprovalDetail, updateApprovalStatus, deleteApproval } from '../api/ownerApi';
+import { Check, X, Clock, Eye, Trash2, FileText, Download, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 
 const formatRupiah = (number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number || 0);
@@ -9,25 +10,46 @@ const ApprovalCenter = () => {
     const [approvals, setApprovals] = useState([]);
     const [selectedApproval, setSelectedApproval] = useState(null);
     const [showModal, setShowModal] = useState(false);
+    const navigate = useNavigate();
 
-    const fetch = async () => {
+    const fetchData = async () => {
         try {
             const res = await getApprovals();
             if (res.data.status === 'success') setApprovals(res.data.data);
         } catch (error) { console.error(error); }
     };
 
-    useEffect(() => { fetch(); }, []);
+    useEffect(() => { fetchData(); }, []);
 
     const handleApproval = async (id, status) => {
-        if (!window.confirm(`Yakin ingin men-${status} pengajuan ini?`)) return;
+        let alasan = '';
+        if (status === 'rejected') {
+            alasan = window.prompt("Masukkan alasan penolakan:");
+            if (alasan === null) return; // User cancelled
+        } else {
+            if (!window.confirm(`Yakin ingin men-${status} pengajuan ini?`)) return;
+        }
+
         try {
-            await updateApprovalStatus(id, status);
+            await updateApprovalStatus(id, status, alasan);
             alert(`Pengajuan berhasil di-${status}`);
-            fetch();
+            setShowModal(false);
+            fetchData();
         } catch (error) {
             console.error(error);
             alert("Gagal memproses persetujuan");
+        }
+    };
+
+    const handleDelete = async (id) => {
+        if (!window.confirm("Yakin ingin menghapus pengajuan ini?")) return;
+        try {
+            await deleteApproval(id);
+            alert("Pengajuan berhasil dihapus!");
+            fetchData();
+        } catch (error) {
+            console.error(error);
+            alert("Gagal menghapus pengajuan");
         }
     };
 
@@ -44,6 +66,21 @@ const ApprovalCenter = () => {
         }
     };
 
+    // Parse items from quotation
+    const getProductNames = (item) => {
+        try {
+            if (item.quo_items) {
+                const items = typeof item.quo_items === 'string' ? JSON.parse(item.quo_items) : item.quo_items;
+                if (Array.isArray(items)) return items.map(i => i.rincian || i.nama_produk || '').filter(Boolean).join(', ');
+            }
+        } catch (e) {}
+        return item.keterangan || '-';
+    };
+
+    const getCustomerName = (item) => {
+        return item.quo_nama_pt || item.quo_customer_name || '-';
+    };
+
     return (
         <div className="flex bg-[#f8fafc] min-h-screen font-sans">
             <Sidebar />
@@ -55,140 +92,217 @@ const ApprovalCenter = () => {
                     </div>
 
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-gray-50 border-b border-gray-100 text-xs text-gray-500 uppercase tracking-wider">
-                                    <th className="p-4 font-bold w-1/5">Tipe & Tanggal</th>
-                                    <th className="p-4 font-bold w-1/3">Keterangan</th>
-                                    <th className="p-4 font-bold w-1/6">Diajukan Oleh</th>
-                                    <th className="p-4 font-bold w-1/6">Status</th>
-                                    <th className="p-4 font-bold w-1/6 text-center">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {approvals.map((item) => (
-                                    <tr key={item.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                                        <td className="p-4">
-                                            <p className="font-black text-gray-800 capitalize text-sm">{item.tipe.replace('_', ' ')}</p>
-                                            <p className="text-[10px] text-gray-400 mt-1 flex items-center gap-1"><Clock size={10}/> {new Date(item.tanggal_pengajuan).toLocaleString('id-ID')}</p>
-                                        </td>
-                                        <td className="p-4">
-                                            <p className="font-bold text-gray-800 text-sm">{item.keterangan}</p>
-                                            {item.nominal > 0 && <span className="inline-block mt-1 px-2 py-0.5 bg-red-50 text-red-700 text-xs font-bold rounded">{formatRupiah(item.nominal)}</span>}
-                                        </td>
-                                        <td className="p-4 text-sm font-bold text-gray-600">{item.diajukan_oleh}</td>
-                                        <td className="p-4">
-                                            {item.status === 'pending' && <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-bold uppercase">Pending</span>}
-                                            {item.status === 'approved' && <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold uppercase">Approved</span>}
-                                            {item.status === 'rejected' && <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-bold uppercase">Rejected</span>}
-                                        </td>
-                                        <td className="p-4 text-center">
-                                            <div className="flex justify-center gap-2">
-                                                <button onClick={() => handleView(item.id)} className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-colors tooltip" title="Lihat Detail"><Eye size={16} /></button>
-                                                {item.status === 'pending' && (
-                                                    <>
-                                                        <button onClick={() => handleApproval(item.id, 'approved')} className="w-8 h-8 rounded-full bg-green-50 text-green-600 hover:bg-green-600 hover:text-white flex items-center justify-center transition-colors tooltip" title="Setujui"><Check size={16} /></button>
-                                                        <button onClick={() => handleApproval(item.id, 'rejected')} className="w-8 h-8 rounded-full bg-red-50 text-red-600 hover:bg-red-600 hover:text-white flex items-center justify-center transition-colors tooltip" title="Tolak"><X size={16} /></button>
-                                                    </>
-                                                )}
-                                            </div>
-                                        </td>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse whitespace-nowrap">
+                                <thead>
+                                    <tr className="bg-gray-900 text-xs text-white uppercase tracking-wider font-semibold">
+                                        <th className="p-4">No</th>
+                                        <th className="p-4">No Quotation</th>
+                                        <th className="p-4">Nama Instansi</th>
+                                        <th className="p-4">Produk</th>
+                                        <th className="p-4">Tanggal</th>
+                                        <th className="p-4">Nominal</th>
+                                        <th className="p-4 text-center">Status</th>
+                                        <th className="p-4 text-center">Aksi</th>
                                     </tr>
-                                ))}
-                                {approvals.length === 0 && <tr><td colSpan="5" className="p-6 text-center text-gray-500 font-bold">Tidak ada request approval</td></tr>}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {approvals.map((item, index) => (
+                                        <tr key={item.id} className="border-b border-gray-50 hover:bg-red-50/30 transition-colors">
+                                            <td className="p-4 font-bold text-gray-500 text-sm">{String(index + 1).padStart(3, '0')}</td>
+                                            <td className="p-4">
+                                                <p className="font-bold text-gray-800 text-sm">{item.no_quotation || '-'}</p>
+                                                <p className="text-[10px] text-gray-400 mt-0.5 capitalize">{(item.tipe || '').replace(/_/g, ' ')}</p>
+                                            </td>
+                                            <td className="p-4 font-medium text-gray-800 text-sm">{getCustomerName(item)}</td>
+                                            <td className="p-4 text-sm text-gray-600 max-w-[200px] truncate">{getProductNames(item)}</td>
+                                            <td className="p-4 text-sm text-gray-600">
+                                                <div className="flex items-center gap-1"><Clock size={12} className="text-gray-400" />{item.tanggal_quotation ? new Date(item.tanggal_quotation).toLocaleDateString('id-ID') : new Date(item.tanggal_pengajuan).toLocaleDateString('id-ID')}</div>
+                                            </td>
+                                            <td className="p-4 font-bold text-gray-800 text-sm">{formatRupiah(item.nominal)}</td>
+                                            <td className="p-4 text-center">
+                                                {item.status === 'pending' && <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-bold uppercase">Pending</span>}
+                                                {item.status === 'approved' && <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold uppercase">Approved</span>}
+                                                {item.status === 'rejected' && <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full text-xs font-bold uppercase">Rejected</span>}
+                                            </td>
+                                            <td className="p-4 text-center">
+                                                <div className="flex justify-center gap-1">
+                                                    <button onClick={() => handleView(item.id)} className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-colors" title="Lihat Detail"><Eye size={16} /></button>
+                                                    {item.tipe === 'quotation_to_invoice' && item.reference_id && (
+                                                        <button onClick={() => navigate(`/quotation/preview/${item.reference_id}`)} className="w-8 h-8 rounded-full bg-purple-50 text-purple-600 hover:bg-purple-600 hover:text-white flex items-center justify-center transition-colors" title="Lihat Quotation"><FileText size={16} /></button>
+                                                    )}
+                                                    {item.status === 'pending' && (
+                                                        <>
+                                                            <button onClick={() => handleApproval(item.id, 'approved')} className="w-8 h-8 rounded-full bg-green-50 text-green-600 hover:bg-green-600 hover:text-white flex items-center justify-center transition-colors" title="Setujui"><Check size={16} /></button>
+                                                            <button onClick={() => handleApproval(item.id, 'rejected')} className="w-8 h-8 rounded-full bg-orange-50 text-orange-600 hover:bg-orange-600 hover:text-white flex items-center justify-center transition-colors" title="Tolak"><X size={16} /></button>
+                                                        </>
+                                                    )}
+                                                    <button onClick={() => handleDelete(item.id)} className="w-8 h-8 rounded-full bg-red-50 text-red-600 hover:bg-red-600 hover:text-white flex items-center justify-center transition-colors" title="Hapus"><Trash2 size={16} /></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {approvals.length === 0 && <tr><td colSpan="8" className="p-8 text-center text-gray-500 font-bold">Tidak ada request approval</td></tr>}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </main>
 
             {/* Modal Detail Approval */}
-            {showModal && selectedApproval && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200">
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white">
-                            <h2 className="text-xl font-bold text-gray-800">Detail Approval</h2>
-                            <button onClick={() => setShowModal(false)} className="p-2 text-gray-400 hover:text-red-600 bg-gray-50 rounded-full transition-colors"><X size={20}/></button>
-                        </div>
-                        <div className="p-6 space-y-6">
-                            <div>
-                                <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-2">Informasi Pengajuan</p>
-                                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 grid grid-cols-2 gap-4">
-                                    <div>
-                                        <p className="text-xs text-gray-500 mb-1">Tipe</p>
-                                        <p className="font-bold text-gray-800 capitalize">{selectedApproval.approval.tipe.replace(/_/g, ' ')}</p>
-                                    </div>
+            {showModal && selectedApproval && (() => {
+                const d = selectedApproval.detail || {};
+                const a = selectedApproval.approval || {};
+                const isQuotation = a.tipe === 'quotation_to_invoice';
+
+                // Parse items & files
+                let items = [];
+                const rawItems = d.items_detail || d.items;
+                if (rawItems) {
+                    try { items = typeof rawItems === 'string' ? JSON.parse(rawItems) : rawItems; } catch(e) { items = []; }
+                }
+                let files = [];
+                if (d.file_uploads) {
+                    try { files = typeof d.file_uploads === 'string' ? JSON.parse(d.file_uploads) : d.file_uploads; } catch(e) { files = []; }
+                }
+
+                return (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
+                        <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                            {/* Header */}
+                            <div className="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
+                                <div>
+                                    <h2 className="text-xl font-bold text-gray-800">Detail Pengajuan</h2>
+                                    <p className="text-sm text-gray-500 mt-0.5 capitalize">{(a.tipe || '').replace(/_/g, ' ')}</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {isQuotation && a.reference_id && (
+                                        <button onClick={() => { setShowModal(false); navigate(`/quotation/preview/${a.reference_id}`); }} className="px-4 py-2 bg-purple-50 text-purple-700 rounded-xl text-sm font-bold hover:bg-purple-100 flex items-center gap-2"><ExternalLink size={16} /> Lihat Quotation</button>
+                                    )}
+                                    <button onClick={() => setShowModal(false)} className="p-2 text-gray-400 hover:text-red-600 bg-gray-50 rounded-full transition-colors"><X size={20}/></button>
+                                </div>
+                            </div>
+                            <div className="p-6 space-y-6">
+                                {/* Info Pengajuan */}
+                                <div className="bg-gray-50 p-5 rounded-xl border border-gray-100 grid grid-cols-2 gap-4">
                                     <div>
                                         <p className="text-xs text-gray-500 mb-1">Diajukan Oleh</p>
-                                        <p className="font-bold text-gray-800">{selectedApproval.approval.diajukan_oleh}</p>
-                                    </div>
-                                    <div className="col-span-2">
-                                        <p className="text-xs text-gray-500 mb-1">Keterangan</p>
-                                        <p className="font-medium text-gray-800">{selectedApproval.approval.keterangan}</p>
+                                        <p className="font-bold text-gray-800">{a.diajukan_oleh}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-gray-500 mb-1">Nominal</p>
-                                        <p className="font-black text-[#990000] text-lg">{formatRupiah(selectedApproval.approval.nominal)}</p>
+                                        <p className="font-black text-[#990000] text-lg">{formatRupiah(a.nominal)}</p>
+                                    </div>
+                                    <div className="col-span-2">
+                                        <p className="text-xs text-gray-500 mb-1">Keterangan</p>
+                                        <p className="font-medium text-gray-800">{a.keterangan}</p>
                                     </div>
                                 </div>
-                            </div>
-                            
-                            {selectedApproval.detail && (
-                                <div>
-                                    <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-2">Detail Referensi</p>
-                                    <div className="bg-white p-4 rounded-xl border border-gray-200">
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="col-span-2 md:col-span-1">
-                                                <p className="text-xs text-gray-500 mb-1">Nama Customer / PT</p>
-                                                <p className="font-bold text-gray-800 text-base">{selectedApproval.detail.customer || selectedApproval.detail.customer_name || selectedApproval.detail.nama_customer || '-'}</p>
-                                            </div>
-                                            {selectedApproval.detail.items && (
-                                                <div className="col-span-2 mt-2">
-                                                    <p className="text-xs text-gray-500 font-bold mb-2">Daftar Item / Produk</p>
-                                                    <div className="border border-gray-100 rounded-lg overflow-hidden">
-                                                        <table className="w-full text-left text-sm">
-                                                            <thead className="bg-gray-50 border-b border-gray-100 text-gray-500">
-                                                                <tr>
-                                                                    <th className="p-3 pl-4">Barang</th>
-                                                                    <th className="p-3 text-center">Qty</th>
-                                                                    <th className="p-3 text-right pr-4">Harga Satuan</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody className="divide-y divide-gray-50">
-                                                                {(typeof selectedApproval.detail.items === 'string' ? JSON.parse(selectedApproval.detail.items) : selectedApproval.detail.items).map((item, idx) => (
-                                                                    <tr key={idx}>
-                                                                        <td className="p-3 pl-4 font-medium text-gray-800">{item.rincian || item.nama_barang}</td>
-                                                                        <td className="p-3 text-center">{item.qty} <span className="text-gray-400 text-xs">{item.satuan}</span></td>
-                                                                        <td className="p-3 text-right pr-4">{formatRupiah(item.harga_satuan || item.harga || 0)}</td>
-                                                                    </tr>
-                                                                ))}
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
-                                                </div>
-                                            )}
-                                            {/* Untuk kasus yang tidak memiliki JSON items (seperti Quotation lama/Leads) */}
-                                            {!selectedApproval.detail.items && (selectedApproval.detail.produk || selectedApproval.detail.product_name) && (
-                                                <div className="col-span-2 mt-2">
-                                                    <p className="text-xs text-gray-500 font-bold mb-1">Produk</p>
-                                                    <p className="font-medium text-gray-800">{selectedApproval.detail.produk || selectedApproval.detail.product_name}</p>
-                                                    <p className="text-sm text-gray-600 mt-1">Qty: <b>{selectedApproval.detail.qty}</b></p>
-                                                </div>
-                                            )}
+
+                                {/* Customer Info (for quotation) */}
+                                {isQuotation && d.nama_pt && (
+                                    <div className="bg-blue-50 p-5 rounded-xl border border-blue-200">
+                                        <h3 className="font-bold text-sm text-blue-800 mb-3">DATA CUSTOMER</h3>
+                                        <div className="grid grid-cols-2 gap-3 text-sm">
+                                            <div><span className="text-gray-500">Nama PT:</span> <span className="font-bold text-gray-800">{d.nama_pt || d.customer_name}</span></div>
+                                            {d.alamat_pt && <div className="col-span-2"><span className="text-gray-500">Alamat:</span> <span className="text-gray-800">{d.alamat_pt}</span></div>}
+                                            {d.cp_penagihan && <div><span className="text-gray-500">CP:</span> <span className="text-gray-800">{d.cp_penagihan}</span></div>}
+                                            {d.email_customer && <div><span className="text-gray-500">Email:</span> <span className="text-gray-800">{d.email_customer}</span></div>}
+                                            {d.no_quotation && <div><span className="text-gray-500">No Quotation:</span> <span className="font-bold text-blue-700">{d.no_quotation}</span></div>}
+                                            {d.tanggal_quotation && <div><span className="text-gray-500">Tanggal:</span> <span className="text-gray-800">{new Date(d.tanggal_quotation).toLocaleDateString('id-ID')}</span></div>}
                                         </div>
                                     </div>
+                                )}
+
+                                {/* Items Table */}
+                                {items.length > 0 && (
+                                    <div>
+                                        <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-2">Daftar Item / Produk</p>
+                                        <div className="border border-gray-100 rounded-xl overflow-hidden">
+                                            <table className="w-full text-left text-sm">
+                                                <thead className="bg-gray-900 text-white text-xs uppercase">
+                                                    <tr>
+                                                        <th className="p-3 pl-4">Nama Produk</th>
+                                                        <th className="p-3 text-center">Ukuran</th>
+                                                        <th className="p-3 text-center">Qty</th>
+                                                        <th className="p-3 text-center">Unit</th>
+                                                        <th className="p-3 text-right">Harga Satuan</th>
+                                                        <th className="p-3 text-right pr-4">Total</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-50">
+                                                    {items.map((item, idx) => (
+                                                        <tr key={idx} className="hover:bg-gray-50">
+                                                            <td className="p-3 pl-4 font-medium text-gray-800">{item.rincian || item.nama_barang || item.nama_produk || '-'}</td>
+                                                            <td className="p-3 text-center text-gray-600">{item.ukuran || '-'}</td>
+                                                            <td className="p-3 text-center font-bold">{item.qty || 0}</td>
+                                                            <td className="p-3 text-center text-gray-600">{item.satuan || 'Pcs'}</td>
+                                                            <td className="p-3 text-right">{formatRupiah(item.harga_satuan || item.harga || 0)}</td>
+                                                            <td className="p-3 text-right pr-4 font-bold">{formatRupiah((item.qty || 0) * (item.harga_satuan || item.harga || 0))}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Non-items product (legacy) */}
+                                {items.length === 0 && (d.produk || d.product_name) && (
+                                    <div className="bg-gray-50 p-4 rounded-xl border">
+                                        <p className="text-xs text-gray-500 font-bold mb-1">Produk</p>
+                                        <p className="font-medium text-gray-800">{d.produk || d.product_name}</p>
+                                        <p className="text-sm text-gray-600 mt-1">Qty: <b>{d.qty}</b></p>
+                                    </div>
+                                )}
+
+                                {/* Payment Info */}
+                                {isQuotation && (d.payment_note || d.term_of_payment) && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {d.payment_note && (
+                                            <div className="bg-gray-50 p-4 rounded-xl border">
+                                                <h4 className="font-bold text-xs text-gray-500 uppercase mb-2">Payment Method</h4>
+                                                <p className="text-sm text-gray-700 whitespace-pre-line">{d.payment_note}</p>
+                                            </div>
+                                        )}
+                                        {d.term_of_payment && (
+                                            <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
+                                                <h4 className="font-bold text-xs text-blue-700 uppercase mb-2">Term of Payment</h4>
+                                                <p className="text-sm text-gray-700 whitespace-pre-line">{d.term_of_payment}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Uploaded Files / Dokumen Pendukung */}
+                                {files.length > 0 && (
+                                    <div>
+                                        <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-2">Dokumen Pendukung (Bukti TTD & DP)</p>
+                                        <div className="bg-green-50 p-4 rounded-xl border border-green-200">
+                                            <div className="flex flex-wrap gap-2">
+                                                {files.map((f, i) => (
+                                                    <a key={i} href={`http://localhost:3000${f.path}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-2 bg-white text-green-700 rounded-lg text-sm hover:bg-green-100 border border-green-300 font-medium">
+                                                        <Download size={14} /> {f.originalname}
+                                                    </a>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Action Buttons */}
+                            {a.status === 'pending' && (
+                                <div className="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50 sticky bottom-0">
+                                    <button onClick={() => { handleApproval(a.id, 'rejected'); }} className="px-6 py-2.5 rounded-xl border border-red-200 text-red-600 font-bold hover:bg-red-50 transition-colors">Tolak</button>
+                                    <button onClick={() => { handleApproval(a.id, 'approved'); }} className="px-6 py-2.5 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 shadow-sm transition-colors flex items-center gap-2"><Check size={18}/> Setujui & Buat Invoice</button>
                                 </div>
                             )}
                         </div>
-                        {selectedApproval.approval.status === 'pending' && (
-                            <div className="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50 sticky bottom-0">
-                                <button onClick={() => { handleApproval(selectedApproval.approval.id, 'rejected'); setShowModal(false); }} className="px-6 py-2 rounded-xl border border-red-200 text-red-600 font-bold hover:bg-red-50 transition-colors">Tolak</button>
-                                <button onClick={() => { handleApproval(selectedApproval.approval.id, 'approved'); setShowModal(false); }} className="px-6 py-2 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 shadow-sm transition-colors flex items-center gap-2"><Check size={18}/> Setujui</button>
-                            </div>
-                        )}
                     </div>
-                </div>
-            )}
+                );
+            })()}
         </div>
     );
 };

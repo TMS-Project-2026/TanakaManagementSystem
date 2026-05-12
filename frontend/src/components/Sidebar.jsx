@@ -81,7 +81,17 @@ const Sidebar = () => {
     { name: 'Promo', path: '/promo', icon: <Gift size={20} />, roles: ['Admin', 'Manager', 'Marketing'], group: 'Sales' },
     { name: 'Finance Dashboard', path: '/finance', icon: <PieChart size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Finance' },
     { name: 'Cash In Bank', path: '/cash-in-bank', icon: <CreditCard size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Finance' },
-    { name: 'Journal', path: '/journal', icon: <FileText size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Finance' },
+    {
+      name: 'Journal',
+      path: '/journal',
+      icon: <FileText size={20} />,
+      roles: ['Admin', 'Manager', 'Finance'],
+      group: 'Finance',
+      subMenu: [
+        { title: 'Jurnal Penjualan', path: '/journal/sales' },
+        { title: 'Jurnal Pembelian', path: '/journal/purchase' }
+      ]
+    },
     { name: 'Chart of Accounts', path: '/chart-of-accounts', icon: <Activity size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Finance' },
     { name: 'Invoice', path: '/invoice', icon: <Receipt size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Finance' },
     { name: 'Approval Center', path: '/finance/approval', icon: <Shield size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Finance', hasBadge: true },

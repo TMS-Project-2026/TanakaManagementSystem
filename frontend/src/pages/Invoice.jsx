@@ -67,145 +67,145 @@ const Invoice = () => {
             <main className="flex-1 flex flex-col pt-16 md:pt-0 h-screen overflow-hidden">
                 {/* TOPBAR */}
                 <header className="h-auto flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-10 py-4 gap-4 sm:gap-0 mb-4">
-                  <div className="relative w-full sm:w-80">
-                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                      <input
-                        type="text"
-                        placeholder="Cari No. Invoice / Nama PT..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-12 pr-4 py-2.5 bg-white rounded-full border border-gray-200 shadow-sm text-sm focus:outline-none focus:border-[#990000] focus:ring-2 focus:ring-red-100 transition-all"
-                      />
+                    <div className="relative w-full sm:w-80">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                        <input
+                            type="text"
+                            placeholder="Cari No. Invoice / Nama PT..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-full pl-12 pr-4 py-2.5 bg-white rounded-full border border-gray-200 shadow-sm text-sm focus:outline-none focus:border-[#990000] focus:ring-2 focus:ring-red-100 transition-all"
+                        />
                     </div>
                     <div className="flex items-center gap-6">
-                      <div className="relative">
-                        <div className="bg-white p-1.5 rounded-full shadow-sm cursor-pointer hover:shadow-md transition-all border border-gray-100" onClick={() => setShowProfile(!showProfile)}>
-                          <UserCircle size={32} className="text-gray-400 hover:text-[#990000] transition-colors" />
-                        </div>
-                        
-                        {showProfile && (
-                          <div className="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
-                            <div className="p-4 bg-red-50/50">
-                              <p className="text-sm font-black text-gray-900">Admin</p>
-                              <p className="text-[10px] font-bold text-[#990000] uppercase tracking-wider mt-0.5">Finance</p>
+                        <div className="relative">
+                            <div className="bg-white p-1.5 rounded-full shadow-sm cursor-pointer hover:shadow-md transition-all border border-gray-100" onClick={() => setShowProfile(!showProfile)}>
+                                <UserCircle size={32} className="text-gray-400 hover:text-[#990000] transition-colors" />
                             </div>
-                          </div>
-                        )}
-                      </div>
+
+                            {showProfile && (
+                                <div className="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+                                    <div className="p-4 bg-red-50/50">
+                                        <p className="text-sm font-black text-gray-900">Admin</p>
+                                        <p className="text-[10px] font-bold text-[#990000] uppercase tracking-wider mt-0.5">Finance</p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
-                  </header>
+                </header>
 
                 <div className="flex-1 overflow-y-auto px-4 sm:px-10 pb-10">
-                <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100 flex flex-col">
-                <div className="max-w-7xl mx-auto">
-                    {/* Header */}
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                        <div className="flex flex-col items-start gap-1">
-                            <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-tight">
-                                Data <span className="text-[#990000]">Invoice</span>
-                            </h1>
-                            <p className="text-gray-500 font-medium mt-1">Kelola seluruh tagihan perusahaan dari berbagai cabang.</p>
-                        </div>
-                        <button
-                            onClick={() => navigate('/invoice/create')}
-                            className="bg-[#990000] hover:bg-red-800 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-2 transition-transform active:scale-95 font-semibold"
-                        >
-                            <PlusCircle size={20} />
-                            Buat Invoice
-                        </button>
-                    </div>
+                    <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+                        <div className="max-w-7xl mx-auto">
+                            {/* Header */}
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                                <div className="flex flex-col items-start gap-1">
+                                    <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-tight">
+                                        Data <span className="text-[#990000]">Invoice</span>
+                                    </h1>
+                                    <p className="text-gray-500 font-medium mt-1">Kelola seluruh tagihan perusahaan dari berbagai cabang.</p>
+                                </div>
+                                <button
+                                    onClick={() => navigate('/invoice/create')}
+                                    className="bg-[#990000] hover:bg-red-800 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-2 transition-transform active:scale-95 font-semibold"
+                                >
+                                    <PlusCircle size={20} />
+                                    Buat Invoice
+                                </button>
+                            </div>
 
-                    {/* Filter Bar */}
-                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-6 flex flex-col md:flex-row gap-4 justify-between items-center">
-                        <div className="flex gap-3 w-full md:w-auto">
-                            <select
-                                value={filterCabang}
-                                onChange={(e) => setFilterCabang(e.target.value)}
-                                className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-100 focus:border-[#990000] outline-none text-gray-700 bg-white"
-                            >
-                                <option value="">Semua Cabang</option>
-                                <option value="Banua">Banua</option>
-                                <option value="Tanaka">Tanaka</option>
-                                <option value="Acestreet">Acestreet</option>
-                            </select>
+                            {/* Filter Bar */}
+                            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-6 flex flex-col md:flex-row gap-4 justify-between items-center">
+                                <div className="flex gap-3 w-full md:w-auto">
+                                    <select
+                                        value={filterCabang}
+                                        onChange={(e) => setFilterCabang(e.target.value)}
+                                        className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-100 focus:border-[#990000] outline-none text-gray-700 bg-white"
+                                    >
+                                        <option value="">Semua Cabang</option>
+                                        <option value="PT Banua Mitra Lestari">PT Banua Mitra Lestari</option>
+                                        <option value="PT Tanaka Rizqi Barokah">PT Tanaka Rizqi Barokah</option>
+                                        <option value="Accestreet">Accestreet</option>
+                                    </select>
 
-                            <select
-                                value={filterStatus}
-                                onChange={(e) => setFilterStatus(e.target.value)}
-                                className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-100 focus:border-[#990000] outline-none text-gray-700 bg-white"
-                            >
-                                <option value="">Semua Status</option>
-                                <option value="Draft">Draft</option>
-                                <option value="Terbit">Terbit</option>
-                                <option value="Lunas">Lunas</option>
-                                <option value="Overdue">Over due</option>
-                                <option value="Duedate">Due date</option>
-                            </select>
-                        </div>
-                    </div>
+                                    <select
+                                        value={filterStatus}
+                                        onChange={(e) => setFilterStatus(e.target.value)}
+                                        className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-red-100 focus:border-[#990000] outline-none text-gray-700 bg-white"
+                                    >
+                                        <option value="">Semua Status</option>
+                                        <option value="Draft">Draft</option>
+                                        <option value="Terbit">Terbit</option>
+                                        <option value="Lunas">Lunas</option>
+                                        <option value="Overdue">Over due</option>
+                                        <option value="Duedate">Due date</option>
+                                    </select>
+                                </div>
+                            </div>
 
-                    {/* Data Table */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse whitespace-nowrap">
-                                <thead>
-                                    <tr className="bg-gray-900 text-xs text-white uppercase tracking-wider font-semibold">
-                                        <th className="p-4">NO INVOICE</th>
-                                        <th className="p-4">CABANG</th>
-                                        <th className="p-4">CUSTOMER</th>
-                                        <th className="p-4">TANGGAL</th>
-                                        <th className="p-4">GRAND TOTAL</th>
-                                        <th className="p-4 text-center">STATUS</th>
-                                        <th className="p-4 text-center">AKSI</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {loading ? (
-                                        <tr>
-                                            <td colSpan="7" className="p-8 text-center text-gray-400">Memuat data...</td>
-                                        </tr>
-                                    ) : filteredInvoices.length === 0 ? (
-                                        <tr>
-                                            <td colSpan="7" className="p-8 text-center text-gray-400 flex flex-col items-center">
-                                                <Receipt size={40} className="mb-2 text-gray-300" />
-                                                Belum ada data invoice
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        filteredInvoices.map((item) => (
-                                            <tr key={item.id} className="border-b border-gray-50 hover:bg-red-50/30 transition-colors">
-                                                <td className="p-4 font-semibold text-gray-800">{item.no_invoice}</td>
-                                                <td className="p-4 text-gray-600">{item.cabang}</td>
-                                                <td className="p-4 text-gray-800 font-medium">{item.nama_pt}</td>
-                                                <td className="p-4 text-gray-600 text-sm">
-                                                    {new Date(item.tanggal_terbit).toLocaleDateString('id-ID')}
-                                                </td>
-                                                <td className="p-4 font-bold text-gray-800">{formatRupiah(item.grand_total)}</td>
-                                                <td className="p-4 text-center">
-                                                    {getStatusBadge(item.status)}
-                                                </td>
-                                                <td className="p-4">
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <button onClick={() => navigate(`/invoice/preview/${item.id}`)} className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Preview">
-                                                            <Eye size={18} />
-                                                        </button>
-                                                        <button onClick={() => navigate(`/invoice/edit/${item.id}`)} className="p-2 text-gray-500 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-colors" title="Edit">
-                                                            <Edit size={18} />
-                                                        </button>
-                                                        <button onClick={() => handleDelete(item.id)} className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Hapus">
-                                                            <Trash2 size={18} />
-                                                        </button>
-                                                    </div>
-                                                </td>
+                            {/* Data Table */}
+                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left border-collapse whitespace-nowrap">
+                                        <thead>
+                                            <tr className="bg-gray-900 text-xs text-white uppercase tracking-wider font-semibold">
+                                                <th className="p-4">NO INVOICE</th>
+                                                <th className="p-4">CABANG</th>
+                                                <th className="p-4">CUSTOMER</th>
+                                                <th className="p-4">TANGGAL</th>
+                                                <th className="p-4">GRAND TOTAL</th>
+                                                <th className="p-4 text-center">STATUS</th>
+                                                <th className="p-4 text-center">AKSI</th>
                                             </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
+                                        </thead>
+                                        <tbody>
+                                            {loading ? (
+                                                <tr>
+                                                    <td colSpan="7" className="p-8 text-center text-gray-400">Memuat data...</td>
+                                                </tr>
+                                            ) : filteredInvoices.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan="7" className="p-8 text-center text-gray-400 flex flex-col items-center">
+                                                        <Receipt size={40} className="mb-2 text-gray-300" />
+                                                        Belum ada data invoice
+                                                    </td>
+                                                </tr>
+                                            ) : (
+                                                filteredInvoices.map((item) => (
+                                                    <tr key={item.id} className="border-b border-gray-50 hover:bg-red-50/30 transition-colors">
+                                                        <td className="p-4 font-semibold text-gray-800">{item.no_invoice}</td>
+                                                        <td className="p-4 text-gray-600">{item.cabang}</td>
+                                                        <td className="p-4 text-gray-800 font-medium">{item.nama_pt}</td>
+                                                        <td className="p-4 text-gray-600 text-sm">
+                                                            {new Date(item.tanggal_terbit).toLocaleDateString('id-ID')}
+                                                        </td>
+                                                        <td className="p-4 font-bold text-gray-800">{formatRupiah(item.grand_total)}</td>
+                                                        <td className="p-4 text-center">
+                                                            {getStatusBadge(item.status)}
+                                                        </td>
+                                                        <td className="p-4">
+                                                            <div className="flex items-center justify-center gap-2">
+                                                                <button onClick={() => navigate(`/invoice/preview/${item.id}`)} className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Preview">
+                                                                    <Eye size={18} />
+                                                                </button>
+                                                                <button onClick={() => navigate(`/invoice/edit/${item.id}`)} className="p-2 text-gray-500 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-colors" title="Edit">
+                                                                    <Edit size={18} />
+                                                                </button>
+                                                                <button onClick={() => handleDelete(item.id)} className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Hapus">
+                                                                    <Trash2 size={18} />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-                </div>
                 </div>
             </main>
         </div>

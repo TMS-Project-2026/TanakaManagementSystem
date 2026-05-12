@@ -22,5 +22,6 @@ router.get('/approval/pending/count', approvalController.getPendingCount);
 router.get('/approval', approvalController.getApprovals);
 router.get('/approval/:id/detail', approvalController.getApprovalDetail);
 router.put('/approval/:id', approvalController.updateApproval);
+router.delete('/approval/:id', approvalController.deleteApproval);
 
 module.exports = router;

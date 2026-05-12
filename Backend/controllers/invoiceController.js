@@ -35,6 +35,28 @@ exports.getInvoiceById = (req, res) => {
     });
 };
 
+exports.getNextInvoiceNumber = (req, res) => {
+    const { cabang } = req.query;
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    
+    const codes = {
+        'Tanaka': 'TRB',
+        'Banua': 'BML',
+        'Acestreet': 'AC'
+    };
+    const branchCode = codes[cabang] || 'BML';
+    
+    const sql = "SELECT COUNT(*) as total FROM invoice WHERE cabang = ?";
+    db.query(sql, [cabang || 'Banua'], (err, results) => {
+        if (err) return res.status(500).json({ status: "error", message: err.message });
+        const nextNum = (results[0].total + 1).toString().padStart(4, '0');
+        const generatedNo = `INV/${branchCode}/${year}/${month}/${nextNum}`;
+        res.status(200).json({ status: "success", no_invoice: generatedNo });
+    });
+};
+
 exports.createInvoice = (req, res) => {
     const {
         no_invoice,
@@ -42,6 +64,9 @@ exports.createInvoice = (req, res) => {
         tanggal_transaksi,
         tanggal_terbit,
         tanggal_jatuh_tempo,
+        no_po_kontrak = '',
+        deskripsi_pesanan = '',
+        quotation_id = null,
         nama_pt = '',
         alamat_pt = '',
         up_penagihan = '',
@@ -55,9 +80,12 @@ exports.createInvoice = (req, res) => {
         subtotal = 0,
         ppn_persen = 0,
         jumlah_ppn = 0,
+        diskon = 0,
+        diskon_persen = 0,
         grand_total = 0,
         keterangan = '',
         note = '',
+        file_supporting = null,
         materai = 0,
         ttd = 0,
         nama_accounting = '',
@@ -71,17 +99,19 @@ exports.createInvoice = (req, res) => {
     const sql = `
         INSERT INTO invoice (
             no_invoice, cabang, tanggal_transaksi, tanggal_terbit, tanggal_jatuh_tempo,
+            no_po_kontrak, deskripsi_pesanan, quotation_id,
             nama_pt, alamat_pt, up_penagihan, cp_penagihan, email,
-            deskripsi, detail_pekerjaan, items, qty, harga_satuan, subtotal, ppn_persen, jumlah_ppn, grand_total, keterangan,
-            note, materai, ttd, nama_accounting, penanggung_jawab, jabatan, status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            deskripsi, detail_pekerjaan, items, qty, harga_satuan, subtotal, ppn_persen, jumlah_ppn, diskon, diskon_persen, grand_total, keterangan,
+            note, file_supporting, materai, ttd, nama_accounting, penanggung_jawab, jabatan, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const values = [
         generatedNoInvoice, cabang, tanggal_transaksi, tanggal_terbit, tanggal_jatuh_tempo,
+        no_po_kontrak || '', deskripsi_pesanan || '', quotation_id || null,
         nama_pt, alamat_pt, up_penagihan, cp_penagihan, email,
-        deskripsi, detail_pekerjaan, items ? JSON.stringify(items) : null, qty || 1, harga_satuan || 0, subtotal || 0, ppn_persen || 0, jumlah_ppn || 0, grand_total || 0, keterangan,
-        note, materai ? 1 : 0, ttd ? 1 : 0, nama_accounting, penanggung_jawab, jabatan, status || 'Draft'
+        deskripsi, detail_pekerjaan, items ? JSON.stringify(items) : null, qty || 1, harga_satuan || 0, subtotal || 0, ppn_persen || 0, jumlah_ppn || 0, diskon || 0, diskon_persen || 0, grand_total || 0, keterangan,
+        note, file_supporting ? JSON.stringify(file_supporting) : null, materai ? 1 : 0, ttd ? 1 : 0, nama_accounting, penanggung_jawab, jabatan, status || 'Draft'
     ];
 
     db.query(sql, values, (err, result) => {
@@ -101,7 +131,6 @@ exports.updateInvoice = (req, res) => {
 
     // Remove invalid columns
     delete fields.id;
-    delete fields.Diskon;
     delete fields.created_at;
     delete fields.updated_at;
 

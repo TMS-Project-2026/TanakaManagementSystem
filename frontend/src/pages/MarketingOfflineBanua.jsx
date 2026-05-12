@@ -4,8 +4,9 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import {
   Users, FileText, ShoppingBag, Plus, Edit, Trash2, Send, X, Search, UserCircle, ChevronDown, Gift,
-  Loader2, Download, TrendingUp, TrendingDown, Activity, AlertTriangle, CheckCircle, Package
+  Loader2, Download, TrendingUp, TrendingDown, Activity, AlertTriangle, CheckCircle, Package, Eye, Upload
 } from 'lucide-react';
+import { submitQuotationToFinance, uploadQuotationFiles } from '../api/quotationApi';
 import * as XLSX from 'xlsx';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
@@ -56,6 +57,10 @@ export default function MarketingOfflineBanua() {
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewQuotation, setPreviewQuotation] = useState(null);
+  
+  // Quotation specific states
+  const [uploadQuotationModal, setUploadQuotationModal] = useState(null);
+  const [quoFiles, setQuoFiles] = useState([]);
 
   // Forms
   const [customerForm, setCustomerForm] = useState({ id: null, nama_customer: '', no_hp: '', alamat: '', catatan: '' });
@@ -195,13 +200,28 @@ export default function MarketingOfflineBanua() {
     } catch (err) { alert('Error: ' + err.message); }
   };
 
-  const submitQuotation = async (id) => {
-    if (!window.confirm("Submit to Finance for approval?")) return;
+  const submitQuotation = async (o) => {
+    if (o.payment_type === 'DP' && (!o.quotation_files || o.quotation_files === '[]' || o.quotation_files === '')) {
+      alert("Untuk skema DP, Anda WAJIB mengupload dokumen (Quotation TTD & Bukti Transfer) terlebih dahulu sebelum submit ke Finance!");
+      return;
+    }
+    if (!window.confirm(o.payment_type === 'Fullpayment' ? "Bypass upload dokumen. Submit ke Finance untuk cetak Invoice Lunas?" : "Submit quotation dan bukti DP ke Finance untuk approval?")) return;
     try {
-      await axios.post(`http://localhost:3000/api/marketing-offline/quotations/${id}/submit`, {}, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
-      alert("Submitted to Finance successfully!");
-      fetchQuotations();
+      await submitQuotationToFinance(o.quotation_id);
+      alert("Quotation submitted to Finance successfully!");
+      fetchOrders();
     } catch (err) { alert('Failed to submit: ' + (err.response?.data?.message || err.message)); }
+  };
+
+  const handleUploadQuotation = async () => {
+    if (!quoFiles.length || !uploadQuotationModal) return;
+    try {
+      await uploadQuotationFiles(uploadQuotationModal, quoFiles);
+      alert("File quotation berhasil diupload!"); 
+      setUploadQuotationModal(null); 
+      setQuoFiles([]); 
+      fetchOrders();
+    } catch (err) { alert("Gagal upload file quotation"); }
   };
 
   // Handlers Order
@@ -356,7 +376,7 @@ export default function MarketingOfflineBanua() {
                   {activeTab === 'dashboard' && 'Dashboard Offline'}
                   {activeTab === 'customers' && 'Database Pelanggan'}
                   {activeTab === 'quotations' && 'Quotation Management'}
-                  {activeTab === 'orders' && 'Offline Orders (Banua)'}
+                  {activeTab === 'orders' && 'Offline Order'}
                   {activeTab === 'inventory' && 'Stok Inventori Banua'}
                   {activeTab === 'reports' && 'Reports & Analytics'}
                   {activeTab === 'promo' && 'Promo Offline'}
@@ -639,15 +659,7 @@ export default function MarketingOfflineBanua() {
               {activeTab === 'orders' && (
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
                   <div className="p-6 border-b border-slate-200 flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-slate-800">Offline Orders (Banua)</h2>
-                    <div className="flex gap-2">
-                      <button onClick={handleExportExcel} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-colors shadow-sm">
-                        <Download size={18} /> Export Excel
-                      </button>
-                      <button onClick={() => navigate('/marketing-offline/create-order')} className="bg-[#990000] hover:bg-red-800 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-colors shadow-sm">
-                        <Plus size={18} />Add Order
-                      </button>
-                    </div>
+                    <h2 className="text-xl font-bold text-slate-800">Offline Order</h2>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
@@ -694,14 +706,27 @@ export default function MarketingOfflineBanua() {
                             <td className="py-4 px-6 text-xs text-slate-500">{o.lokasi_proses}</td>
                             <td className="py-4 px-6 text-xs text-slate-400 italic max-w-[150px] truncate" title={o.catatan}>{o.catatan || '-'}</td>
                             <td className="py-4 px-6 text-center">
-                              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${o.status === 'Invoice Created' ? 'bg-emerald-100 text-emerald-700' : o.status === 'Pending Finance' ? 'bg-amber-100 text-amber-700' : o.status === 'Rejected' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'}`}>{o.status}</span>
+                              <span title={o.status === 'Rejected' ? `Alasan Penolakan: ${o.quotation_alasan_penolakan || 'Tidak ada alasan'}` : o.status} className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${o.status === 'Invoice Created' || o.status === 'Diproses Produksi' ? 'bg-emerald-100 text-emerald-700' : o.status === 'Pending Finance' ? 'bg-amber-100 text-amber-700' : o.status === 'Rejected' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'}`}>{o.status}</span>
                             </td>
-                            <td className="py-4 px-6 flex justify-center gap-2">
-                              {(o.status === 'New Order' || o.status === 'Pending' || o.status === 'Rejected') && (
-                                <button onClick={() => submitOrder(o.id)} title="Submit to Finance" className="p-2 text-slate-400 hover:text-emerald-600 bg-white border border-slate-200 rounded-lg shadow-sm"><Send size={16} /></button>
+                            <td className="py-4 px-6 flex flex-wrap justify-center gap-2">
+                              {/* --- Order Actions --- */}
+                              {(!o.quotation_id && (o.status === 'New Order' || o.status === 'Pending' || o.status === 'Rejected')) && (
+                                <button onClick={() => submitOrder(o.id)} title="Submit Order to Finance" className="p-2 text-slate-400 hover:text-emerald-600 bg-white border border-slate-200 rounded-lg shadow-sm"><Send size={16} /></button>
                               )}
-                              <button onClick={() => navigate('/marketing-offline/create-order', { state: { orderData: { ...o, items: typeof o.items === 'string' ? JSON.parse(o.items) : o.items } } })} className="p-2 text-slate-400 hover:text-blue-600 bg-white border border-slate-200 rounded-lg shadow-sm" title="Edit"><Edit size={16} /></button>
-                              <button onClick={() => deleteOrder(o.id)} className="p-2 text-slate-400 hover:text-red-600 bg-white border border-slate-200 rounded-lg shadow-sm" title="Delete"><Trash2 size={16} /></button>
+                              <button onClick={() => navigate('/marketing-offline/create-order', { state: { orderData: { ...o, items: typeof o.items === 'string' ? JSON.parse(o.items) : o.items } } })} className="p-2 text-slate-400 hover:text-blue-600 bg-white border border-slate-200 rounded-lg shadow-sm" title="Edit Order & Quotation"><Edit size={16} /></button>
+                              <button onClick={() => deleteOrder(o.id)} className="p-2 text-slate-400 hover:text-red-600 bg-white border border-slate-200 rounded-lg shadow-sm" title="Delete Order"><Trash2 size={16} /></button>
+                              
+                              {/* --- Quotation Actions --- */}
+                              {o.quotation_id && (
+                                <>
+                                  <div className="w-full h-px bg-slate-100 my-1 hidden md:block"></div>
+                                  <button onClick={() => navigate(`/quotation/preview/${o.quotation_id}`)} className="p-2 text-slate-400 hover:text-indigo-600 bg-white border border-indigo-100 rounded-lg shadow-sm bg-indigo-50/30" title="View Quotation"><Eye size={16} /></button>
+                                  <button onClick={() => setUploadQuotationModal(o.quotation_id)} className="p-2 text-slate-400 hover:text-emerald-600 bg-white border border-emerald-100 rounded-lg shadow-sm bg-emerald-50/30" title="Upload Dokumen Quotation"><Upload size={16} /></button>
+                                  {o.quotation_status !== 'Submitted' && o.quotation_status !== 'Invoice Created' && o.quotation_status !== 'approved' && o.quotation_status !== 'Diproses Produksi' && (
+                                    <button onClick={() => submitQuotation(o)} className="p-2 text-slate-400 hover:text-orange-600 bg-white border border-orange-100 rounded-lg shadow-sm bg-orange-50/30" title="Submit Quotation ke Finance"><Send size={16} /></button>
+                                  )}
+                                </>
+                              )}
                             </td>
                           </tr>
                         ))}
@@ -1062,6 +1087,32 @@ export default function MarketingOfflineBanua() {
           </div>
         </div>
       </main>
+      {/* Upload Quotation Modal */}
+      {uploadQuotationModal && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100]" onClick={() => setUploadQuotationModal(null)}>
+              <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in fade-in zoom-in-95" onClick={e => e.stopPropagation()}>
+                  <h3 className="text-lg font-black text-gray-800 mb-2">Upload Dokumen Quotation</h3>
+                  <p className="text-sm text-gray-500 mb-4">Upload file TTD Quotation, bukti DP, atau dokumen lainnya.</p>
+                  <input type="file" multiple onChange={(e) => setQuoFiles(prev => [...prev, ...Array.from(e.target.files)])} className="w-full p-2 border border-gray-200 rounded-lg mb-4 bg-gray-50" />
+                  {quoFiles.length > 0 && (
+                      <div className="mb-4 space-y-2 max-h-32 overflow-y-auto pr-2">
+                          {quoFiles.map((file, idx) => (
+                              <div key={idx} className="flex items-center justify-between bg-gray-50 p-2 rounded border border-gray-100 shadow-sm">
+                                  <span className="text-xs text-gray-700 font-medium truncate flex-1 mr-2">{file.name}</span>
+                                  <button type="button" onClick={() => setQuoFiles(prev => prev.filter((_, i) => i !== idx))} className="text-red-500 hover:bg-red-50 p-1 rounded">
+                                      <X size={14} />
+                                  </button>
+                              </div>
+                          ))}
+                      </div>
+                  )}
+                  <div className="flex gap-3 justify-end">
+                      <button onClick={() => { setUploadQuotationModal(null); setQuoFiles([]); }} className="px-4 py-2 border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 font-semibold">Batal</button>
+                      <button onClick={handleUploadQuotation} disabled={!quoFiles.length} className="px-6 py-2 bg-[#990000] text-white font-bold rounded-xl shadow-lg hover:bg-red-800 disabled:opacity-50 transition-colors">Upload</button>
+                  </div>
+              </div>
+          </div>
+      )}
     </div>
   );
 }

@@ -9,11 +9,11 @@ import LogoBanua from '../assets/LOGO BANUA.png';
 import LogoTanaka from '../assets/kop_tanaka.png';
 import LogoAcestreet from '../assets/logoacestreet.png';
 const addresses = {
-    Banua: 'Geblagan, Tamantirto, Kasihan, Bantul Regency,\nSpecial Region of Yogyakarta 55184\nTelp: (0541) 123456 | Email: finance@banua.com',
-    'PT BANUA MITRA LESTARI': 'Geblagan, Tamantirto, Kasihan, Bantul Regency,\nSpecial Region of Yogyakarta 55184\nTelp: (0541) 123456 | Email: finance@banua.com',
-    Tanaka: 'Jl. Demakan Jl. Wiratama No.50, Tegalrejo, Kec. Tegalrejo,\nKota Yogyakarta, Daerah Istimewa Yogyakarta 55244\nTelp: (0541) 654321 | Email: finance@tanaka.com',
-    'PT TANAKA RIZQI BAROKAH': 'Jl. Demakan Jl. Wiratama No.50, Tegalrejo, Kec. Tegalrejo,\nKota Yogyakarta, Daerah Istimewa Yogyakarta 55244\nTelp: (0541) 654321 | Email: finance@tanaka.com',
-    Acestreet: 'Jl. Ambarbinangun, Brajan, Tamantirto, Kec. Kasihan,\nKabupaten Bantul, Daerah Istimewa Yogyakarta 55184\nEmail: finance@acestreet.com'
+    Banua: 'Geblagan, Tamantirto, Kasihan, Bantul Regency,\nSpecial Region of Yogyakarta 55184\nMarketing: +62 888 8888 8888 | Finance: +62 857 2768 4722',
+    'PT BANUA MITRA LESTARI': 'Geblagan, Tamantirto, Kasihan, Bantul Regency,\nSpecial Region of Yogyakarta 55184\nMarketing: +62 888 8888 8888 | Finance: +62 857 2768 4722',
+    Tanaka: 'Jl. Demakan Jl. Wiratama No.50, Tegalrejo, Kec. Tegalrejo,\nKota Yogyakarta, Daerah Istimewa Yogyakarta 55244\nMarketing: +62 851 6975 9267 | Finance: +62 857 2768 4722',
+    'PT TANAKA RIZQI BAROKAH': 'Jl. Demakan Jl. Wiratama No.50, Tegalrejo, Kec. Tegalrejo,\nKota Yogyakarta, Daerah Istimewa Yogyakarta 55244\nMarketing: +62 851 6975 9267 | Finance: +62 857 2768 4722',
+    Acestreet: 'Jl. Ambarbinangun, Brajan, Tamantirto, Kec. Kasihan,\nKabupaten Bantul, Daerah Istimewa Yogyakarta 55184\nMarketing: +62 838 2236 7608 | Finance: +62 857 2768 4722'
 };
 
 const InvoicePreview = () => {
@@ -80,8 +80,8 @@ const InvoicePreview = () => {
             if (invoice.cabang === 'Banua') {
                 const logoData = await loadImageBase64(LogoBanua);
                 if (logoData) {
-                    doc.addImage(logoData, 'PNG', 14, 6, 40, 18);
-                    addressStartY = 26;
+                    doc.addImage(logoData, 'PNG', 14, 6, 55, 22);
+                    addressStartY = 30;
                 }
             } else if (invoice.cabang === 'Tanaka') {
                 // Kop surat - full width banner, proper aspect ratio (871x190 = 4.58:1)
@@ -95,8 +95,8 @@ const InvoicePreview = () => {
             } else if (invoice.cabang === 'Acestreet') {
                 const logoData = await loadImageBase64(LogoAcestreet);
                 if (logoData) {
-                    doc.addImage(logoData, 'PNG', 14, 2, 35, 39);
-                    addressStartY = 26;
+                    doc.addImage(logoData, 'PNG', 14, 2, 45, 50);
+                    addressStartY = 32;
                 }
             } else {
                 doc.setFontSize(22);
@@ -124,10 +124,13 @@ const InvoicePreview = () => {
             doc.text(`No Invoice: ${invoice.no_invoice || ''}`, 196, 28 + yOffset, { align: 'right' });
             doc.text(`Date: ${invoice.tanggal_terbit ? new Date(invoice.tanggal_terbit).toLocaleDateString('id-ID') : ''}`, 196, 34 + yOffset, { align: 'right' });
             doc.text(`Due Date: ${invoice.tanggal_jatuh_tempo ? new Date(invoice.tanggal_jatuh_tempo).toLocaleDateString('id-ID') : ''}`, 196, 40 + yOffset, { align: 'right' });
+            if (invoice.no_po_kontrak) {
+                doc.text(`No. PO/Kontrak: ${invoice.no_po_kontrak}`, 196, 46 + yOffset, { align: 'right' });
+            }
 
             // Line separator
             doc.setDrawColor(200, 200, 200);
-            doc.line(14, 48 + yOffset, 196, 48 + yOffset);
+            doc.line(14, 52 + yOffset, 196, 52 + yOffset);
 
             // Bill to
             doc.setFontSize(11);
@@ -142,7 +145,7 @@ const InvoicePreview = () => {
             if (invoice.cp_penagihan) doc.text(`CP: ${invoice.cp_penagihan}`, 14, 80 + yOffset);
 
             // Table
-            const tableColumn = ["Deskripsi", "Rincian", "Qty", "Satuan", "Harga Satuan", "Total"];
+            const tableColumn = ["Nama Produk", "Ukuran", "Qty", "Unit", "Harga Satuan", "Total"];
             let tableRows = [];
             let items = [];
             if (typeof invoice.items === 'string') {
@@ -154,8 +157,8 @@ const InvoicePreview = () => {
             if (items && items.length > 0) {
                 items.forEach((item, index) => {
                     tableRows.push([
-                        index === 0 ? (invoice.deskripsi || '') : '',
                         item.rincian || '',
+                        item.ukuran || '-',
                         item.qty || 0,
                         item.satuan || 'Pcs',
                         fmtRp(item.harga_satuan),
@@ -165,8 +168,8 @@ const InvoicePreview = () => {
             } else {
                 tableRows = [
                     [
-                        invoice.deskripsi || '',
                         invoice.detail_pekerjaan || '',
+                        '-',
                         invoice.qty || 0,
                         'Pcs',
                         fmtRp(invoice.harga_satuan),
@@ -197,10 +200,24 @@ const InvoicePreview = () => {
             doc.text(':', 158, finalY + 16);
             doc.text(fmtRp(invoice.jumlah_ppn), 196, finalY + 16, { align: 'right' });
 
-            doc.setFont('helvetica', 'bold');
-            doc.text('GRAND TOTAL', 130, finalY + 24);
-            doc.text(':', 158, finalY + 24);
-            doc.text(fmtRp(invoice.grand_total), 196, finalY + 24, { align: 'right' });
+            if (invoice.diskon > 0) {
+                const diskonText = invoice.diskon_persen > 0 ? `Diskon (${invoice.diskon_persen}%)` : 'Diskon';
+                doc.text(diskonText, 130, finalY + 22);
+                doc.text(':', 158, finalY + 22);
+                doc.setTextColor(153, 0, 0); // Red
+                doc.text(`- ${fmtRp(invoice.diskon)}`, 196, finalY + 22, { align: 'right' });
+                doc.setTextColor(0, 0, 0);
+                
+                doc.setFont('helvetica', 'bold');
+                doc.text('GRAND TOTAL', 130, finalY + 30);
+                doc.text(':', 158, finalY + 30);
+                doc.text(fmtRp(invoice.grand_total), 196, finalY + 30, { align: 'right' });
+            } else {
+                doc.setFont('helvetica', 'bold');
+                doc.text('GRAND TOTAL', 130, finalY + 24);
+                doc.text(':', 158, finalY + 24);
+                doc.text(fmtRp(invoice.grand_total), 196, finalY + 24, { align: 'right' });
+            }
 
             // Notes - render as aligned key-value pairs
             doc.setFont('helvetica', 'normal');
@@ -224,8 +241,33 @@ const InvoicePreview = () => {
                 noteY += 4.5;
             });
 
+            // Term of Payment (if filled)
+            if (invoice.term_of_payment) {
+                noteY += 2;
+                doc.setDrawColor(200, 200, 200);
+                doc.line(14, noteY, 120, noteY);
+                noteY += 4;
+                doc.setFont('helvetica', 'bold');
+                doc.text('Term of Payment :', 14, noteY);
+                doc.setFont('helvetica', 'normal');
+                noteY += 4.5;
+                const topLines = doc.splitTextToSize(invoice.term_of_payment, 106);
+                topLines.forEach(line => { doc.text(line, 14, noteY); noteY += 4.5; });
+            }
+
+            // Keterangan tambahan
+            if (invoice.keterangan) {
+                noteY += 2;
+                doc.setTextColor(120, 120, 120);
+                doc.setFont('helvetica', 'italic');
+                const ketLines = doc.splitTextToSize(invoice.keterangan, 106);
+                ketLines.forEach(line => { doc.text(line, 14, noteY); noteY += 4.5; });
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(80, 80, 80);
+            }
+
             // TTD
-            if (invoice.ttd) {
+            if (invoice.ttd || invoice.nama_accounting || invoice.penanggung_jawab) {
                 doc.setTextColor(0, 0, 0);
                 doc.setFont('helvetica', 'normal');
 
@@ -258,6 +300,13 @@ const InvoicePreview = () => {
     if (!invoice) return <div className="p-8 text-center">Memuat...</div>;
 
     const formatRupiah = (number) => 'Rp ' + Number(number || 0).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+
+    const PriceCell = ({ value }) => (
+        <div className="flex justify-between w-full text-sm">
+            <span>Rp</span>
+            <span>{Number(value || 0).toLocaleString('id-ID')}</span>
+        </div>
+    );
 
     return (
         <div className="flex bg-gray-100 min-h-screen font-sans">
@@ -307,10 +356,10 @@ const InvoicePreview = () => {
                                     <div className="flex justify-between items-start">
                                         <div className="flex items-center gap-4">
                                             {invoice.cabang === 'Banua' && (
-                                                <img src={LogoBanua} alt="Logo Banua" className="h-16 object-contain" />
+                                                <img src={LogoBanua} alt="Logo Banua" className="h-24 object-contain" />
                                             )}
                                             {invoice.cabang === 'Acestreet' && (
-                                                <img src={LogoAcestreet} alt="Logo Acestreet" className="h-20 object-contain" />
+                                                <img src={LogoAcestreet} alt="Logo Acestreet" className="h-32 object-contain" />
                                             )}
                                         </div>
                                         <div className="text-right shrink-0 ml-8">
@@ -319,6 +368,7 @@ const InvoicePreview = () => {
                                             <div className="text-sm text-gray-500 mt-2">
                                                 <p>Date: <span className="font-medium text-gray-800">{new Date(invoice.tanggal_terbit).toLocaleDateString('id-ID')}</span></p>
                                                 <p>Due Date: <span className="font-medium text-gray-800">{new Date(invoice.tanggal_jatuh_tempo).toLocaleDateString('id-ID')}</span></p>
+                                                {invoice.no_po_kontrak && <p className="mt-1">No. PO/Kontrak: <span className="font-medium text-gray-800">{invoice.no_po_kontrak}</span></p>}
                                             </div>
                                         </div>
                                     </div>
@@ -333,6 +383,7 @@ const InvoicePreview = () => {
                                             <div className="text-sm text-gray-500 mt-2">
                                                 <p>Date: <span className="font-medium text-gray-800">{new Date(invoice.tanggal_terbit).toLocaleDateString('id-ID')}</span></p>
                                                 <p>Due Date: <span className="font-medium text-gray-800">{new Date(invoice.tanggal_jatuh_tempo).toLocaleDateString('id-ID')}</span></p>
+                                                {invoice.no_po_kontrak && <p className="mt-1">No. PO/Kontrak: <span className="font-medium text-gray-800">{invoice.no_po_kontrak}</span></p>}
                                             </div>
                                         </div>
                                     </div>
@@ -350,19 +401,28 @@ const InvoicePreview = () => {
                         <p className="text-gray-600 mt-1 max-w-sm">{invoice.alamat_pt}</p>
                         {invoice.up_penagihan && <p className="text-gray-600 mt-1 font-medium">UP: {invoice.up_penagihan}</p>}
                         {invoice.cp_penagihan && <p className="text-gray-600 mt-1 font-medium">CP: {invoice.cp_penagihan}</p>}
+
                     </div>
+
+                    {/* Deskripsi Pesanan */}
+                    {invoice.deskripsi_pesanan && (
+                        <div className="mb-6">
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Deskripsi Pesanan</p>
+                            <p className="text-sm text-gray-700 whitespace-pre-line">{invoice.deskripsi_pesanan}</p>
+                        </div>
+                    )}
 
                     {/* Items Table */}
                     <div className="mb-8">
                         <table className="w-full text-left">
                             <thead>
                                 <tr className={`${invoice.cabang === 'Banua' ? 'bg-blue-800' : 'bg-[#990000]'} text-white`}>
-                                    <th className="p-3 font-semibold text-sm">Main Description</th>
-                                    <th className="p-3 font-semibold text-sm">Details</th>
+                                    <th className="p-3 font-semibold text-sm">Nama Produk</th>
+                                    <th className="p-3 font-semibold text-sm text-center">Ukuran</th>
                                     <th className="p-3 font-semibold text-sm text-center">Qty</th>
                                     <th className="p-3 font-semibold text-sm text-center">Unit</th>
-                                    <th className="p-3 font-semibold text-sm text-right">Unit Price</th>
-                                    <th className="p-3 font-semibold text-sm text-right">Amount</th>
+                                    <th className="p-3 font-semibold text-sm text-right">Harga Satuan</th>
+                                    <th className="p-3 font-semibold text-sm text-right">Total</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -377,23 +437,23 @@ const InvoicePreview = () => {
                                     if (items && items.length > 0) {
                                         return items.map((item, index) => (
                                             <tr key={index} className="border-b border-gray-200">
-                                                <td className="p-3 text-gray-800 align-top">{index === 0 ? invoice.deskripsi : ''}</td>
-                                                <td className="p-3 text-gray-600 align-top whitespace-pre-line">{item.rincian}</td>
+                                                <td className="p-3 text-gray-800 align-top">{item.rincian}</td>
+                                                <td className="p-3 text-gray-800 align-top text-center font-bold">{item.ukuran || '-'}</td>
                                                 <td className="p-3 text-gray-800 align-top text-center">{item.qty}</td>
                                                 <td className="p-3 text-gray-800 align-top text-center">{item.satuan || 'Pcs'}</td>
-                                                <td className="p-3 text-gray-800 align-top text-right">{formatRupiah(item.harga_satuan)}</td>
-                                                <td className="p-3 text-gray-800 align-top text-right font-medium">{formatRupiah(item.qty * item.harga_satuan)}</td>
+                                                <td className="p-3 text-gray-800 align-top text-right min-w-[120px]"><PriceCell value={item.harga_satuan} /></td>
+                                                <td className="p-3 text-gray-800 align-top text-right font-medium min-w-[120px]"><PriceCell value={item.qty * item.harga_satuan} /></td>
                                             </tr>
                                         ));
                                     } else {
                                         return (
                                             <tr className="border-b border-gray-200">
-                                                <td className="p-3 text-gray-800 align-top">{invoice.deskripsi}</td>
-                                                <td className="p-3 text-gray-600 align-top whitespace-pre-line">{invoice.detail_pekerjaan}</td>
+                                                <td className="p-3 text-gray-800 align-top">{invoice.detail_pekerjaan}</td>
+                                                <td className="p-3 text-gray-800 align-top text-center">-</td>
                                                 <td className="p-3 text-gray-800 align-top text-center">{invoice.qty}</td>
                                                 <td className="p-3 text-gray-800 align-top text-center">Pcs</td>
-                                                <td className="p-3 text-gray-800 align-top text-right">{formatRupiah(invoice.harga_satuan)}</td>
-                                                <td className="p-3 text-gray-800 align-top text-right font-medium">{formatRupiah(invoice.subtotal)}</td>
+                                                <td className="p-3 text-gray-800 align-top text-right min-w-[120px]"><PriceCell value={invoice.harga_satuan} /></td>
+                                                <td className="p-3 text-gray-800 align-top text-right font-medium min-w-[120px]"><PriceCell value={invoice.subtotal} /></td>
                                             </tr>
                                         )
                                     }
@@ -405,9 +465,15 @@ const InvoicePreview = () => {
                     {/* Totals & Notes */}
                     <div className="flex flex-col md:flex-row justify-between items-start gap-8">
                         <div className="flex-1">
-                            <div className="border-l-4 border-gray-200 pl-3">
+                            <div className="border-l-4 border-gray-200 pl-3 space-y-3">
+                                {/* Payment Method block */}
                                 {(() => {
-                                    const noteText = invoice.note || "Terima kasih atas kerja sama Anda.";
+                                    const defaultNotes = {
+                                        Banua: `PAYMENT METHOD :\nBank                      : BANK RAKYAT INDONESIA (BRI)\nCabang                    : Yogyakarta\nNo. Rekening              : 2099 0100 0545 304\nAtas Nama                 : PT BANUA MITRA LESTARI`,
+                                        Tanaka: `PAYMENT METHOD :\nBank                      : BANK RAKYAT INDONESIA (BRI)\nCabang                    : Yogyakarta\nNo. Rekening              : 2099 0100 0495 305\nAtas Nama                 : PT TANAKA RIZQI BAROKAH`,
+                                        Acestreet: `PAYMENT METHOD :\nBank                      : BANK RAKYAT INDONESIA (BRI)\nCabang                    : Yogyakarta\nNo. Rekening              : 2099 0100 0545 304\nAtas Nama                 : ACESTREET`
+                                    };
+                                    const noteText = invoice.note || defaultNotes[invoice.cabang] || "Terima kasih atas kerja sama Anda.";
                                     const noteLines = noteText.split('\n');
                                     return (
                                         <table className="text-xs text-gray-700 font-sans">
@@ -435,6 +501,21 @@ const InvoicePreview = () => {
                                         </table>
                                     );
                                 })()}
+
+                                {/* Term of Payment — only shown if filled */}
+                                {invoice.term_of_payment && (
+                                    <div className="pt-2 border-t border-gray-100">
+                                        <p className="text-xs font-bold text-gray-700 mb-1">Term of Payment :</p>
+                                        <p className="text-xs text-gray-600 whitespace-pre-line">{invoice.term_of_payment}</p>
+                                    </div>
+                                )}
+
+                                {/* Keterangan tambahan */}
+                                {invoice.keterangan && (
+                                    <div className="pt-1">
+                                        <p className="text-xs text-gray-500 italic">{invoice.keterangan}</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                         <div className="w-full md:w-80">
@@ -443,17 +524,29 @@ const InvoicePreview = () => {
                                     <tr className="border-b border-gray-100">
                                         <td className="py-2 text-gray-600">Subtotal</td>
                                         <td className="py-2 text-gray-600">:</td>
-                                        <td className="py-2 text-right font-semibold text-gray-800">{formatRupiah(invoice.subtotal)}</td>
+                                        <td className="py-2 text-right font-semibold text-gray-800"><PriceCell value={invoice.subtotal} /></td>
                                     </tr>
                                     <tr className="border-b border-gray-100">
                                         <td className="py-2 text-gray-600">PPN</td>
                                         <td className="py-2 text-gray-600">:</td>
-                                        <td className="py-2 text-right font-semibold text-gray-800">{formatRupiah(invoice.jumlah_ppn)}</td>
+                                        <td className="py-2 text-right font-semibold text-gray-800"><PriceCell value={invoice.jumlah_ppn} /></td>
                                     </tr>
+                                    {invoice.diskon > 0 && (
+                                        <tr className="border-b border-gray-100">
+                                            <td className="py-2 text-gray-600 font-medium">Diskon {invoice.diskon_persen > 0 && `(${invoice.diskon_persen}%)`}</td>
+                                            <td className="py-2 text-gray-600">:</td>
+                                            <td className="py-2 text-right font-semibold text-gray-800"><PriceCell value={-invoice.diskon} /></td>
+                                        </tr>
+                                    )}
                                     <tr>
                                         <td className={`py-3 font-bold ${invoice.cabang === 'Banua' ? 'text-blue-800' : 'text-[#990000]'}`}>GRAND TOTAL</td>
                                         <td className={`py-3 font-bold ${invoice.cabang === 'Banua' ? 'text-blue-800' : 'text-[#990000]'}`}>:</td>
-                                        <td className={`py-3 text-right font-black text-xl ${invoice.cabang === 'Banua' ? 'text-blue-800' : 'text-[#990000]'}`}>{formatRupiah(invoice.grand_total)}</td>
+                                        <td className={`py-3 text-right font-black text-xl ${invoice.cabang === 'Banua' ? 'text-blue-800' : 'text-[#990000]'}`}>
+                                            <div className="flex justify-between w-full">
+                                                <span>Rp</span>
+                                                <span>{Number(invoice.grand_total || 0).toLocaleString('id-ID')}</span>
+                                            </div>
+                                        </td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -461,7 +554,7 @@ const InvoicePreview = () => {
                     </div>
 
                     {/* Footer / Signature */}
-                    {invoice.ttd && (
+                    {(invoice.ttd || invoice.nama_accounting || invoice.penanggung_jawab) && (
                         <div className="mt-20 flex justify-between px-10">
                             {/* Left Signature: Prepared By */}
                             <div className="text-center w-48">

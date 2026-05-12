@@ -13,4 +13,5 @@ export const getReportCenter = (filter) => api.get(`/owner/report?filter=${filte
 
 export const getApprovals = () => api.get('/owner/approval');
 export const getApprovalDetail = (id) => api.get(`/owner/approval/${id}/detail`);
-export const updateApprovalStatus = (id, status) => api.put(`/owner/approval/${id}`, { status });
+export const updateApprovalStatus = (id, status, alasan_penolakan) => api.put(`/owner/approval/${id}`, { status, alasan_penolakan });
+export const deleteApproval = (id) => api.delete(`/owner/approval/${id}`);

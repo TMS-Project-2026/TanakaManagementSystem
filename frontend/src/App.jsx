@@ -19,6 +19,9 @@ import ReportCenter from './pages/ReportCenter';
 import Invoice from './pages/Invoice';
 import InvoiceForm from './pages/InvoiceForm';
 import InvoicePreview from './pages/InvoicePreview';
+import Quotation from './pages/Quotation';
+import QuotationForm from './pages/QuotationForm';
+import QuotationPreview from './pages/QuotationPreview';
 import Report from './pages/Report';
 
 // Gudang Pages
@@ -194,10 +197,13 @@ function App() {
             <CashInBank />
           </ProtectedRoute>
         } />
-        <Route path="/journal" element={
+        <Route path="/journal/:type" element={
           <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance']}>
             <Journal />
           </ProtectedRoute>
+        } />
+        <Route path="/journal" element={
+          <Navigate to="/journal/sales" replace />
         } />
         <Route path="/chart-of-accounts" element={
           <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance']}>
@@ -224,6 +230,29 @@ function App() {
             <InvoicePreview />
           </ProtectedRoute>
         } />
+
+        {/* QUOTATION ROUTES */}
+        <Route path="/quotation" element={
+          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance', 'marketing_offline']}>
+            <Quotation />
+          </ProtectedRoute>
+        } />
+        <Route path="/quotation/create" element={
+          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance', 'marketing_offline']}>
+            <QuotationForm />
+          </ProtectedRoute>
+        } />
+        <Route path="/quotation/edit/:id" element={
+          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance', 'marketing_offline']}>
+            <QuotationForm />
+          </ProtectedRoute>
+        } />
+        <Route path="/quotation/preview/:id" element={
+          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance', 'marketing_offline']}>
+            <QuotationPreview />
+          </ProtectedRoute>
+        } />
+
         <Route path="/report/*" element={
           <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance']}>
             <ReportCenter />

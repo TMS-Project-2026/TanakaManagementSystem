@@ -125,15 +125,22 @@ exports.ajukanQuotation = (req, res) => {
 // ================= ORDER MANUAL =================
 exports.getOrders = (req, res) => {
     const { start, end } = req.query;
-    let sql = "SELECT *, jenis_pembayaran as payment_type, DATEDIFF(deadline, CURDATE()) as sisa_hari FROM marketing_orders_offline WHERE type = 'offline' AND branch = 'Banua'";
+    let sql = `
+        SELECT o.*, o.jenis_pembayaran as payment_type, DATEDIFF(o.deadline, CURDATE()) as sisa_hari,
+            q.id as quotation_id, q.status as quotation_status, q.no_quotation, q.file_uploads as quotation_files,
+            q.alasan_penolakan as quotation_alasan_penolakan
+        FROM marketing_orders_offline o
+        LEFT JOIN marketing_quotations q ON o.id = q.order_id
+        WHERE o.type = 'offline' AND o.branch = 'Banua'
+    `;
     const params = [];
 
     if (start && end) {
-        sql += " AND DATE(created_at) BETWEEN ? AND ?";
+        sql += " AND DATE(o.created_at) BETWEEN ? AND ?";
         params.push(start, end);
     }
 
-    sql += " ORDER BY created_at DESC";
+    sql += " ORDER BY o.created_at DESC";
 
     db.query(sql, params, (err, results) => {
         if (err) return res.status(500).json({ message: err.message });
@@ -143,8 +150,8 @@ exports.getOrders = (req, res) => {
 
 exports.createOrder = (req, res) => {
     const { 
-        customer, alamat_pt, up_penagihan, cp_penagihan, email, kategori_pasar,
-        items, subtotal, ppn_persen, jumlah_ppn, grand_total, 
+        customer, alamat_pt, up_penagihan, cp_penagihan, email,
+        items, subtotal, ppn_persen, jumlah_ppn, diskon, diskon_persen, grand_total, 
         deadline, status, payment_type, status_produksi, lokasi_proses, catatan 
     } = req.body;
     
@@ -165,10 +172,10 @@ exports.createOrder = (req, res) => {
     }
 
     db.query(
-        "INSERT INTO marketing_orders_offline (customer, alamat_pt, up_penagihan, cp_penagihan, email, kategori_pasar, items, subtotal, ppn_persen, jumlah_ppn, grand_total, produk, qty, harga, deadline, status, jenis_pembayaran, status_produksi, lokasi_proses, catatan, type, branch) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'offline', 'Banua')",
+        "INSERT INTO marketing_orders_offline (customer, alamat_pt, up_penagihan, cp_penagihan, email, items, subtotal, ppn_persen, jumlah_ppn, diskon, diskon_persen, grand_total, produk, qty, harga, deadline, status, jenis_pembayaran, status_produksi, lokasi_proses, catatan, type, branch) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'offline', 'Banua')",
         [
-            customer, alamat_pt, up_penagihan, cp_penagihan, email, kategori_pasar || null,
-            itemsJson, subtotal || 0, ppn_persen || 0, jumlah_ppn || 0, grand_total || (harga * qty),
+            customer, alamat_pt, up_penagihan, cp_penagihan, email,
+            itemsJson, subtotal || 0, ppn_persen || 0, jumlah_ppn || 0, diskon || 0, diskon_persen || 0, grand_total || (harga * qty),
             produk, qty, harga, deadline || null, status || 'New Order', payment_type || 'DP', 
             status_produksi || 'Beli Kain', lokasi_proses || 'Internal', catatan
         ],
@@ -192,8 +199,8 @@ exports.createOrder = (req, res) => {
 
 exports.updateOrder = (req, res) => {
     const { 
-        customer, alamat_pt, up_penagihan, cp_penagihan, email, kategori_pasar,
-        items, subtotal, ppn_persen, jumlah_ppn, grand_total, 
+        customer, alamat_pt, up_penagihan, cp_penagihan, email,
+        items, subtotal, ppn_persen, jumlah_ppn, diskon, diskon_persen, grand_total, 
         deadline, status, payment_type, status_produksi, lokasi_proses, catatan 
     } = req.body;
 
@@ -213,10 +220,10 @@ exports.updateOrder = (req, res) => {
     }
 
     db.query(
-        "UPDATE marketing_orders_offline SET customer=?, alamat_pt=?, up_penagihan=?, cp_penagihan=?, email=?, kategori_pasar=?, items=?, subtotal=?, ppn_persen=?, jumlah_ppn=?, grand_total=?, produk=?, qty=?, harga=?, deadline=?, status=?, jenis_pembayaran=?, status_produksi=?, lokasi_proses=?, catatan=? WHERE id=? AND type='offline' AND branch='Banua'",
+        "UPDATE marketing_orders_offline SET customer=?, alamat_pt=?, up_penagihan=?, cp_penagihan=?, email=?, items=?, subtotal=?, ppn_persen=?, jumlah_ppn=?, diskon=?, diskon_persen=?, grand_total=?, produk=?, qty=?, harga=?, deadline=?, status=?, jenis_pembayaran=?, status_produksi=?, lokasi_proses=?, catatan=? WHERE id=? AND type='offline' AND branch='Banua'",
         [
-            customer, alamat_pt, up_penagihan, cp_penagihan, email, kategori_pasar || null,
-            itemsJson, subtotal || 0, ppn_persen || 0, jumlah_ppn || 0, grand_total || (harga * qty),
+            customer, alamat_pt, up_penagihan, cp_penagihan, email,
+            itemsJson, subtotal || 0, ppn_persen || 0, jumlah_ppn || 0, diskon || 0, diskon_persen || 0, grand_total || (harga * qty),
             produk, qty, harga, deadline || null, status, payment_type, 
             status_produksi, lokasi_proses, catatan, req.params.id
         ],
