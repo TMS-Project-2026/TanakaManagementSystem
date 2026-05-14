@@ -76,6 +76,7 @@ const Sidebar = () => {
     { name: 'Barang Keluar', path: '/barang-keluar', icon: <TrendingDown size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Mutasi Barang', path: '/mutasi', icon: <ArrowRightLeft size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Stok Barang', path: '/stok', icon: <Package size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
+    { name: 'Stok Jalan', path: '/stok-jalan', icon: <Layers size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Suku Cadang', path: '/sparepart', icon: <Settings size={20} />, roles: ['Admin', 'Manager'], group: 'Warehouse' },
     { name: 'Warning Stok', path: '/warning-stok', icon: <AlertTriangle size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Promo', path: '/promo', icon: <Gift size={20} />, roles: ['Admin', 'Manager', 'Marketing'], group: 'Sales' },

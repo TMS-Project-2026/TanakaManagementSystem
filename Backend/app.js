@@ -37,6 +37,7 @@ const itRoutes = require('./routes/itRoutes');
 const ownerRoutes = require('./routes/ownerRoutes');
 const produksiRoutes = require('./routes/produksiRoutes');
 const quotationRoutes = require('./routes/quotationRoutes');
+const stokJalanRoutes = require('./routes/stokJalanRoutes');
 
 // 4. Daftarkan Route ke API
 app.use('/api/auth', authRoutes);
@@ -65,6 +66,7 @@ app.use('/api/it', itRoutes);
 app.use('/api/owner', ownerRoutes);
 app.use('/api/produksi', produksiRoutes);
 app.use('/api/quotation', quotationRoutes);
+app.use('/api/stok-jalan', stokJalanRoutes);
 
 // Serve uploaded files
 const path = require('path');

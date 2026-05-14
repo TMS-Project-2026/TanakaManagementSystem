@@ -4,7 +4,7 @@ exports.getAllMutasi = async (req, res) => {
     try {
         const promiseDb = db.promise();
         const sql = `
-            SELECT mb.*, s.nama_barang 
+            SELECT mb.*, s.nama_barang, s.ukuran 
             FROM mutasi_barang mb
             JOIN stok s ON mb.barang_id = s.id
             ORDER BY mb.tanggal DESC, mb.id DESC

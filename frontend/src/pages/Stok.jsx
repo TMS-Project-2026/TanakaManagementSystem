@@ -12,11 +12,11 @@ const Stok = () => {
         nama_brand: '', 
         nama_barang: '', 
         jumlah: '', 
-        kategori: '', 
-        cabang_id: '', 
+        kategori: 'Reguler', 
+        cabang_id: 'Tanaka', 
         kode_rak: '', 
-        ukuran: '', 
-        minimum_stok: '',
+        ukuran: 'S', 
+        minimum_stok: '5',
         created_at: new Date().toISOString().split('T')[0]
     });
     const [isEdit, setIsEdit] = useState(false);
@@ -82,21 +82,22 @@ const Stok = () => {
             nama_brand: '', 
             nama_barang: '', 
             jumlah: '', 
-            kategori: '', 
-            cabang_id: '', 
+            kategori: 'Reguler', 
+            cabang_id: 'Tanaka', 
             kode_rak: '', 
-            ukuran: '', 
-            minimum_stok: '',
+            ukuran: 'S', 
+            minimum_stok: '5',
             created_at: new Date().toISOString().split('T')[0]
         });
         setShowAddModal(false);
     };
 
-    // Extract unique brands and items for recommendations
     const uniqueBrands = Array.from(new Set(stok.map(s => s.nama_brand).filter(Boolean)));
     const uniqueBarang = Array.from(new Set(stok.map(s => s.nama_barang).filter(Boolean)));
 
-    // Grouping stok
+    const sizesArray = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'XXXXL', 'XXXXXL', 'All Size'];
+
+    // Grouping stok by Brand + Nama Barang + Cabang
     const groupedStok = Object.values(stok.reduce((acc, curr) => {
         const brand = (curr.nama_brand || '').trim().toLowerCase();
         const nama = (curr.nama_barang || '').trim().toLowerCase();
@@ -104,14 +105,49 @@ const Stok = () => {
         
         const key = `${brand}|${nama}|${cabang}`;
         if (!acc[key]) {
-            acc[key] = { ...curr, jumlah: 0, rawItems: [] };
+            acc[key] = {
+                id: curr.id,
+                nama_brand: curr.nama_brand || '-',
+                nama_barang: curr.nama_barang,
+                kategori: curr.kategori || '-',
+                cabang_id: curr.cabang_id,
+                kode_rak: curr.kode_rak || '-',
+                total_stok: 0,
+                minimum_stok: curr.minimum_stok || 5,
+                sizes: {
+                    XS: 0,
+                    S: 0,
+                    M: 0,
+                    L: 0,
+                    XL: 0,
+                    XXL: 0,
+                    XXXL: 0,
+                    XXXXL: 0,
+                    XXXXXL: 0,
+                    'All Size': 0
+                }
+            };
         }
-        acc[key].jumlah += Number(curr.jumlah) || 0;
-        acc[key].rawItems.push(curr);
+        acc[key].total_stok += Number(curr.jumlah) || 0;
+        if (curr.ukuran && acc[key].sizes[curr.ukuran] !== undefined) {
+            acc[key].sizes[curr.ukuran] += Number(curr.jumlah) || 0;
+        }
+        // Take the highest minimum_stok if multiple records exist for this grouped key
+        if (curr.minimum_stok && curr.minimum_stok > acc[key].minimum_stok) {
+            acc[key].minimum_stok = curr.minimum_stok;
+        }
         return acc;
     }, {}));
 
-    const filteredStok = groupedStok.filter(item => item.nama_barang.toLowerCase().includes(searchTerm.toLowerCase()));
+    const filteredStok = groupedStok.filter(item => {
+        const q = searchTerm.toLowerCase();
+        return (
+            item.nama_barang.toLowerCase().includes(q) ||
+            item.nama_brand.toLowerCase().includes(q) ||
+            item.cabang_id.toLowerCase().includes(q) ||
+            item.kategori.toLowerCase().includes(q)
+        );
+    });
 
     return (
         <div className="flex bg-[#f3f4f6] min-h-screen font-sans">
@@ -123,7 +159,7 @@ const Stok = () => {
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                     <input
                       type="text"
-                      placeholder="Cari nama barang..."
+                      placeholder="Cari brand, barang, kategori atau cabang..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="w-full pl-12 pr-4 py-2.5 bg-white rounded-full border border-gray-200 shadow-sm text-sm focus:outline-none focus:border-[#990000] focus:ring-2 focus:ring-red-100 transition-all"
@@ -150,11 +186,11 @@ const Stok = () => {
                         <div>
                             <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-tight flex items-center gap-3">
                                 <div className="bg-red-50 border border-red-100 p-2 rounded-lg shadow-sm">
-                                    <Package className="text-[#990000]" size={20} />
+                                    <Package className="text-red-600" size={20} />
                                 </div>
-                                Stok <span className="text-[#990000]">Barang</span>
+                                Stok <span className="text-red-600">Barang</span>
                             </h1>
-                            <p className="text-sm text-gray-500 mt-2 font-medium">Kelola data stok barang di semua cabang</p>
+                            <p className="text-sm text-gray-500 mt-2 font-medium">Monitoring terpusat kuantitas stok dari ukuran XS hingga All Size di semua cabang</p>
                         </div>
                         <button
                             onClick={() => { resetForm(); setShowAddModal(true); }}
@@ -164,93 +200,6 @@ const Stok = () => {
                         </button>
                     </div>
 
-                    {/* MODAL INPUT DATA */}
-                    {showAddModal && (
-                        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                            <div className="bg-white w-full max-w-4xl rounded-2xl p-6 sm:p-8 shadow-xl overflow-y-auto max-h-[90vh] animate-in zoom-in-95 duration-200 border border-gray-100">
-                                <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
-                                    <div>
-                                        <h2 className="text-xl font-bold text-gray-900">{isEdit ? 'Edit Data Barang' : 'Tambah Barang Baru'}</h2>
-                                        <p className="text-xs text-gray-500 mt-1">Lengkapi form di bawah ini untuk manajemen data stok.</p>
-                                    </div>
-                                    <button type="button" onClick={resetForm} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"><X size={20} /></button>
-                                </div>
-                                <form onSubmit={handleCreateOrUpdate} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 items-end">
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Brand</label>
-                                <input list="brand-list" type="text" placeholder="Contoh: Honda" required value={form.nama_brand} onChange={e => setForm({...form, nama_brand: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-100 focus:border-red-600 outline-none transition-all" />
-                                <datalist id="brand-list">
-                                    {uniqueBrands.map(b => <option key={b} value={b} />)}
-                                </datalist>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Barang</label>
-                                <input list="barang-list" type="text" placeholder="Nama item" required value={form.nama_barang} onChange={e => setForm({...form, nama_barang: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-100 focus:border-red-600 outline-none transition-all" />
-                                <datalist id="barang-list">
-                                    {uniqueBarang.map(b => <option key={b} value={b} />)}
-                                </datalist>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">Kategori</label>
-                                <select required value={form.kategori} onChange={e => setForm({...form, kategori: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-100 focus:border-red-600 outline-none bg-white transition-all">
-                                    <option value="" disabled>Pilih Kategori</option>
-                                    <option value="Reguler">Reguler</option>
-                                    <option value="Utama">Utama</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">Cabang</label>
-                                <select required value={form.cabang_id} onChange={e => setForm({...form, cabang_id: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-100 focus:border-red-600 outline-none bg-white transition-all">
-                                    <option value="" disabled>Pilih Cabang</option>
-                                    <option value="Tanaka">Tanaka</option>
-                                    <option value="Banua">Banua</option>
-                                    <option value="Acestreet">Acestreet</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">Kode Rak</label>
-                                <input type="text" placeholder="A1-02" value={form.kode_rak} onChange={e => setForm({...form, kode_rak: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-100 focus:border-red-600 outline-none transition-all" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">Ukuran</label>
-                                <select required value={form.ukuran} onChange={e => setForm({...form, ukuran: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-100 focus:border-red-600 outline-none bg-white transition-all">
-                                    <option value="" disabled>Pilih Ukuran</option>
-                                    <option value="XS">XS</option>
-                                    <option value="S">S</option>
-                                    <option value="M">M</option>
-                                    <option value="L">L</option>
-                                    <option value="XL">XL</option>
-                                    <option value="XXL">XXL</option>
-                                    <option value="XXXL">XXXL</option>
-                                    <option value="XXXXL">XXXXL</option>
-                                    <option value="XXXXXL">XXXXXL</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">Stok Total</label>
-                                <input type="number" required value={form.jumlah} onChange={e => setForm({...form, jumlah: e.target.value})} className={`w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-100 focus:border-red-600 outline-none transition-all ${isEdit ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`} disabled={isEdit} />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">Minimal Stok</label>
-                                <input type="number" required value={form.minimum_stok} onChange={e => setForm({...form, minimum_stok: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-100 focus:border-red-600 outline-none transition-all" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">Tanggal Masuk</label>
-                                <input type="date" required value={form.created_at ? form.created_at.split('T')[0] : ''} onChange={e => setForm({...form, created_at: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-100 focus:border-red-600 outline-none transition-all" />
-                            </div>
-                            <div className="lg:col-span-4 pt-5 mt-2 border-t border-gray-100 flex justify-end gap-3">
-                                <button type="button" onClick={resetForm} className="px-6 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold transition-colors">
-                                    Batal
-                                </button>
-                                <button type="submit" className="bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-8 rounded-xl shadow-sm transition-all active:scale-95">
-                                    {isEdit ? 'Simpan Perubahan' : 'Simpan Barang'}
-                                </button>
-                            </div>
-                        </form>
-                            </div>
-                        </div>
-                    )}
-
                     {/* Table Filters */}
                     <div className="flex flex-col md:flex-row justify-between mb-4 gap-4">
                         <div className="flex items-center gap-2">
@@ -258,7 +207,7 @@ const Stok = () => {
                             <select
                                 value={filterCabang}
                                 onChange={(e) => setFilterCabang(e.target.value)}
-                                className="border border-gray-300 rounded-lg p-2 focus:ring-red-500 focus:border-red-500"
+                                className="border border-gray-300 rounded-lg p-2 focus:ring-red-500 focus:border-red-500 bg-white text-sm"
                             >
                                 <option value="">Semua Cabang</option>
                                 <option value="Tanaka">Tanaka</option>
@@ -268,8 +217,8 @@ const Stok = () => {
                         </div>
                     </div>
 
-                    {/* Table */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-red-100 overflow-hidden">
+                    {/* Table Grid (Sama Persis dengan Barang Masuk) */}
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
                                 <thead className="bg-gray-900 text-xs text-white uppercase tracking-wider font-semibold sticky top-0 z-10 shadow-sm">
@@ -277,50 +226,58 @@ const Stok = () => {
                                         <th className="p-4 font-semibold">Brand</th>
                                         <th className="p-4 font-semibold">Nama Barang</th>
                                         <th className="p-4 font-semibold">Kategori</th>
-                                        <th className="p-4 font-semibold text-center">Jumlah Stok</th>
-                                        <th className="p-4 font-semibold text-center">Tanggal Masuk</th>
-                                        <th className="p-4 font-semibold text-center">Minimal Stok</th>
+                                        <th className="p-4 font-semibold">Cabang</th>
+                                        {sizesArray.map(size => (
+                                            <th key={size} className="p-4 font-semibold text-center w-20">{size}</th>
+                                        ))}
+                                        <th className="p-4 font-semibold text-center w-28">Total Stok</th>
+                                        <th className="p-4 font-semibold text-center w-32">Minimal Stok</th>
                                         <th className="p-4 font-semibold">Rak</th>
                                         <th className="p-4 font-semibold text-center">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filteredStok.map((item) => {
-                                        // Calculate days in stock based on the earliest rawItem's date
-                                        const timestamps = item.rawItems.map(r => {
-                                            const d = new Date(r.created_at || r.updated_at || new Date());
-                                            return isNaN(d.getTime()) ? new Date().getTime() : d.getTime();
-                                        });
-                                        const earliestTimestamp = timestamps.length > 0 ? Math.min(...timestamps) : new Date().getTime();
-                                        const earliestDate = new Date(earliestTimestamp);
-                                        const diffDays = Math.floor((new Date().getTime() - earliestTimestamp) / (1000 * 60 * 60 * 24));
-
-                                        return (
-                                            <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                                <td className="p-4 font-medium text-gray-600">{item.nama_brand || '-'}</td>
-                                                <td className="p-4 font-bold text-gray-800">{item.nama_barang} <span className="text-xs text-gray-500 block">({item.cabang_id})</span></td>
-                                                <td className="p-4"><span className="bg-gray-100 px-2 py-1 rounded text-xs">{item.kategori}</span></td>
-                                                <td className="p-4 text-center font-bold text-lg text-red-600">{item.jumlah}</td>
-                                                <td className="p-4 text-center">
-                                                    <div className="flex flex-col items-center">
-                                                        <span className="text-xs font-bold text-gray-700">{earliestDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                                                        <span className={`mt-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${diffDays > 60 ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-400'}`}>
-                                                            {diffDays} Hari
-                                                        </span>
-                                                    </div>
-                                                </td>
-                                                <td className="p-4 text-center text-gray-500">{item.minimum_stok}</td>
-                                            <td className="p-4 text-gray-600">{item.kode_rak || '-'}</td>
-                                            <td className="p-4 text-center flex justify-center gap-2">
-                                                <button onClick={() => navigate(`/stok/detail?brand=${encodeURIComponent(item.nama_brand || '')}&barang=${encodeURIComponent(item.nama_barang || '')}&cabang=${encodeURIComponent(item.cabang_id || '')}`)} className="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1">
-                                                    <Eye size={16} /> Lihat Detail
+                                    {filteredStok.map((item, idx) => (
+                                        <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50 text-sm">
+                                            <td className="p-4 font-medium text-gray-600">{item.nama_brand}</td>
+                                            <td className="p-4 font-bold text-gray-800">{item.nama_barang}</td>
+                                            <td className="p-4">
+                                                <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${item.kategori === 'Utama' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-gray-100 text-gray-600'}`}>
+                                                    {item.kategori}
+                                                </span>
+                                            </td>
+                                            <td className="p-4">{item.cabang_id}</td>
+                                            {sizesArray.map(size => {
+                                                const qty = item.sizes[size] || 0;
+                                                return (
+                                                    <td key={size} className="p-4 text-center bg-gray-50/10 border-x border-gray-100 font-extrabold text-gray-800">
+                                                        {qty > 0 ? (
+                                                            qty
+                                                        ) : (
+                                                            <span className="text-gray-300 font-normal">-</span>
+                                                        )}
+                                                    </td>
+                                                );
+                                            })}
+                                            <td className="p-4 text-center font-extrabold text-red-600 text-base">{item.total_stok} Pcs</td>
+                                            <td className="p-4 text-center bg-gray-50/10 border-l border-gray-100">
+                                                <span className="bg-red-50 border border-red-100 text-red-700 px-2.5 py-1 rounded-full text-xs font-bold">
+                                                    {item.minimum_stok} Pcs
+                                                </span>
+                                            </td>
+                                            <td className="p-4 font-semibold text-gray-600">{item.kode_rak}</td>
+                                            <td className="p-4 text-center">
+                                                <button 
+                                                    onClick={() => navigate(`/stok/detail?brand=${encodeURIComponent(item.nama_brand || '')}&barang=${encodeURIComponent(item.nama_barang || '')}&cabang=${encodeURIComponent(item.cabang_id || '')}`)} 
+                                                    className="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1 mx-auto"
+                                                >
+                                                    <Eye size={14} /> Detail
                                                 </button>
                                             </td>
                                         </tr>
-                                        );
-                                    })}
+                                    ))}
                                     {filteredStok.length === 0 && (
-                                        <tr><td colSpan={7} className="p-6 text-center text-gray-500">Barang tidak ditemukan</td></tr>
+                                        <tr><td colSpan={7 + sizesArray.length} className="p-6 text-center text-gray-500">Stok barang tidak ditemukan</td></tr>
                                     )}
                                 </tbody>
                             </table>
@@ -328,6 +285,80 @@ const Stok = () => {
                     </div>
                     </div>
                 </div>
+
+                {/* MODAL INPUT DATA */}
+                {showAddModal && (
+                    <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                        <div className="bg-white w-full max-w-4xl rounded-2xl p-6 sm:p-8 shadow-xl overflow-y-auto max-h-[90vh] animate-in zoom-in-95 duration-200 border border-gray-100">
+                            <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
+                                <div>
+                                    <h2 className="text-xl font-bold text-gray-900">{isEdit ? 'Edit Data Barang' : 'Tambah Barang Baru'}</h2>
+                                    <p className="text-xs text-gray-500 mt-1">Lengkapi form di bawah ini untuk manajemen data stok.</p>
+                                </div>
+                                <button type="button" onClick={resetForm} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"><X size={20} /></button>
+                            </div>
+                            <form onSubmit={handleCreateOrUpdate} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 items-end">
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Brand</label>
+                                    <input list="brand-list" type="text" placeholder="Contoh: Honda" required value={form.nama_brand} onChange={e => setForm({...form, nama_brand: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-100 focus:border-red-600 outline-none transition-all" />
+                                    <datalist id="brand-list">
+                                        {uniqueBrands.map(b => <option key={b} value={b} />)}
+                                    </datalist>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Barang</label>
+                                    <input list="barang-list" type="text" placeholder="Nama item" required value={form.nama_barang} onChange={e => setForm({...form, nama_barang: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-100 focus:border-red-600 outline-none transition-all" />
+                                    <datalist id="barang-list">
+                                        {uniqueBarang.map(b => <option key={b} value={b} />)}
+                                    </datalist>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Kategori</label>
+                                    <select required value={form.kategori} onChange={e => setForm({...form, kategori: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-100 focus:border-red-600 outline-none bg-white transition-all">
+                                        <option value="Reguler">Reguler</option>
+                                        <option value="Utama">Utama</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Cabang</label>
+                                    <select required value={form.cabang_id} onChange={e => setForm({...form, cabang_id: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-100 focus:border-red-600 outline-none bg-white transition-all">
+                                        <option value="Tanaka">Tanaka</option>
+                                        <option value="Banua">Banua</option>
+                                        <option value="Acestreet">Acestreet</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Kode Rak</label>
+                                    <input type="text" placeholder="A1-02" value={form.kode_rak} onChange={e => setForm({...form, kode_rak: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-100 focus:border-red-600 outline-none transition-all" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Ukuran</label>
+                                    <select required value={form.ukuran} onChange={e => setForm({...form, ukuran: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-100 focus:border-red-600 outline-none bg-white transition-all">
+                                        {sizesArray.map(sz => (
+                                            <option key={sz} value={sz}>{sz}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Stok Total</label>
+                                    <input type="number" required value={form.jumlah} onChange={e => setForm({...form, jumlah: e.target.value})} className={`w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-100 focus:border-red-600 outline-none transition-all ${isEdit ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`} disabled={isEdit} />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Minimal Stok</label>
+                                    <input type="number" required value={form.minimum_stok} onChange={e => setForm({...form, minimum_stok: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-100 focus:border-red-600 outline-none transition-all" />
+                                </div>
+                                <div className="lg:col-span-4 pt-5 mt-2 border-t border-gray-100 flex justify-end gap-3">
+                                    <button type="button" onClick={resetForm} className="px-6 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold transition-colors">
+                                        Batal
+                                    </button>
+                                    <button type="submit" className="bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-8 rounded-xl shadow-sm transition-all active:scale-95">
+                                        {isEdit ? 'Simpan Perubahan' : 'Simpan Barang'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
             </main>
         </div>
     );
