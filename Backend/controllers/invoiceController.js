@@ -224,3 +224,24 @@ exports.deleteInvoice = (req, res) => {
         res.status(200).json({ status: "success", message: "Invoice berhasil dihapus!" });
     });
 };
+
+exports.requestRevision = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { alasan, newData } = req.body;
+        
+        await db.promise().query(
+            "UPDATE invoice SET status = 'Menunggu Approval Revisi', revisi_data = ?, revisi_alasan = ? WHERE id = ?",
+            [JSON.stringify(newData), alasan, id]
+        );
+
+        await db.promise().query(`
+            INSERT INTO approvals (tipe, keterangan, nominal, diajukan_oleh, status, tanggal_pengajuan, reference_id)
+            VALUES ('revisi_invoice', ?, ?, 'Finance', 'pending', NOW(), ?)
+        `, [`Revisi Invoice - ${alasan}`, newData.grand_total, id]);
+
+        res.status(200).json({ status: "success", message: "Pengajuan revisi berhasil dikirim ke Owner!" });
+    } catch (err) {
+        res.status(500).json({ status: "error", message: err.message });
+    }
+};

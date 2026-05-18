@@ -175,7 +175,7 @@ const QuotationForm = () => {
                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                             <h3 className="text-lg font-bold border-b border-gray-100 pb-3 mb-4 text-blue-700">DATA CUSTOMER</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="relative md:col-span-2"><label className={labelClass}>Nama PT / Perusahaan *</label>
+                                <div className="relative md:col-span-2"><label className={labelClass}>Nama Instansi *</label>
                                     <input type="text" name="nama_pt" value={form.nama_pt} onChange={(e) => { handleChange(e); setShowSuggestions(true); }} onFocus={() => setShowSuggestions(true)} onBlur={() => setTimeout(() => setShowSuggestions(false), 200)} required placeholder="Contoh: PT. ABC" className={inputClass} />
                                     {showSuggestions && form.nama_pt && (
                                         <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
@@ -212,7 +212,7 @@ const QuotationForm = () => {
                                         </div>
                                         <div className="col-span-6 md:col-span-2"><label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Ukuran</label>
                                             <select name="ukuran" value={item.ukuran || ''} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white">
-                                                <option value="">- Ukuran -</option>{['XS','S','M','L','XL','XXL','XXXL','XXXXL','XXXXXL'].map(sz => <option key={sz} value={sz}>{sz}</option>)}
+                                                <option value="">- Ukuran -</option>{['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'XXXXL', 'XXXXXL'].map(sz => <option key={sz} value={sz}>{sz}</option>)}
                                             </select>
                                         </div>
                                         <div className="col-span-3 md:col-span-1"><label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 text-center">Qty</label><input type="number" name="qty" value={item.qty} onChange={(e) => handleItemChange(index, e)} min="1" className="w-full p-2 border border-gray-300 rounded-lg text-center text-sm" /></div>
@@ -245,7 +245,7 @@ const QuotationForm = () => {
                                     <label className={labelClass}>Payment Note (Info Rekening)</label>
                                     <textarea name="payment_note" value={form.payment_note} onChange={handleChange} rows={3} className={`${inputClass} resize-none bg-gray-50`}></textarea>
                                 </div>
-                                <div><label className={labelClass}>Nama Marketing (TTD Kiri)</label><input type="text" name="nama_marketing" value={form.nama_marketing} onChange={handleChange} className={inputClass} /></div>
+                                <div><label className={labelClass}>Nama Marketing (TTD Kiri)</label><input type="text" name="nama_marketing" value={form.nama_marketing} onChange={handleChange} list="marketing-options" className={inputClass} /><datalist id="marketing-options"><option value="Aji Pangestu" /><option value="M Rangga Maulana" /></datalist></div>
                                 <div><label className={labelClass}>Nama Client (TTD Kanan)</label><input type="text" name="nama_client_ttd" value={form.nama_client_ttd} onChange={handleChange} className={inputClass} /></div>
                             </div>
                         </div>

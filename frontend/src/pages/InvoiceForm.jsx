@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
-import { createInvoice, getInvoiceById, updateInvoice } from '../api/invoiceApi';
+import { createInvoice, getInvoiceById, updateInvoice, requestRevision } from '../api/invoiceApi';
 import { Save, X, ArrowLeft, Receipt, CreditCard, PenTool, Upload } from 'lucide-react';
 import api from '../api/axios';
 import { formatPhoneNumber } from '../utils/formatters';
@@ -18,6 +18,8 @@ const InvoiceForm = () => {
     const [filteredProducts, setFilteredProducts] = useState([]);
     const [activeItemIndex, setActiveItemIndex] = useState(null);
     const [invoiceFiles, setInvoiceFiles] = useState([]);
+    const [originalData, setOriginalData] = useState(null);
+    const [alasanRevisi, setAlasanRevisi] = useState('');
 
     const [form, setForm] = useState({
         no_invoice: '',
@@ -203,6 +205,7 @@ Atas Nama                 : ACESTREET`;
             const res = await getInvoiceById(id);
             if (res.data.status === 'success') {
                 const data = res.data.data;
+                setOriginalData(data);
                 setForm({
                     ...data,
                     tanggal_transaksi: data.tanggal_transaksi ? data.tanggal_transaksi.split('T')[0] : '',
@@ -226,10 +229,19 @@ Atas Nama                 : ACESTREET`;
         });
     };
 
+    const isReduced = isEdit && originalData?.status === 'Terbit' && form.grand_total < originalData.grand_total;
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            if (isEdit) {
+            if (isReduced) {
+                if (!alasanRevisi) {
+                    alert("Harap isi alasan revisi/pengurangan.");
+                    return;
+                }
+                await requestRevision(id, { alasan: alasanRevisi, newData: form });
+                alert("Pengajuan revisi berhasil dikirim ke Owner!");
+            } else if (isEdit) {
                 await updateInvoice(id, form);
                 alert("Invoice berhasil diperbarui!");
             } else {
@@ -494,7 +506,10 @@ Atas Nama                 : ACESTREET`;
                                     </div>
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Pembuat (Prepared by - Kiri)</label>
-                                        <input type="text" name="nama_accounting" value={form.nama_accounting} onChange={handleChange} placeholder="Nama Staf Marketing" className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none" />
+                                        <input type="text" name="nama_accounting" value={form.nama_accounting} onChange={handleChange} list="accounting-options" placeholder="Nama Staf Marketing" className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none" />
+                                        <datalist id="accounting-options">
+                                            <option value="Hanifah Abdillah" />
+                                        </datalist>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Penyetuju (Approved by - Kanan)</label>
@@ -529,12 +544,19 @@ Atas Nama                 : ACESTREET`;
                         </div>
 
                         {/* Actions */}
+                        {isReduced && (
+                            <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-200 mb-6">
+                                <label className="block text-sm font-bold text-yellow-800 mb-2">Alasan Revisi Pengurangan Tagihan *</label>
+                                <textarea required={isReduced} value={alasanRevisi} onChange={(e) => setAlasanRevisi(e.target.value)} rows={2} placeholder="Contoh: Customer cancel 2 pcs baju..." className="w-full p-2.5 border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-400 outline-none bg-white"></textarea>
+                                <p className="text-xs text-yellow-700 mt-2 font-medium">Perhatian: Anda mengurangi jumlah tagihan dari Invoice yang sudah Terbit. Tindakan ini memerlukan persetujuan Owner.</p>
+                            </div>
+                        )}
                         <div className="flex items-center justify-end gap-4 pb-10">
                             <button type="button" onClick={() => navigate('/invoice')} className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium flex items-center gap-2">
                                 <X size={18} /> Batal
                             </button>
-                            <button type="submit" className="px-8 py-3 bg-[#990000] text-white rounded-xl shadow-lg hover:bg-red-800 transition-transform active:scale-95 font-bold flex items-center gap-2">
-                                <Save size={18} /> {isEdit ? 'Simpan Perubahan' : 'Terbitkan Invoice'}
+                            <button type="submit" className={`px-8 py-3 text-white rounded-xl shadow-lg transition-transform active:scale-95 font-bold flex items-center gap-2 ${isReduced ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-[#990000] hover:bg-red-800'}`}>
+                                <Save size={18} /> {isReduced ? 'Ajukan Revisi ke Owner' : (isEdit ? 'Simpan Perubahan' : 'Terbitkan Invoice')}
                             </button>
                         </div>
                     </form>

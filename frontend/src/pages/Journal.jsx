@@ -337,7 +337,7 @@ const Journal = () => {
                                   </div>
                                 );
                               }
-                            } catch(e) {}
+                            } catch (e) { }
                             return null;
                           })()}
                         </td>
@@ -518,7 +518,7 @@ const Journal = () => {
                             </div>
                           );
                         }
-                      } catch(e) {}
+                      } catch (e) { }
                       return null;
                     })()}
                   </div>

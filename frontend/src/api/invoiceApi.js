@@ -13,3 +13,4 @@ export const getNextInvoiceNumber = (cabang) => api.get(`/invoice/next-number?ca
 export const createInvoice = (data) => api.post('/invoice', data);
 export const updateInvoice = (id, data) => api.put(`/invoice/${id}`, data);
 export const deleteInvoice = (id) => api.delete(`/invoice/${id}`);
+export const requestRevision = (id, data) => api.put(`/invoice/${id}/request-revision`, data);

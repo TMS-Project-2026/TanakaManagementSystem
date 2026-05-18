@@ -22,7 +22,7 @@ const CreateOrderOfflineBanua = () => {
         cp_penagihan: '',
         up_penagihan: '',
         email: '',
-        items: [{ rincian: '', ukuran: '', qty: 1, harga_satuan: 0, satuan: 'Pcs' }],
+        items: [{ rincian: '', ukuran: '', qty: 1, harga_satuan: 0, satuan: 'Pcs', diskon_item: 0, status_approval: '' }],
         subtotal: 0,
         ppn_persen: 0,
         jumlah_ppn: 0,
@@ -77,13 +77,13 @@ const CreateOrderOfflineBanua = () => {
 
     // Auto calculate totals
     useEffect(() => {
-        const subtotal = form.items.reduce((acc, item) => acc + (Number(item.qty) * Number(item.harga_satuan)), 0);
+        const subtotal = form.items.reduce((acc, item) => acc + (Number(item.qty) * Number(item.harga_satuan) - Number(item.diskon_item || 0)), 0);
         const jumlah_ppn = subtotal * (Number(form.ppn_persen) / 100);
-        const diskon_nominal = subtotal * (Number(form.diskon_persen || 0) / 100);
+        const diskon_nominal = Number(form.diskon) || 0;
         const grand_total = subtotal + jumlah_ppn - diskon_nominal;
 
-        setForm(prev => ({ ...prev, subtotal, jumlah_ppn, diskon: diskon_nominal, grand_total }));
-    }, [form.ppn_persen, form.items, form.diskon_persen]);
+        setForm(prev => ({ ...prev, subtotal, jumlah_ppn, grand_total }));
+    }, [form.ppn_persen, form.items, form.diskon]);
 
     const handleCustomerChange = (e) => {
         const val = e.target.value;
@@ -142,13 +142,23 @@ const CreateOrderOfflineBanua = () => {
     const selectProduct = (index, prod) => {
         const newItems = [...form.items];
         newItems[index].rincian = prod.nama_produk;
+        newItems[index].harga_satuan = prod.harga_jual || prod.hpp_satuan || 0;
+        newItems[index].diskon_item = 0;
+        newItems[index].status_approval = '';
         setForm({ ...form, items: newItems });
         setFilteredProducts([]);
         setActiveItemIndex(null);
     };
 
+    const sendApprove = async (index) => {
+        const newItems = [...form.items];
+        newItems[index].status_approval = 'Menunggu Owner';
+        setForm({ ...form, items: newItems });
+        alert(`Request Approval Diskon untuk item "${newItems[index].rincian}" telah dikirim ke Owner!`);
+    };
+
     const addItem = () => {
-        setForm({ ...form, items: [...form.items, { rincian: '', ukuran: '', qty: 1, harga_satuan: 0, satuan: 'Pcs' }] });
+        setForm({ ...form, items: [...form.items, { rincian: '', ukuran: '', qty: 1, harga_satuan: 0, satuan: 'Pcs', diskon_item: 0, status_approval: '' }] });
     };
 
     const removeItem = (index) => {
@@ -261,8 +271,8 @@ const CreateOrderOfflineBanua = () => {
                             <h3 className="text-lg font-bold border-b border-gray-100 pb-3 mb-4 text-[#990000] flex items-center gap-2"><Users size={20}/> DATA CUSTOMER</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="relative">
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Customer / PT *</label>
-                                    <input type="text" name="customer" value={form.customer} onChange={handleCustomerChange} required placeholder="Ketik nama customer..." className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none" autoComplete="off" />
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Instansi *</label>
+                                    <input type="text" name="customer" value={form.customer} onChange={handleCustomerChange} required placeholder="Ketik nama instansi..." className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none" autoComplete="off" />
                                     {showSuggestions && filteredCustomers.length > 0 && (
                                         <ul className="absolute z-10 w-full bg-white border border-gray-200 mt-1 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                                             {filteredCustomers.map(cust => (
@@ -299,7 +309,7 @@ const CreateOrderOfflineBanua = () => {
                             <div className="space-y-4 mb-6">
                                 {form.items && form.items.map((item, index) => (
                                     <div key={index} className="grid grid-cols-12 gap-3 bg-gray-50 p-4 rounded-lg border border-gray-200 relative pt-8 md:pt-4">
-                                        <div className="col-span-12 md:col-span-4 relative">
+                                        <div className="col-span-12 md:col-span-3 relative">
                                             <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Nama Produk</label>
                                             <input 
                                                 type="text" 
@@ -316,8 +326,9 @@ const CreateOrderOfflineBanua = () => {
                                             {activeItemIndex === index && filteredProducts.length > 0 && (
                                                 <ul className="absolute z-20 w-full bg-white border border-gray-200 mt-1 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                                                     {filteredProducts.map(prod => (
-                                                        <li key={prod.id} onClick={() => selectProduct(index, prod)} className="p-2 hover:bg-gray-50 cursor-pointer text-sm border-b border-gray-50 last:border-0">
-                                                            {prod.nama_produk}
+                                                        <li key={prod.id} onClick={() => selectProduct(index, prod)} className="p-2 hover:bg-gray-50 cursor-pointer text-sm border-b border-gray-50 last:border-0 flex justify-between items-center">
+                                                            <span>{prod.nama_produk}</span>
+                                                            <span className="text-xs text-gray-400 font-mono">Rp {Number(prod.harga_jual || prod.hpp_satuan || 0).toLocaleString('id-ID')}</span>
                                                         </li>
                                                     ))}
                                                 </ul>
@@ -325,7 +336,7 @@ const CreateOrderOfflineBanua = () => {
                                         </div>
                                         <div className="col-span-6 md:col-span-2">
                                             <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 text-center">Detail</label>
-                                            <input type="text" name="ukuran" value={item.ukuran || ''} onChange={(e) => handleItemChange(index, e)} placeholder="Cth: XL / Custom" className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-center text-sm" />
+                                            <input type="text" name="ukuran" value={item.ukuran || ''} onChange={(e) => handleItemChange(index, e)} placeholder="Cth: XL" className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-center text-sm" />
                                         </div>
                                         <div className="col-span-3 md:col-span-1">
                                             <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 text-center">Qty</label>
@@ -335,9 +346,19 @@ const CreateOrderOfflineBanua = () => {
                                             <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 text-center">Unit</label>
                                             <input type="text" name="satuan" value={item.satuan || 'Pcs'} onChange={(e) => handleItemChange(index, e)} placeholder="Pcs" className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-center text-sm" />
                                         </div>
-                                        <div className="col-span-12 md:col-span-3">
+                                        <div className="col-span-6 md:col-span-2">
                                             <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 text-right">Harga Satuan</label>
                                             <input type="number" name="harga_satuan" value={item.harga_satuan} onChange={(e) => handleItemChange(index, e)} min="0" required className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-right text-sm font-semibold" />
+                                        </div>
+                                        <div className="col-span-6 md:col-span-2">
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 text-right">Diskon Item</label>
+                                            <div className="flex gap-1 items-center">
+                                                <input type="number" name="diskon_item" value={item.diskon_item || ''} onChange={(e) => handleItemChange(index, e)} min="0" placeholder="0" className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-right text-sm text-red-600" />
+                                                {Number(item.diskon_item) > 0 && (
+                                                    <button type="button" onClick={() => sendApprove(index)} className="p-1.5 bg-yellow-100 text-yellow-700 hover:bg-yellow-200 rounded text-[10px] font-bold shrink-0">Approve</button>
+                                                )}
+                                            </div>
+                                            {item.status_approval && <p className="text-[9px] text-yellow-600 font-bold mt-1 text-right">{item.status_approval}</p>}
                                         </div>
                                         <div className="absolute top-2 right-2 md:static md:col-span-1 flex items-end justify-center">
                                             <button type="button" onClick={() => removeItem(index)} className="text-red-400 hover:text-red-600 transition-colors p-2">
@@ -361,9 +382,9 @@ const CreateOrderOfflineBanua = () => {
                                         <span className="w-1/3 text-right text-sm text-gray-600">Rp {form.jumlah_ppn.toLocaleString('id-ID')}</span>
                                     </div>
                                     <div className="flex items-center justify-between gap-4">
-                                        <label className="text-sm font-semibold text-gray-700 w-1/3">Diskon (%)</label>
-                                        <input type="number" name="diskon_persen" value={form.diskon_persen} onChange={handleChange} min="0" max="100" className="w-1/3 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-right" />
-                                        <span className="w-1/3 text-right text-sm text-red-600 font-bold">- Rp {form.diskon.toLocaleString('id-ID')}</span>
+                                        <label className="text-sm font-semibold text-gray-700 w-1/3">Diskon (Rp)</label>
+                                        <input type="number" name="diskon" value={form.diskon} onChange={handleChange} min="0" className="w-1/3 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-right" placeholder="0" />
+                                        <span className="w-1/3 text-right text-sm text-red-600 font-bold">- Rp {Number(form.diskon || 0).toLocaleString('id-ID')}</span>
                                     </div>
                                     <div className="flex items-center justify-between gap-4 pt-4 border-t-2 border-gray-300">
                                         <label className="text-base font-extrabold text-[#990000] w-1/3">GRAND TOTAL</label>
@@ -408,30 +429,13 @@ const CreateOrderOfflineBanua = () => {
 
                         {/* Pengaturan Proses */}
                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                            <h3 className="text-lg font-bold border-b border-gray-100 pb-3 mb-4 text-[#990000] flex items-center gap-2"><Settings size={20}/> PENGATURAN PRODUKSI</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Lokasi Proses</label>
-                                    <select name="lokasi_proses" value={form.lokasi_proses} onChange={handleChange} className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none bg-white">
-                                        <option value="Internal">Internal</option>
-                                        <option value="Eksternal">Eksternal</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Status Produksi</label>
-                                    <select name="status_produksi" value={form.status_produksi} onChange={handleChange} className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none bg-white">
-                                        <option value="Beli Kain">Beli Kain</option>
-                                        <option value="Proses Potong">Proses Potong</option>
-                                        <option value="Proses Jahit">Proses Jahit</option>
-                                        <option value="Finishing">Finishing</option>
-                                        <option value="Selesai">Selesai</option>
-                                    </select>
-                                </div>
+                            <h3 className="text-lg font-bold border-b border-gray-100 pb-3 mb-4 text-[#990000] flex items-center gap-2"><Settings size={20}/> DEADLINE PRODUKSI</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">Deadline Produksi *</label>
                                     <input type="date" name="deadline" value={form.deadline ? form.deadline.split('T')[0] : ''} onChange={handleChange} required className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none" />
                                 </div>
-                                <div className="md:col-span-3">
+                                <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">Catatan Tambahan Produksi (Opsional)</label>
                                     <textarea name="catatan" value={form.catatan} onChange={handleChange} rows={2} placeholder="Instruksi khusus produksi atau catatan lainnya..." className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none resize-none"></textarea>
                                 </div>
@@ -445,7 +449,11 @@ const CreateOrderOfflineBanua = () => {
                                 <div className="space-y-4">
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Marketing (TTD)</label>
-                                        <input type="text" name="nama_marketing" value={form.nama_marketing} onChange={handleChange} placeholder="Nama penanggung jawab marketing" className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none" />
+                                        <input type="text" name="nama_marketing" value={form.nama_marketing} onChange={handleChange} list="marketing-options" placeholder="Nama penanggung jawab marketing" className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none" />
+                                        <datalist id="marketing-options">
+                                            <option value="Aji Pangestu" />
+                                            <option value="M Rangga Maulana" />
+                                        </datalist>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Client (TTD)</label>

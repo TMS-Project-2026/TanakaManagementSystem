@@ -49,6 +49,9 @@ exports.getApprovalDetail = async (req, res) => {
                 const [refRows] = await db.promise().query("SELECT * FROM marketing_leads WHERE id = ?", [approval.reference_id]);
                 detailData = refRows.length > 0 ? refRows[0] : null;
             }
+        } else if (approval.tipe === 'revisi_invoice') {
+            const [refRows] = await db.promise().query("SELECT * FROM invoice WHERE id = ?", [approval.reference_id]);
+            detailData = refRows.length > 0 ? refRows[0] : null;
         }
 
         res.status(200).json({ status: "success", data: { approval, detail: detailData } });
@@ -229,6 +232,37 @@ exports.updateApproval = async (req, res) => {
                 } else if (status === 'rejected') {
                     await db.promise().query("UPDATE marketing_orders_offline SET status='Rejected' WHERE id=?", [orderId]);
                 }
+            }
+        } else if (appData.length > 0 && appData[0].tipe === 'revisi_invoice') {
+            const invoiceId = appData[0].reference_id;
+            if (status === 'approved') {
+                const [invRows] = await db.promise().query("SELECT revisi_data FROM invoice WHERE id=?", [invoiceId]);
+                if (invRows.length > 0 && invRows[0].revisi_data) {
+                    const revisiData = JSON.parse(invRows[0].revisi_data);
+                    
+                    let setClause = [];
+                    let values = [];
+                    for (const [key, value] of Object.entries(revisiData)) {
+                        if (value === undefined || value === null || key === 'id' || key === 'created_at' || key === 'updated_at') continue;
+                        setClause.push(`${key} = ?`);
+                        if (key === 'items' && typeof value === 'object') {
+                            values.push(JSON.stringify(value));
+                        } else if (key === 'file_supporting' && typeof value === 'object') {
+                            values.push(JSON.stringify(value));
+                        } else {
+                            values.push(value);
+                        }
+                    }
+                    setClause.push(`status = 'Terbit'`);
+                    setClause.push(`revisi_data = NULL`);
+                    setClause.push(`revisi_alasan = NULL`);
+                    values.push(invoiceId);
+
+                    const sqlUpdate = `UPDATE invoice SET ${setClause.join(', ')} WHERE id = ?`;
+                    await db.promise().query(sqlUpdate, values);
+                }
+            } else if (status === 'rejected') {
+                await db.promise().query("UPDATE invoice SET status='Terbit', revisi_data=NULL, revisi_alasan=NULL WHERE id=?", [invoiceId]);
             }
         }
 

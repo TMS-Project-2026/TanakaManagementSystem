@@ -57,7 +57,7 @@ export default function MarketingOfflineBanua() {
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewQuotation, setPreviewQuotation] = useState(null);
-  
+
   // Quotation specific states
   const [uploadQuotationModal, setUploadQuotationModal] = useState(null);
   const [quoFiles, setQuoFiles] = useState([]);
@@ -79,7 +79,7 @@ export default function MarketingOfflineBanua() {
     status: 'New Order',
     catatan: ''
   });
-  
+
   // Date Range States
   const [startDate, setStartDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]); // Awal bulan
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]); // Hari ini
@@ -123,7 +123,7 @@ export default function MarketingOfflineBanua() {
     } catch (err) { console.error(err); } finally { setLoading(false); }
   };
 
-  
+
   const fetchInventory = async () => {
     setLoading(true);
     try {
@@ -217,9 +217,9 @@ export default function MarketingOfflineBanua() {
     if (!quoFiles.length || !uploadQuotationModal) return;
     try {
       await uploadQuotationFiles(uploadQuotationModal, quoFiles);
-      alert("File quotation berhasil diupload!"); 
-      setUploadQuotationModal(null); 
-      setQuoFiles([]); 
+      alert("File quotation berhasil diupload!");
+      setUploadQuotationModal(null);
+      setQuoFiles([]);
       fetchOrders();
     } catch (err) { alert("Gagal upload file quotation"); }
   };
@@ -262,19 +262,19 @@ export default function MarketingOfflineBanua() {
   };
 
   const handleOrderFromStock = (item) => {
-    navigate('/marketing-offline/create-order', { 
-      state: { 
-        orderData: { 
+    navigate('/marketing-offline/create-order', {
+      state: {
+        orderData: {
           customer: '',
-          items: [{ 
-            rincian: item.product_name, 
-            qty: 1, 
-            harga_satuan: 0, 
-            satuan: 'Pcs' 
+          items: [{
+            rincian: item.product_name,
+            qty: 1,
+            harga_satuan: 0,
+            satuan: 'Pcs'
           }],
           status: 'New Order'
-        } 
-      } 
+        }
+      }
     });
   };
 
@@ -283,13 +283,13 @@ export default function MarketingOfflineBanua() {
     let fileName = "";
 
     if (activeTab === 'reports') {
-      const rawData = reportSubTab === 'tahunan' ? dashboardData.tahunan : 
-                      reportSubTab === 'bulanan' ? dashboardData.monthly : 
-                      reportSubTab === 'berjalan' ? (dashboardData.daily || []).filter(d => {
-                        const dateStr = d.tanggal ? (d.tanggal instanceof Date ? d.tanggal.toISOString() : String(d.tanggal)) : '';
-                        return dateStr.startsWith(new Date().toISOString().substring(0, 7));
-                      }) : dashboardData.daily;
-      
+      const rawData = reportSubTab === 'tahunan' ? dashboardData.tahunan :
+        reportSubTab === 'bulanan' ? dashboardData.monthly :
+          reportSubTab === 'berjalan' ? (dashboardData.daily || []).filter(d => {
+            const dateStr = d.tanggal ? (d.tanggal instanceof Date ? d.tanggal.toISOString() : String(d.tanggal)) : '';
+            return dateStr.startsWith(new Date().toISOString().substring(0, 7));
+          }) : dashboardData.daily;
+
       dataToExport = rawData.map(r => ({
         'Periode': r.tahun || r.bulan || (r.tanggal ? new Date(r.tanggal).toLocaleDateString('id-ID') : '-'),
         'Pendapatan': r.pendapatan,
@@ -369,57 +369,57 @@ export default function MarketingOfflineBanua() {
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto px-10 py-10 bg-[#f8fafc]">
-            {/* Dynamic Header Module Title */}
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
-              <div>
-                <h1 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
-                  {activeTab === 'dashboard' && 'Dashboard Offline'}
-                  {activeTab === 'customers' && 'Database Pelanggan'}
-                  {activeTab === 'quotations' && 'Quotation Management'}
-                  {activeTab === 'orders' && 'Offline Order'}
-                  {activeTab === 'inventory' && 'Stok Inventori Banua'}
-                  {activeTab === 'reports' && 'Reports & Analytics'}
-                  {activeTab === 'promo' && 'Promo Offline'}
-                </h1>
-                <p className="text-gray-500 mt-2 text-sm font-medium capitalize">
-                  Current Section: {activeTab.replace('-', ' ')}
-                </p>
-              </div>
-
-              {/* Action Buttons for Orders & Reports */}
-              {(activeTab === 'orders' || activeTab === 'reports') && (
-                <div className="flex items-center gap-3">
-                  <button 
-                    onClick={handleExportExcel}
-                    className="flex items-center gap-2 bg-[#2563eb] text-white px-4 py-2.5 rounded-xl text-xs font-black hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-100"
-                  >
-                    <Download size={18} /> Eksport Excel
-                  </button>
-                  {activeTab === 'orders' && (
-                    <button 
-                      onClick={() => navigate('/marketing-offline/create-order')}
-                      className="flex items-center gap-2 bg-[#990000] text-white px-4 py-2.5 rounded-xl text-xs font-black hover:bg-red-800 transition-all active:scale-95 shadow-lg shadow-red-100"
-                    >
-                      <Plus size={18} /> Add Order
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {/* Date Filter (Used in Dashboard & Reports) */}
-              {(activeTab === 'dashboard' || activeTab === 'reports') && (
-                <div className="bg-white p-2 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-2">
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">From</span>
-                    <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent border-none outline-none text-sm font-bold text-slate-700" />
-                  </div>
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">To</span>
-                    <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent border-none outline-none text-sm font-bold text-slate-700" />
-                  </div>
-                </div>
-              )}
+          {/* Dynamic Header Module Title */}
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
+            <div>
+              <h1 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                {activeTab === 'dashboard' && 'Dashboard Offline'}
+                {activeTab === 'customers' && 'Database Pelanggan'}
+                {activeTab === 'quotations' && 'Quotation Management'}
+                {activeTab === 'orders' && 'Offline Order'}
+                {activeTab === 'inventory' && 'Stok Inventori Banua'}
+                {activeTab === 'reports' && 'Reports & Analytics'}
+                {activeTab === 'promo' && 'Promo Offline'}
+              </h1>
+              <p className="text-gray-500 mt-2 text-sm font-medium capitalize">
+                Current Section: {activeTab.replace('-', ' ')}
+              </p>
             </div>
+
+            {/* Action Buttons for Orders & Reports */}
+            {(activeTab === 'orders' || activeTab === 'reports') && (
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleExportExcel}
+                  className="flex items-center gap-2 bg-[#2563eb] text-white px-4 py-2.5 rounded-xl text-xs font-black hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-100"
+                >
+                  <Download size={18} /> Eksport Excel
+                </button>
+                {activeTab === 'orders' && (
+                  <button
+                    onClick={() => navigate('/marketing-offline/create-order')}
+                    className="flex items-center gap-2 bg-[#990000] text-white px-4 py-2.5 rounded-xl text-xs font-black hover:bg-red-800 transition-all active:scale-95 shadow-lg shadow-red-100"
+                  >
+                    <Plus size={18} /> Add Order
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Date Filter (Used in Dashboard & Reports) */}
+            {(activeTab === 'dashboard' || activeTab === 'reports') && (
+              <div className="bg-white p-2 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-2">
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">From</span>
+                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent border-none outline-none text-sm font-bold text-slate-700" />
+                </div>
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase">To</span>
+                  <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent border-none outline-none text-sm font-bold text-slate-700" />
+                </div>
+              </div>
+            )}
+          </div>
 
           <div className="flex flex-col gap-6">
             <div className="w-full">
@@ -446,43 +446,43 @@ export default function MarketingOfflineBanua() {
 
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2 bg-white p-8 rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100">
-                       <h3 className="text-xl font-black text-gray-900 mb-8 flex items-center gap-3">
-                          <Activity className="text-[#990000]" size={24} /> Daily Revenue Trend
-                       </h3>
-                       <div className="h-80 w-full">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={dashboardData?.daily || []}>
-                              <defs>
-                                <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%" stopColor="#990000" stopOpacity={0.1} />
-                                  <stop offset="95%" stopColor="#990000" stopOpacity={0} />
-                                </linearGradient>
-                              </defs>
-                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                              <XAxis dataKey="tanggal" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 10 }} />
-                              <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 10 }} tickFormatter={(value) => `Rp${value / 1000000}M`} />
-                              <RechartsTooltip cursor={{ stroke: '#990000', strokeWidth: 2 }} contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }} />
-                              <Area type="monotone" dataKey="pendapatan" stroke="#990000" strokeWidth={4} fillOpacity={1} fill="url(#colorRev)" />
-                            </AreaChart>
-                          </ResponsiveContainer>
-                       </div>
+                      <h3 className="text-xl font-black text-gray-900 mb-8 flex items-center gap-3">
+                        <Activity className="text-[#990000]" size={24} /> Daily Revenue Trend
+                      </h3>
+                      <div className="h-80 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={dashboardData?.daily || []}>
+                            <defs>
+                              <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#990000" stopOpacity={0.1} />
+                                <stop offset="95%" stopColor="#990000" stopOpacity={0} />
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                            <XAxis dataKey="tanggal" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 10 }} />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 10 }} tickFormatter={(value) => `Rp${value / 1000000}M`} />
+                            <RechartsTooltip cursor={{ stroke: '#990000', strokeWidth: 2 }} contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }} />
+                            <Area type="monotone" dataKey="pendapatan" stroke="#990000" strokeWidth={4} fillOpacity={1} fill="url(#colorRev)" />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
                     </div>
 
                     <div className="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100">
-                        <h3 className="text-xl font-black text-gray-900 mb-8">Monthly Overview</h3>
-                        <div className="space-y-4 overflow-y-auto max-h-80 pr-2 custom-scrollbar">
-                           {(dashboardData?.monthly || []).map((m, i) => (
-                             <div key={i} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between group hover:bg-[#990000] transition-all cursor-default">
-                                <div>
-                                  <p className="text-xs font-black text-gray-400 uppercase group-hover:text-white/60">{m.bulan}</p>
-                                  <p className="text-sm font-black text-gray-900 group-hover:text-white">{formatRupiah(m.pendapatan)}</p>
-                                </div>
-                                <div className="text-right">
-                                  <span className="text-[10px] font-black px-2 py-1 bg-white text-[#990000] rounded-lg shadow-sm">{m.jumlah_quotation} Orders</span>
-                                </div>
-                             </div>
-                           ))}
-                        </div>
+                      <h3 className="text-xl font-black text-gray-900 mb-8">Monthly Overview</h3>
+                      <div className="space-y-4 overflow-y-auto max-h-80 pr-2 custom-scrollbar">
+                        {(dashboardData?.monthly || []).map((m, i) => (
+                          <div key={i} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between group hover:bg-[#990000] transition-all cursor-default">
+                            <div>
+                              <p className="text-xs font-black text-gray-400 uppercase group-hover:text-white/60">{m.bulan}</p>
+                              <p className="text-sm font-black text-gray-900 group-hover:text-white">{formatRupiah(m.pendapatan)}</p>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-[10px] font-black px-2 py-1 bg-white text-[#990000] rounded-lg shadow-sm">{m.jumlah_quotation} Orders</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -549,27 +549,27 @@ export default function MarketingOfflineBanua() {
                         </thead>
                         <tbody className="text-sm divide-y divide-gray-50 font-bold">
                           {loading ? (
-                             <tr><td colSpan="5" className="py-20 text-center"><Loader2 className="w-10 h-10 animate-spin text-[#990000] mx-auto" /></td></tr>
+                            <tr><td colSpan="5" className="py-20 text-center"><Loader2 className="w-10 h-10 animate-spin text-[#990000] mx-auto" /></td></tr>
                           ) : (
-                            (reportSubTab === 'tahunan' ? dashboardData.tahunan : 
-                             reportSubTab === 'bulanan' ? dashboardData.monthly : 
-                             reportSubTab === 'berjalan' ? (dashboardData.daily || []).filter(d => {
-                               const dateStr = d.tanggal ? (d.tanggal instanceof Date ? d.tanggal.toISOString() : String(d.tanggal)) : '';
-                               return dateStr.startsWith(new Date().toISOString().substring(0, 7));
-                             }) : 
-                             dashboardData.daily).map((row, idx) => (
-                              <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                                <td className="py-4 px-8 text-gray-400 font-medium">{idx + 1}</td>
-                                <td className="py-4 px-8 text-gray-900">
-                                  {row.tahun || row.bulan || (row.tanggal ? new Date(row.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-')}
-                                </td>
-                                <td className="py-4 px-8 text-right text-[#990000] font-black">{formatRupiah(row.pendapatan)}</td>
-                                <td className="py-4 px-8 text-center text-gray-600">{row.jumlah_quotation}</td>
-                                <td className="py-4 px-8 text-center">
-                                  <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase">Verified</span>
-                                </td>
-                              </tr>
-                            ))
+                            (reportSubTab === 'tahunan' ? dashboardData.tahunan :
+                              reportSubTab === 'bulanan' ? dashboardData.monthly :
+                                reportSubTab === 'berjalan' ? (dashboardData.daily || []).filter(d => {
+                                  const dateStr = d.tanggal ? (d.tanggal instanceof Date ? d.tanggal.toISOString() : String(d.tanggal)) : '';
+                                  return dateStr.startsWith(new Date().toISOString().substring(0, 7));
+                                }) :
+                                  dashboardData.daily).map((row, idx) => (
+                                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                                      <td className="py-4 px-8 text-gray-400 font-medium">{idx + 1}</td>
+                                      <td className="py-4 px-8 text-gray-900">
+                                        {row.tahun || row.bulan || (row.tanggal ? new Date(row.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-')}
+                                      </td>
+                                      <td className="py-4 px-8 text-right text-[#990000] font-black">{formatRupiah(row.pendapatan)}</td>
+                                      <td className="py-4 px-8 text-center text-gray-600">{row.jumlah_quotation}</td>
+                                      <td className="py-4 px-8 text-center">
+                                        <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase">Verified</span>
+                                      </td>
+                                    </tr>
+                                  ))
                           )}
                         </tbody>
                       </table>
@@ -691,7 +691,7 @@ export default function MarketingOfflineBanua() {
                             <td className="py-4 px-6 text-right font-black text-[#990000]">{formatRupiah(o.grand_total || (o.qty * o.harga))}</td>
                             <td className="py-4 px-6 text-center">
                               <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${o.payment_type === 'Fullpayment' ? 'bg-emerald-100 text-emerald-700' :
-                                  o.payment_type === 'DP' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
+                                o.payment_type === 'DP' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
                                 }`}>
                                 {o.payment_type}
                               </span>
@@ -715,7 +715,7 @@ export default function MarketingOfflineBanua() {
                               )}
                               <button onClick={() => navigate('/marketing-offline/create-order', { state: { orderData: { ...o, items: typeof o.items === 'string' ? JSON.parse(o.items) : o.items } } })} className="p-2 text-slate-400 hover:text-blue-600 bg-white border border-slate-200 rounded-lg shadow-sm" title="Edit Order & Quotation"><Edit size={16} /></button>
                               <button onClick={() => deleteOrder(o.id)} className="p-2 text-slate-400 hover:text-red-600 bg-white border border-slate-200 rounded-lg shadow-sm" title="Delete Order"><Trash2 size={16} /></button>
-                              
+
                               {/* --- Quotation Actions --- */}
                               {o.quotation_id && (
                                 <>
@@ -782,7 +782,7 @@ export default function MarketingOfflineBanua() {
                                 )}
                               </td>
                               <td className="py-4 px-8 text-center">
-                                <button 
+                                <button
                                   onClick={() => handleOrderFromStock(item)}
                                   disabled={item.stock_qty <= 0}
                                   className={`flex items-center gap-2 mx-auto px-6 py-2.5 rounded-xl text-xs font-black transition-all active:scale-95 shadow-lg ${item.stock_qty > 0 ? 'bg-[#990000] text-white hover:bg-red-800 shadow-red-100' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
@@ -802,56 +802,56 @@ export default function MarketingOfflineBanua() {
               {/* === TAB PROMO === */}
               {activeTab === 'promo' && (
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
-                   <div className="bg-[#990000] p-8 rounded-[2.5rem] shadow-xl shadow-red-200/50 border border-red-800 text-white flex flex-col md:flex-row justify-between items-center gap-6">
-                      <div className="flex-1">
-                        <h2 className="text-2xl font-black mb-2 flex items-center gap-3"><Gift size={32} /> Promo Cuci Gudang</h2>
-                        <p className="text-red-100 font-medium">Daftar produk mengendap (tidak terjual dalam 60 hari terakhir). Segera buat program promo untuk menghabiskan stok!</p>
-                      </div>
-                      <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 text-center min-w-[150px]">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-red-100">Total Produk</p>
-                        <p className="text-3xl font-black">{promoStock.length}</p>
-                      </div>
-                   </div>
+                  <div className="bg-[#990000] p-8 rounded-[2.5rem] shadow-xl shadow-red-200/50 border border-red-800 text-white flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div className="flex-1">
+                      <h2 className="text-2xl font-black mb-2 flex items-center gap-3"><Gift size={32} /> Promo Cuci Gudang</h2>
+                      <p className="text-red-100 font-medium">Daftar produk mengendap (tidak terjual dalam 60 hari terakhir). Segera buat program promo untuk menghabiskan stok!</p>
+                    </div>
+                    <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 text-center min-w-[150px]">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-red-100">Total Produk</p>
+                      <p className="text-3xl font-black">{promoStock.length}</p>
+                    </div>
+                  </div>
 
-                   <div className="bg-white rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                          <thead className="bg-gray-50 text-gray-400 uppercase text-[10px] font-black tracking-widest border-b border-gray-100">
-                            <tr>
-                              <th className="py-5 px-8">Nama Produk</th>
-                              <th className="py-5 px-8 text-center">Stok Mengendap</th>
-                              <th className="py-5 px-8 text-center">Status</th>
-                              <th className="py-5 px-8 text-center">Aksi</th>
-                            </tr>
-                          </thead>
-                          <tbody className="text-sm divide-y divide-gray-50 font-bold">
-                            {loading ? (
-                              <tr><td colSpan="4" className="text-center py-20"><Loader2 className="animate-spin text-[#990000] mx-auto" /></td></tr>
-                            ) : promoStock.length === 0 ? (
-                              <tr><td colSpan="4" className="text-center py-20 text-gray-400 italic font-medium">Tidak ada produk mengendap saat ini.</td></tr>
-                            ) : (
-                              promoStock.map(item => (
-                                <tr key={item.id} className="hover:bg-gray-50/50 transition-colors group">
-                                  <td className="py-4 px-8 font-black text-gray-900">{item.product_name}</td>
-                                  <td className="py-4 px-8 text-center font-black text-xl text-orange-600">{item.stock_qty}</td>
-                                  <td className="py-4 px-8 text-center">
-                                    <span className="bg-orange-50 text-orange-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">Stok Lama</span>
-                                  </td>
-                                  <td className="py-4 px-8 text-center">
-                                    <button 
-                                      onClick={() => handleOrderFromStock(item)}
-                                      className="flex items-center gap-2 mx-auto bg-orange-50 text-orange-600 px-6 py-2.5 rounded-xl text-xs font-black hover:bg-orange-600 hover:text-white transition-all active:scale-95 shadow-lg shadow-orange-100 border border-orange-100"
-                                    >
-                                      <Gift size={14} /> Buat Promo
-                                    </button>
-                                  </td>
-                                </tr>
-                              ))
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                   </div>
+                  <div className="bg-white rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead className="bg-gray-50 text-gray-400 uppercase text-[10px] font-black tracking-widest border-b border-gray-100">
+                          <tr>
+                            <th className="py-5 px-8">Nama Produk</th>
+                            <th className="py-5 px-8 text-center">Stok Mengendap</th>
+                            <th className="py-5 px-8 text-center">Status</th>
+                            <th className="py-5 px-8 text-center">Aksi</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-sm divide-y divide-gray-50 font-bold">
+                          {loading ? (
+                            <tr><td colSpan="4" className="text-center py-20"><Loader2 className="animate-spin text-[#990000] mx-auto" /></td></tr>
+                          ) : promoStock.length === 0 ? (
+                            <tr><td colSpan="4" className="text-center py-20 text-gray-400 italic font-medium">Tidak ada produk mengendap saat ini.</td></tr>
+                          ) : (
+                            promoStock.map(item => (
+                              <tr key={item.id} className="hover:bg-gray-50/50 transition-colors group">
+                                <td className="py-4 px-8 font-black text-gray-900">{item.product_name}</td>
+                                <td className="py-4 px-8 text-center font-black text-xl text-orange-600">{item.stock_qty}</td>
+                                <td className="py-4 px-8 text-center">
+                                  <span className="bg-orange-50 text-orange-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">Stok Lama</span>
+                                </td>
+                                <td className="py-4 px-8 text-center">
+                                  <button
+                                    onClick={() => handleOrderFromStock(item)}
+                                    className="flex items-center gap-2 mx-auto bg-orange-50 text-orange-600 px-6 py-2.5 rounded-xl text-xs font-black hover:bg-orange-600 hover:text-white transition-all active:scale-95 shadow-lg shadow-orange-100 border border-orange-100"
+                                  >
+                                    <Gift size={14} /> Buat Promo
+                                  </button>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -1089,29 +1089,29 @@ export default function MarketingOfflineBanua() {
       </main>
       {/* Upload Quotation Modal */}
       {uploadQuotationModal && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100]" onClick={() => setUploadQuotationModal(null)}>
-              <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in fade-in zoom-in-95" onClick={e => e.stopPropagation()}>
-                  <h3 className="text-lg font-black text-gray-800 mb-2">Upload Dokumen Quotation</h3>
-                  <p className="text-sm text-gray-500 mb-4">Upload file TTD Quotation, bukti DP, atau dokumen lainnya.</p>
-                  <input type="file" multiple onChange={(e) => setQuoFiles(prev => [...prev, ...Array.from(e.target.files)])} className="w-full p-2 border border-gray-200 rounded-lg mb-4 bg-gray-50" />
-                  {quoFiles.length > 0 && (
-                      <div className="mb-4 space-y-2 max-h-32 overflow-y-auto pr-2">
-                          {quoFiles.map((file, idx) => (
-                              <div key={idx} className="flex items-center justify-between bg-gray-50 p-2 rounded border border-gray-100 shadow-sm">
-                                  <span className="text-xs text-gray-700 font-medium truncate flex-1 mr-2">{file.name}</span>
-                                  <button type="button" onClick={() => setQuoFiles(prev => prev.filter((_, i) => i !== idx))} className="text-red-500 hover:bg-red-50 p-1 rounded">
-                                      <X size={14} />
-                                  </button>
-                              </div>
-                          ))}
-                      </div>
-                  )}
-                  <div className="flex gap-3 justify-end">
-                      <button onClick={() => { setUploadQuotationModal(null); setQuoFiles([]); }} className="px-4 py-2 border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 font-semibold">Batal</button>
-                      <button onClick={handleUploadQuotation} disabled={!quoFiles.length} className="px-6 py-2 bg-[#990000] text-white font-bold rounded-xl shadow-lg hover:bg-red-800 disabled:opacity-50 transition-colors">Upload</button>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100]" onClick={() => setUploadQuotationModal(null)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in fade-in zoom-in-95" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-black text-gray-800 mb-2">Upload Dokumen Quotation</h3>
+            <p className="text-sm text-gray-500 mb-4">Upload file TTD Quotation, bukti DP, atau dokumen lainnya.</p>
+            <input type="file" multiple onChange={(e) => setQuoFiles(prev => [...prev, ...Array.from(e.target.files)])} className="w-full p-2 border border-gray-200 rounded-lg mb-4 bg-gray-50" />
+            {quoFiles.length > 0 && (
+              <div className="mb-4 space-y-2 max-h-32 overflow-y-auto pr-2">
+                {quoFiles.map((file, idx) => (
+                  <div key={idx} className="flex items-center justify-between bg-gray-50 p-2 rounded border border-gray-100 shadow-sm">
+                    <span className="text-xs text-gray-700 font-medium truncate flex-1 mr-2">{file.name}</span>
+                    <button type="button" onClick={() => setQuoFiles(prev => prev.filter((_, i) => i !== idx))} className="text-red-500 hover:bg-red-50 p-1 rounded">
+                      <X size={14} />
+                    </button>
                   </div>
+                ))}
               </div>
+            )}
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => { setUploadQuotationModal(null); setQuoFiles([]); }} className="px-4 py-2 border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 font-semibold">Batal</button>
+              <button onClick={handleUploadQuotation} disabled={!quoFiles.length} className="px-6 py-2 bg-[#990000] text-white font-bold rounded-xl shadow-lg hover:bg-red-800 disabled:opacity-50 transition-colors">Upload</button>
+            </div>
           </div>
+        </div>
       )}
     </div>
   );

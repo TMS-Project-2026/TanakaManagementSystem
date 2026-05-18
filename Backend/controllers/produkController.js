@@ -1,7 +1,7 @@
 const db = require('../config/db');
 
 exports.getAllProduk = (req, res) => {
-    const sql = "SELECT id, nama_produk, hpp_satuan FROM produk ORDER BY id ASC";
+    const sql = "SELECT id, nama_produk, hpp_satuan, harga_manager, harga_spv, harga_jual FROM produk ORDER BY id ASC";
     db.query(sql, (err, results) => {
         if (err) return res.status(500).json({ message: err.message });
         res.status(200).json({ status: "success", data: results });

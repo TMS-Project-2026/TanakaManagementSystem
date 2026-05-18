@@ -284,8 +284,26 @@ const InvoicePreview = () => {
 
                 // Right Signature (Approved by)
                 doc.text("Approved by,", 150, finalY + 50, { align: 'center' });
+                
+                const approvedName = invoice.penanggung_jawab || ((isBanua || isTanaka || invoice.cabang === 'Acestreet') ? 'Hanifah Abdillah' : '(..........................)');
+                
+                // Add QR Code
+                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=Validasi_Invoice_${invoice.no_invoice}`;
+                const qrData = await loadImageBase64(qrUrl);
+                if (qrData) {
+                    doc.addImage(qrData, 'PNG', 138, finalY + 54, 24, 24);
+                }
+                
+                // Add digital signature
+                doc.setFont('times', 'italic');
+                doc.setFontSize(16);
+                doc.setTextColor(20, 50, 150);
+                doc.text(approvedName.replace(/\(.*\)/, ''), 150, finalY + 70, { align: 'center', angle: -5 });
+                doc.setTextColor(0, 0, 0);
+                
+                doc.setFontSize(10);
                 doc.setFont('helvetica', 'bold');
-                doc.text(invoice.penanggung_jawab || (isBanua || isTanaka || invoice.cabang === 'Acestreet' ? 'Hanifah Abdillah' : '(..........................)'), 150, finalY + 80, { align: 'center' });
+                doc.text(approvedName, 150, finalY + 80, { align: 'center' });
                 doc.setFont('helvetica', 'normal');
                 doc.text(invoice.jabatan || "Accounting", 150, finalY + 85, { align: 'center' });
             }
@@ -567,10 +585,14 @@ const InvoicePreview = () => {
                             </div>
 
                             {/* Right Signature: Approved By */}
-                            <div className="text-center w-48">
-                                <p className="text-gray-600 mb-4">Approved by,</p>
+                            <div className="text-center w-48 relative">
+                                <p className="text-gray-600 mb-2">Approved by,</p>
 
-                                <div className="h-24 flex items-center justify-center relative">
+                                <div className="h-24 flex flex-col items-center justify-center relative">
+                                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=Validasi_Invoice_${invoice.no_invoice || invoice.id}`} alt="QR Code" className="w-16 h-16 opacity-80" />
+                                    <div className="absolute top-1/2 left-1/2 w-full text-blue-800" style={{ fontFamily: "'Brush Script MT', cursive, serif", fontSize: '1.5rem', transform: 'translate(-50%, -50%) rotate(-5deg)' }}>
+                                        {invoice.penanggung_jawab || ((invoice.cabang === 'Banua' || invoice.cabang === 'Tanaka' || invoice.cabang === 'Acestreet') ? 'Hanifah Abdillah' : '')}
+                                    </div>
                                 </div>
 
                                 <p className="font-bold text-gray-800 underline decoration-gray-300 underline-offset-4">
