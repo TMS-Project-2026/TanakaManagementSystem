@@ -187,7 +187,7 @@ const Mutasi = () => {
                                 <div className="bg-red-50 border border-red-100 p-2 rounded-lg shadow-sm">
                                     <ArrowRightLeft className="text-[#990000]" size={20} />
                                 </div>
-                                Mutasi <span className="text-[#990000]">Barang</span>
+                                Mutasi Barang
                             </h1>
                             <p className="text-sm text-gray-500 mt-2 font-medium">Catat perpindahan stok barang antar cabang dengan sebaran ukuran dinamis</p>
                         </div>

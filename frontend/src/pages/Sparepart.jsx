@@ -106,7 +106,7 @@ const Sparepart = () => {
                                 <div className="bg-red-50 border border-red-100 p-2 rounded-lg shadow-sm">
                                     <Settings className="text-[#990000]" size={20} />
                                 </div>
-                                Suku Cadang <span className="text-[#990000]">Barang</span>
+                                Suku Cadang Barang
                             </h1>
                             <p className="text-sm text-gray-500 mt-2 font-medium">Kelola data suku cadang gudang</p>
                         </div>

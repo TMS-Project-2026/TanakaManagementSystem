@@ -6,7 +6,7 @@ import {
 } from 'recharts';
 import { UserCircle } from 'lucide-react';
 
-const Dashboard = () => {
+const Dashboard = ({ embedded = false }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showProfile, setShowProfile] = useState(false);
@@ -48,7 +48,7 @@ const Dashboard = () => {
 
   return (
     <div className="flex bg-gray-50 min-h-screen font-sans">
-      <Sidebar />
+      {!embedded && <Sidebar />}
 
       <main className="flex-1 flex flex-col pt-16 md:pt-0 h-screen overflow-hidden">
         {/* TOPBAR */}

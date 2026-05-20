@@ -7,18 +7,53 @@ import {
   Loader2, Download, TrendingUp, TrendingDown, Activity, AlertTriangle, CheckCircle, Package, Eye, Upload
 } from 'lucide-react';
 import { submitQuotationToFinance, uploadQuotationFiles } from '../api/quotationApi';
+import { getStok } from '../api/gudangApi';
 import * as XLSX from 'xlsx';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
-  AreaChart, Area
+  AreaChart, Area, LineChart, Line
 } from 'recharts';
 
-export default function MarketingOfflineBanua() {
+const calculateTopProducts = (ordersList) => {
+  if (!Array.isArray(ordersList)) return [];
+  const productMap = {};
+  ordersList.forEach(o => {
+    const productName = o.produk || '-';
+    const qty = parseInt(o.qty) || 0;
+    const totalRevenue = parseFloat(o.grand_total) || (qty * (parseFloat(o.harga) || 0));
+    
+    if (!productMap[productName]) {
+      productMap[productName] = {
+        name: productName,
+        qty: 0,
+        revenue: 0
+      };
+    }
+    productMap[productName].qty += qty;
+    productMap[productName].revenue += totalRevenue;
+  });
+  
+  return Object.values(productMap)
+    .sort((a, b) => b.qty - a.qty)
+    .slice(0, 5);
+};
+
+const formatRangeMTD = (dateStr) => {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  const day = d.getDate();
+  const monthName = d.toLocaleDateString('id-ID', { month: 'long' });
+  const year = d.getFullYear();
+  return `1 - ${day} ${monthName} ${year}`;
+};
+
+export default function MarketingOfflineBanua({ embedded = false }) {
   const location = useLocation();
   const navigate = useNavigate();
 
   const pathParts = location.pathname.split('/');
-  const currentTab = pathParts[2] || 'dashboard';
+  const currentTab = embedded ? 'dashboard' : (pathParts[2] || 'dashboard');
   const currentSubTab = pathParts[3] || 'harian';
   const activeTab = currentTab;
 
@@ -44,11 +79,20 @@ export default function MarketingOfflineBanua() {
   const [inventory, setInventory] = useState([]);
   const [promoStock, setPromoStock] = useState([]);
   const [reportSubTab, setReportSubTab] = useState(currentSubTab);
+  const [reportComparisonData, setReportComparisonData] = useState([]);
+  const [filterDate1, setFilterDate1] = useState(new Date().toISOString().split('T')[0]);
+  const [filterDate2, setFilterDate2] = useState(() => { const d = new Date(); d.setMonth(d.getMonth() - 1); return d.toISOString().split('T')[0]; });
+  const [expandedProduct, setExpandedProduct] = useState(null);
+  const [tooltipProduk, setTooltipProduk] = useState(null);
 
   useEffect(() => {
     if (pathParts[3]) setReportSubTab(pathParts[3]);
   }, [location.pathname]);
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    setSearchQuery('');
+  }, [activeTab]);
   const [showProfile, setShowProfile] = useState(false);
 
   // Modals
@@ -89,11 +133,16 @@ export default function MarketingOfflineBanua() {
     setLoading(true);
     try {
       const res = await axios.get(`http://localhost:3000/api/marketing-offline/reports?start=${startDate}&end=${endDate}`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+      const resOrders = await axios.get('http://localhost:3000/api/marketing-offline/orders', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } });
+      const totalQty = (resOrders.data || []).reduce((sum, o) => sum + (parseInt(o.qty) || 0), 0);
       setDashboardData(prev => ({
         daily: res.data.harian || [],
         monthly: res.data.bulanan || [],
         tahunan: res.data.tahunan || [],
-        summary: res.data.summary || {},
+        summary: {
+          ...(res.data.summary || {}),
+          total_qty: totalQty
+        },
         comparisons: { ...prev.comparisons, ...(res.data.comparisons || {}) }
       }));
     } catch (err) { console.error(err); } finally { setLoading(false); }
@@ -127,8 +176,38 @@ export default function MarketingOfflineBanua() {
   const fetchInventory = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`http://localhost:3000/api/marketing-offline/inventory?start=${startDate}&end=${endDate}`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
-      setInventory(res.data);
+      const res = await getStok();
+      const rawData = (res.data?.data || res.data || []);
+      // Grouping identik dengan Stok Gudang: per Brand + Nama Barang + Cabang
+      const sizesArray = ['XS','S','M','L','XL','XXL','XXXL','XXXXL','XXXXXL','All Size'];
+      const grouped = {};
+      rawData.forEach(item => {
+        const brand  = (item.nama_brand || '').trim().toLowerCase();
+        const nama   = (item.nama_barang || item.product_name || '').trim().toLowerCase();
+        const cabang = (item.cabang_id || '').trim().toLowerCase();
+        const key = `${brand}|${nama}|${cabang}`;
+        if (!grouped[key]) {
+          grouped[key] = {
+            id: item.id,
+            nama_brand: item.nama_brand || '-',
+            nama_barang: item.nama_barang || item.product_name || '-',
+            kategori: item.kategori || '-',
+            cabang_id: item.cabang_id || '-',
+            kode_rak: item.kode_rak || '-',
+            total_stok: 0,
+            minimum_stok: item.minimum_stok || 5,
+            sizes: Object.fromEntries(sizesArray.map(s => [s, 0]))
+          };
+        }
+        grouped[key].total_stok += Number(item.jumlah) || 0;
+        if (item.ukuran && grouped[key].sizes[item.ukuran] !== undefined) {
+          grouped[key].sizes[item.ukuran] += Number(item.jumlah) || 0;
+        }
+        if (item.minimum_stok && item.minimum_stok > grouped[key].minimum_stok) {
+          grouped[key].minimum_stok = item.minimum_stok;
+        }
+      });
+      setInventory(Object.values(grouped));
     } catch (err) { console.error(err); } finally { setLoading(false); }
   };
 
@@ -140,14 +219,163 @@ export default function MarketingOfflineBanua() {
     } catch (err) { console.error(err); } finally { setLoading(false); }
   };
 
+  const fetchReports = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      
+      const getCategoryForItem = (itemName) => {
+        if (!itemName) return 'Lain-lain';
+        const name = itemName.toLowerCase().trim();
+        if (name.includes('wearpack')) return 'Wearpack';
+        if (name.includes('seragam')) return 'Seragam';
+        if (name.includes('jaket')) return 'Jaket';
+        if (name.includes('jas')) return 'Jas';
+        if (name.includes('celana')) return 'Celana';
+        if (name.includes('kaos')) return 'Kaos';
+        if (name.includes('kemeja')) return 'Kemeja';
+        if (name.includes('baju')) return 'Baju';
+        if (name.includes('sepatu')) return 'Sepatu';
+        if (name.includes('topi')) return 'Topi';
+        if (name.includes('dasi')) return 'Dasi';
+        if (name.includes('sarung tangan')) return 'Sarung Tangan';
+        if (name.includes('ikat pinggang')) return 'Ikat Pinggang';
+        
+        // Fallback: ambil kata pertama dari nama produk
+        const firstWord = itemName.trim().split(' ')[0];
+        return firstWord ? firstWord.charAt(0).toUpperCase() + firstWord.slice(1).toLowerCase() : 'Lain-lain';
+      };
+      
+      const getOrderItemsWithCategory = (order) => {
+        let parsedItems = [];
+        try {
+          parsedItems = typeof order.items === 'string' ? JSON.parse(order.items) : (order.items || []);
+        } catch (e) {
+          parsedItems = [];
+        }
+        if (parsedItems.length === 0) {
+          parsedItems = [{
+            rincian: order.produk || 'Produk Tidak Diketahui',
+            qty: parseInt(order.qty) || 1,
+            harga_satuan: parseFloat(order.harga) || 0,
+            total: parseFloat(order.grand_total) || 0
+          }];
+        }
+        return parsedItems.map(item => {
+          const itemName = item.rincian || item.nama_barang || 'Produk Tidak Diketahui';
+          const category = getCategoryForItem(itemName);
+          const qty = parseInt(item.qty) || 0;
+          const total = parseFloat(item.total) || (qty * (parseFloat(item.harga_satuan) || 0));
+          return { category, qty, total };
+        });
+      };
+
+      const res = await axios.get('http://localhost:3000/api/marketing-offline/orders', { headers: { Authorization: `Bearer ${token}` } });
+      const allOrders = res.data || [];
+ 
+      if (reportSubTab === 'harian') {
+        const getMtdCategory = (orders, category, targetDate) => {
+          if (!targetDate) return 0;
+          const d = new Date(targetDate);
+          const start = new Date(d.getFullYear(), d.getMonth(), 1);
+          const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59);
+          
+          let totalRevenue = 0;
+          orders.forEach(o => {
+            const od = new Date(o.created_at);
+            if (od >= start && od <= end) {
+              const mappedItems = getOrderItemsWithCategory(o);
+              mappedItems.forEach(item => {
+                if (item.category === category) {
+                  totalRevenue += item.total;
+                }
+              });
+            }
+          });
+          return totalRevenue;
+        };
+        
+        const allCategories = new Set();
+        allOrders.forEach(o => {
+          const mappedItems = getOrderItemsWithCategory(o);
+          mappedItems.forEach(item => allCategories.add(item.category));
+        });
+        const categoriesList = [...allCategories];
+        
+        const data = categoriesList.map(cat => {
+          const rev1 = getMtdCategory(allOrders, cat, filterDate1);
+          const rev2 = getMtdCategory(allOrders, cat, filterDate2);
+          const ach = rev2 > 0 ? (rev1 / rev2) * 100 : (rev1 > 0 ? 100 : 0);
+          return { account: cat, date1: filterDate1, date2: filterDate2, revenue: rev1, prevRevenue: rev2, achievement: ach };
+        }).filter(r => r.revenue > 0 || r.prevRevenue > 0);
+        setReportComparisonData(data);
+      } else {
+        const today = new Date();
+        const limitDay = today.getDate();
+        
+        const getMonthlyMtdCategory = (orders, category, monthStr) => {
+          const [y, m] = monthStr.split('-').map(Number);
+          
+          let totalRevenue = 0;
+          orders.forEach(o => {
+            const od = new Date(o.created_at);
+            if (od.getFullYear() === y && od.getMonth() + 1 === m && od.getDate() <= limitDay) {
+              const mappedItems = getOrderItemsWithCategory(o);
+              mappedItems.forEach(item => {
+                if (item.category === category) {
+                  totalRevenue += item.total;
+                }
+              });
+            }
+          });
+          return totalRevenue;
+        };
+        
+        const m1 = filterDate1.substring(0, 7);
+        const m2 = filterDate2.substring(0, 7);
+        const limitDayStr = String(limitDay).padStart(2, '0');
+        const formattedDate1 = `${m1}-${limitDayStr}`;
+        const formattedDate2 = `${m2}-${limitDayStr}`;
+        
+        const allCategories = new Set();
+        allOrders.forEach(o => {
+          const mappedItems = getOrderItemsWithCategory(o);
+          mappedItems.forEach(item => allCategories.add(item.category));
+        });
+        const categoriesList = [...allCategories];
+        
+        const data = categoriesList.map(cat => {
+          const v1 = getMonthlyMtdCategory(allOrders, cat, m1);
+          const v2 = getMonthlyMtdCategory(allOrders, cat, m2);
+          const ach = v2 > 0 ? (v1 / v2) * 100 : (v1 > 0 ? 100 : 0);
+          return { 
+            account: cat, 
+            date1: formattedDate1, 
+            date2: formattedDate2, 
+            val1: v1, 
+            val2: v2, 
+            revenue: v1, 
+            prevRevenue: v2, 
+            achievement: ach 
+          };
+        }).filter(r => r.val1 > 0 || r.val2 > 0);
+        setReportComparisonData(data);
+      }
+    } catch (err) { console.error(err); } finally { setLoading(false); }
+  };
+
   useEffect(() => {
-    if (activeTab === 'dashboard' || activeTab === 'reports') fetchDashboard();
+    if (activeTab === 'dashboard') {
+      fetchDashboard();
+      fetchOrders();
+    }
+    if (activeTab === 'reports') fetchReports();
     if (activeTab === 'customers') fetchCustomers();
     if (activeTab === 'quotations') fetchQuotations();
     if (activeTab === 'orders') fetchOrders();
     if (activeTab === 'inventory') fetchInventory();
     if (activeTab === 'promo') fetchPromo();
-  }, [activeTab, startDate, endDate]);
+  }, [activeTab, startDate, endDate, reportSubTab, filterDate1, filterDate2]);
 
   // Handlers Customer
   const saveCustomer = async (e) => {
@@ -333,22 +561,58 @@ export default function MarketingOfflineBanua() {
   const monthToMonth = getPercentageDiff(dashboardData?.comparisons?.revenue_this_month, dashboardData?.comparisons?.revenue_last_month);
   const yearToYearMonth = getPercentageDiff(dashboardData?.comparisons?.revenue_this_month, dashboardData?.comparisons?.revenue_thismonth_lastyear);
 
+  const filteredCustomers = customers.filter(c =>
+    (c.nama_customer || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (c.no_hp || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (c.alamat || '').toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredQuotations = quotations.filter(q =>
+    (q.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (q.product_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (q.note || '').toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredOrders = orders.filter(o =>
+    (o.customer || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (o.produk || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (o.status_produksi || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (o.payment_type || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (o.status || '').toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredInventory = inventory.filter(item =>
+    (item.nama_brand || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (item.nama_barang || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (item.kode_rak || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (item.kategori || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (item.cabang_id || '').toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredPromoStock = promoStock.filter(item =>
+    (item.nama_brand || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (item.product_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (item.cabang_id || '').toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="flex bg-[#f3f4f6] min-h-screen font-sans relative">
-      <Sidebar />
+      {!embedded && <Sidebar />}
       <main className="flex-1 flex flex-col pt-16 md:pt-0 h-screen overflow-hidden">
-        {/* TOPBAR SEARCH */}
-        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center px-10 sticky top-0 z-30 justify-between shrink-0">
-          <div className="relative w-full max-w-lg">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-            <input
-              type="text"
-              placeholder="Cari data marketing offline..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-14 pr-6 py-3 bg-gray-50 border border-gray-100 rounded-full text-sm focus:outline-none focus:ring-4 focus:ring-red-50 focus:bg-white focus:border-red-200 transition-all shadow-inner"
-            />
-          </div>
+        {/* TOPBAR SEARCH & PROFILE */}
+        <header className={`h-20 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center px-10 sticky top-0 z-30 shrink-0 ${activeTab === 'dashboard' ? 'justify-end' : 'justify-between'}`}>
+          {activeTab !== 'dashboard' && (
+            <div className="relative w-full max-w-lg">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+              <input
+                type="text"
+                placeholder={`Cari data ${activeTab === 'customers' ? 'pelanggan' : activeTab === 'quotations' ? 'quotation' : activeTab === 'orders' ? 'order' : activeTab === 'inventory' ? 'stok' : 'marketing offline'}...`}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-14 pr-6 py-3 bg-gray-50 border border-gray-100 rounded-full text-sm focus:outline-none focus:ring-4 focus:ring-red-50 focus:bg-white focus:border-red-200 transition-all shadow-inner"
+              />
+            </div>
+          )}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-2xl border border-gray-100">
               <div className="bg-gray-100 p-2 rounded-full cursor-pointer hover:bg-gray-200 transition-colors" onClick={() => setShowProfile(!showProfile)}>
@@ -368,26 +632,82 @@ export default function MarketingOfflineBanua() {
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto px-10 py-10 bg-[#f8fafc]">
-          {/* Dynamic Header Module Title */}
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
-            <div>
-              <h1 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
-                {activeTab === 'dashboard' && 'Dashboard Offline'}
-                {activeTab === 'customers' && 'Database Pelanggan'}
-                {activeTab === 'quotations' && 'Quotation Management'}
-                {activeTab === 'orders' && 'Offline Order'}
-                {activeTab === 'inventory' && 'Stok Inventori Banua'}
-                {activeTab === 'reports' && 'Reports & Analytics'}
-                {activeTab === 'promo' && 'Promo Offline'}
-              </h1>
-              <p className="text-gray-500 mt-2 text-sm font-medium capitalize">
-                Current Section: {activeTab.replace('-', ' ')}
-              </p>
-            </div>
+        <div className="flex-1 overflow-y-auto px-6 pb-6 bg-[#f3f4f6] pt-6">
+          <div className={activeTab === 'dashboard' ? '' : 'bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100'}>
+            {/* Dynamic Header Module Title */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
+              <div>
+                <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-tight flex items-center gap-3">
+                  {activeTab === 'dashboard' && (
+                    <>
+                      <div className="bg-red-50 border border-red-100 p-2 rounded-lg shadow-sm">
+                        <Activity className="text-[#990000]" size={20} />
+                      </div>
+                      Dashboard Offline
+                    </>
+                  )}
+                  {activeTab === 'customers' && (
+                    <>
+                      <div className="bg-blue-50 border border-blue-100 p-2 rounded-lg shadow-sm">
+                        <Users className="text-blue-600" size={20} />
+                      </div>
+                      Database Pelanggan
+                    </>
+                  )}
+                  {activeTab === 'quotations' && (
+                    <>
+                      <div className="bg-amber-50 border border-amber-100 p-2 rounded-lg shadow-sm">
+                        <FileText className="text-amber-600" size={20} />
+                      </div>
+                      Quotation Management
+                    </>
+                  )}
+                  {activeTab === 'orders' && (
+                    <>
+                      <div className="bg-emerald-50 border border-emerald-100 p-2 rounded-lg shadow-sm">
+                        <ShoppingBag className="text-emerald-600" size={20} />
+                      </div>
+                      Offline Order
+                    </>
+                  )}
+                  {activeTab === 'inventory' && (
+                    <>
+                      <div className="bg-indigo-50 border border-indigo-100 p-2 rounded-lg shadow-sm">
+                        <Package className="text-indigo-600" size={20} />
+                      </div>
+                      Stok Inventori Banua
+                    </>
+                  )}
+                  {activeTab === 'reports' && (
+                    <>
+                      <div className="bg-violet-50 border border-violet-100 p-2 rounded-lg shadow-sm">
+                        <TrendingUp className="text-violet-600" size={20} />
+                      </div>
+                      Reports & Analytics
+                    </>
+                  )}
+                  {activeTab === 'promo' && (
+                    <>
+                      <div className="bg-rose-50 border border-rose-100 p-2 rounded-lg shadow-sm">
+                        <Gift className="text-rose-600" size={20} />
+                      </div>
+                      Promo Offline
+                    </>
+                  )}
+                </h1>
+                <p className="text-sm text-gray-500 mt-2 font-medium">
+                  {activeTab === 'dashboard' && 'Kelola rangkuman data penjualan offline cabang Banua secara ringkas.'}
+                  {activeTab === 'customers' && 'Daftar seluruh data pelanggan terdaftar untuk mempermudah relasi pemasaran.'}
+                  {activeTab === 'quotations' && 'Buat dan pantau penawaran harga (Quotation) untuk calon pelanggan.'}
+                  {activeTab === 'orders' && 'Catat order baru dan pantau riwayat penjualan offline secara lengkap.'}
+                  {activeTab === 'inventory' && 'Pantau ketersediaan stok fisik barang siap jual di cabang Banua.'}
+                  {activeTab === 'reports' && 'Analisis performa penjualan offline berdasarkan grafik pencapaian.'}
+                  {activeTab === 'promo' && 'Daftar produk promo mengendap untuk mendorong aktivitas penjualan.'}
+                </p>
+              </div>
 
-            {/* Action Buttons for Orders & Reports */}
-            {(activeTab === 'orders' || activeTab === 'reports') && (
+            {/* Action Buttons for Orders only */}
+            {activeTab === 'orders' && (
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleExportExcel}
@@ -395,30 +715,16 @@ export default function MarketingOfflineBanua() {
                 >
                   <Download size={18} /> Eksport Excel
                 </button>
-                {activeTab === 'orders' && (
-                  <button
-                    onClick={() => navigate('/marketing-offline/create-order')}
-                    className="flex items-center gap-2 bg-[#990000] text-white px-4 py-2.5 rounded-xl text-xs font-black hover:bg-red-800 transition-all active:scale-95 shadow-lg shadow-red-100"
-                  >
-                    <Plus size={18} /> Add Order
-                  </button>
-                )}
+                <button
+                  onClick={() => navigate('/marketing-offline/create-order')}
+                  className="flex items-center gap-2 bg-[#990000] text-white px-4 py-2.5 rounded-xl text-xs font-black hover:bg-red-800 transition-all active:scale-95 shadow-lg shadow-red-100"
+                >
+                  <Plus size={18} /> Add Order
+                </button>
               </div>
             )}
 
-            {/* Date Filter (Used in Dashboard & Reports) */}
-            {(activeTab === 'dashboard' || activeTab === 'reports') && (
-              <div className="bg-white p-2 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-2">
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">From</span>
-                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent border-none outline-none text-sm font-bold text-slate-700" />
-                </div>
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-100">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase">To</span>
-                  <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent border-none outline-none text-sm font-bold text-slate-700" />
-                </div>
-              </div>
-            )}
+
           </div>
 
           <div className="flex flex-col gap-6">
@@ -429,424 +735,603 @@ export default function MarketingOfflineBanua() {
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {[
-                      { title: 'Total Customers', value: dashboardData.summary.total_customers || 0, icon: <Users />, bg: 'bg-red-50', text: 'text-gray-900', color: 'text-[#990000]' },
-                      { title: 'Revenue Range', value: formatRupiah(dashboardData.summary.range_revenue), icon: <TrendingUp />, bg: 'bg-emerald-50', text: 'text-gray-900', color: 'text-emerald-600' },
-                      { title: 'Total Orders', value: `${dashboardData.summary.total_orders || 0} Orders`, icon: <ShoppingBag />, bg: 'bg-blue-50', text: 'text-gray-900', color: 'text-blue-600' },
-                      { title: 'Pending Quotations', value: dashboardData.summary.pending_quotations || 0, icon: <FileText />, bg: 'bg-purple-50', text: 'text-gray-900', color: 'text-purple-600' }
+                      { title: 'Revenue (Bulan Ini)', value: formatRupiah(dashboardData.summary.range_revenue), bg: 'bg-red-100', text: 'text-gray-900' },
+                      { title: 'Transaction', value: `${dashboardData.summary.total_orders || 0} Orders`, bg: 'bg-[#ff3b3b]', text: 'text-white' },
+                      { title: 'Total Customer', value: `${dashboardData.summary.total_customers || 0} Customers`, bg: 'bg-red-100', text: 'text-gray-900' },
+                      { title: 'Qty Terjual', value: `${dashboardData.summary.total_qty || 0} Pcs`, bg: 'bg-[#ff4d4d]', text: 'text-white' }
                     ].map((card, index) => (
-                      <div key={index} className={`${card.bg} p-6 rounded-[2rem] shadow-sm flex flex-col justify-center min-h-[140px] transition-transform hover:scale-[1.02] border border-white/50`}>
-                        <div className={`mb-3 p-2 w-10 h-10 rounded-xl flex items-center justify-center ${card.bg.replace('50', '100')} ${card.color}`}>
-                          {React.cloneElement(card.icon, { size: 20 })}
-                        </div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-1">{card.title}</p>
-                        <h3 className="text-xl font-black text-gray-900">{card.value}</h3>
+                      <div
+                        key={index}
+                        className={`${card.bg} p-6 rounded-[2rem] shadow-sm flex flex-col justify-center min-h-[120px]`}
+                      >
+                        <p className={`text-[10px] font-black uppercase tracking-widest mb-2 ${card.text === 'text-white' ? 'text-white/80' : 'text-red-900/60'}`}>{card.title}</p>
+                        <h3 className={`text-2xl font-black ${card.text}`}>{card.value}</h3>
                       </div>
                     ))}
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <div className="lg:col-span-2 bg-white p-8 rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100">
-                      <h3 className="text-xl font-black text-gray-900 mb-8 flex items-center gap-3">
-                        <Activity className="text-[#990000]" size={24} /> Daily Revenue Trend
-                      </h3>
+                    {/* Sales Trend - Line Chart (2/3 width) */}
+                    <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                      <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                          <TrendingUp className="text-[#990000]" size={22} /> Tren Penjualan (30 Hari Terakhir)
+                        </h3>
+                      </div>
                       <div className="h-80 w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={dashboardData?.daily || []}>
-                            <defs>
-                              <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#990000" stopOpacity={0.1} />
-                                <stop offset="95%" stopColor="#990000" stopOpacity={0} />
-                              </linearGradient>
-                            </defs>
+                          <LineChart data={dashboardData?.daily || []}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                            <XAxis dataKey="tanggal" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 10 }} />
-                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 10 }} tickFormatter={(value) => `Rp${value / 1000000}M`} />
-                            <RechartsTooltip cursor={{ stroke: '#990000', strokeWidth: 2 }} contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }} />
-                            <Area type="monotone" dataKey="pendapatan" stroke="#990000" strokeWidth={4} fillOpacity={1} fill="url(#colorRev)" />
-                          </AreaChart>
+                            <XAxis
+                              dataKey="tanggal"
+                              tickFormatter={(tickVal) => {
+                                if (!tickVal) return '';
+                                const date = new Date(tickVal);
+                                if (isNaN(date.getTime())) return tickVal;
+                                return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+                              }}
+                              axisLine={false}
+                              tickLine={false}
+                              tick={{ fontSize: 12, fill: '#64748b' }}
+                              dy={10}
+                            />
+                            <YAxis
+                              axisLine={false}
+                              tickLine={false}
+                              tickFormatter={(val) => `Rp ${val / 1000}k`}
+                              tick={{ fontSize: 12, fill: '#64748b' }}
+                            />
+                            <RechartsTooltip
+                              formatter={(value) => formatRupiah(value)}
+                              labelFormatter={(label) => {
+                                if (!label) return '';
+                                const date = new Date(label);
+                                if (isNaN(date.getTime())) return label;
+                                return date.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+                              }}
+                              contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                            />
+                            <Line
+                              type="monotone"
+                              dataKey="pendapatan"
+                              name="Revenue"
+                              stroke="#990000"
+                              strokeWidth={4}
+                              dot={{ r: 4, fill: '#990000', strokeWidth: 2, stroke: '#fff' }}
+                              activeDot={{ r: 6 }}
+                            />
+                          </LineChart>
                         </ResponsiveContainer>
                       </div>
                     </div>
 
-                    <div className="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100">
-                      <h3 className="text-xl font-black text-gray-900 mb-8">Monthly Overview</h3>
-                      <div className="space-y-4 overflow-y-auto max-h-80 pr-2 custom-scrollbar">
-                        {(dashboardData?.monthly || []).map((m, i) => (
-                          <div key={i} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between group hover:bg-[#990000] transition-all cursor-default">
-                            <div>
-                              <p className="text-xs font-black text-gray-400 uppercase group-hover:text-white/60">{m.bulan}</p>
-                              <p className="text-sm font-black text-gray-900 group-hover:text-white">{formatRupiah(m.pendapatan)}</p>
-                            </div>
-                            <div className="text-right">
-                              <span className="text-[10px] font-black px-2 py-1 bg-white text-[#990000] rounded-lg shadow-sm">{m.jumlah_quotation} Orders</span>
-                            </div>
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-800 mb-5 flex items-center gap-2">
+                          <Package className="text-orange-500" size={22} /> Top 5 Produk
+                        </h3>
+                        {orders.length > 0 ? (
+                          <div className="space-y-3">
+                            {(() => {
+                              const topProducts = calculateTopProducts(orders);
+                              const maxQty = topProducts[0]?.qty || 1;
+                              
+                              return topProducts.map((p, idx) => {
+                                const pct = Math.round((p.qty / maxQty) * 100);
+                                const rankColors = ['#990000', '#c0392b', '#e74c3c', '#e67e22', '#f39c12'];
+                                const badgeBg = ['bg-red-900', 'bg-red-700', 'bg-red-500', 'bg-orange-500', 'bg-yellow-500'];
+                                return (
+                                  <div key={idx} className="flex flex-col gap-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className={`${badgeBg[idx]} text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shrink-0`}>
+                                        {idx + 1}
+                                      </span>
+                                      {/* Nama produk — klik untuk lihat nama lengkap */}
+                                      <div className="relative flex-1 min-w-0">
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setTooltipProduk(tooltipProduk === idx ? null : idx);
+                                          }}
+                                          className="text-xs font-bold text-gray-800 truncate w-full text-left hover:text-[#990000] transition-colors cursor-pointer"
+                                          title="Klik untuk lihat nama lengkap"
+                                          type="button"
+                                        >
+                                          {p.name}
+                                        </button>
+                                        {/* Popup nama lengkap */}
+                                        {tooltipProduk === idx && (
+                                          <div
+                                            className="absolute left-0 top-full mt-1 z-50 bg-gray-950 text-white text-[11px] font-semibold px-3 py-2 rounded-xl shadow-2xl max-w-[220px] leading-snug"
+                                            style={{ animation: 'fadeInDown 0.15s ease' }}
+                                          >
+                                            <span className="text-orange-300 font-black text-[9px] uppercase tracking-wider block mb-0.5">Nama Produk</span>
+                                            {p.name}
+                                            {/* Panah atas */}
+                                            <div className="absolute -top-1.5 left-4 w-3 h-3 bg-gray-950 rotate-45 rounded-sm" />
+                                          </div>
+                                        )}
+                                      </div>
+                                      <span className="text-xs font-black text-[#990000] shrink-0">{p.qty} Qty</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 pl-7">
+                                      <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                                        <div
+                                          className="h-2 rounded-full transition-all duration-700"
+                                          style={{ width: `${pct}%`, backgroundColor: rankColors[idx] }}
+                                        />
+                                      </div>
+                                      <span className="text-[10px] text-gray-400 font-semibold shrink-0 w-20 text-right">
+                                        {formatRupiah(p.revenue)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              });
+                            })()}
                           </div>
-                        ))}
+                        ) : (
+                          <div className="h-full flex items-center justify-center text-gray-400 font-medium py-10">Belum ada data produk terjual</div>
+                        )}
                       </div>
                     </div>
                   </div>
+
                 </div>
               )}
 
               {/* === TAB REPORTS & ANALYTICS === */}
               {activeTab === 'reports' && (
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
-                  {/* Report Sub-Tabs */}
-                  <div className="flex bg-white p-1.5 rounded-2xl shadow-sm border border-gray-100 self-start w-fit">
-                    {['harian', 'bulanan', 'tahunan', 'berjalan'].map((sub) => (
-                      <button
-                        key={sub}
-                        onClick={() => {
-                          setReportSubTab(sub);
-                          navigate(`/marketing-offline/reports/${sub}`);
-                        }}
-                        className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${reportSubTab === sub ? 'bg-[#990000] text-white shadow-lg' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'}`}
-                      >
-                        {sub}
-                      </button>
-                    ))}
-                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-white p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 transition-all hover:scale-[1.02]">
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2">Today's Revenue</p>
-                      <h3 className="text-2xl font-black text-gray-900">{formatRupiah(dashboardData?.comparisons?.revenue_today)}</h3>
-                      <div className={`flex items-center gap-1 text-[10px] font-black mt-3 ${dayToDay.isUp ? 'text-emerald-600' : 'text-red-600'}`}>
-                        {dayToDay.isUp ? <TrendingUp size={14} /> : <TrendingDown size={14} />} {dayToDay.text} vs Yesterday
-                      </div>
+
+                  {/* Filter Dua Periode */}
+                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-wrap gap-6 items-end">
+                    <div className="flex-1 min-w-[200px]">
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
+                        {reportSubTab === 'harian' ? 'Sampai Tanggal' : 'Bulan Berjalan'}
+                      </label>
+                      <input
+                        type={reportSubTab === 'harian' ? 'date' : 'month'}
+                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-red-100"
+                        value={reportSubTab === 'harian' ? filterDate1 : filterDate1.substring(0, 7)}
+                        onChange={e => setFilterDate1(reportSubTab === 'harian' ? e.target.value : e.target.value + '-01')}
+                      />
                     </div>
-                    <div className="bg-[#990000] p-8 rounded-[2rem] shadow-xl shadow-red-200/50 border border-red-800 transition-all hover:scale-[1.02]">
-                      <p className="text-[10px] font-black text-white/60 uppercase tracking-[0.2em] mb-2">Month-to-Date</p>
-                      <h3 className="text-2xl font-black text-white">{formatRupiah(dashboardData?.comparisons?.revenue_this_month)}</h3>
-                      <div className="flex items-center gap-1 text-[10px] font-black mt-3 text-white/80">
-                        {monthToMonth.isUp ? <TrendingUp size={14} /> : <TrendingDown size={14} />} {monthToMonth.text} vs Last Month
-                      </div>
-                    </div>
-                    <div className="bg-gray-900 p-8 rounded-[2rem] shadow-xl shadow-gray-900/20 border border-gray-800 transition-all hover:scale-[1.02]">
-                      <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-2">vs Same Month LY</p>
-                      <h3 className="text-2xl font-black text-white">{formatRupiah(dashboardData?.comparisons?.revenue_this_month)}</h3>
-                      <div className={`flex items-center gap-1 text-[10px] font-black mt-3 ${yearToYearMonth.isUp ? 'text-emerald-400' : 'text-red-400'}`}>
-                        {yearToYearMonth.isUp ? <TrendingUp size={14} /> : <TrendingDown size={14} />} {yearToYearMonth.text} vs {new Date().getFullYear() - 1}
-                      </div>
+                    <div className="flex-1 min-w-[200px]">
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
+                        {reportSubTab === 'harian' ? 'Dari Tanggal' : 'Bulan Lalu'}
+                      </label>
+                      <input
+                        type={reportSubTab === 'harian' ? 'date' : 'month'}
+                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-red-100"
+                        value={reportSubTab === 'harian' ? filterDate2 : filterDate2.substring(0, 7)}
+                        onChange={e => setFilterDate2(reportSubTab === 'harian' ? e.target.value : e.target.value + '-01')}
+                      />
                     </div>
                   </div>
 
-                  {/* Dynamic Table based on Sub-Tab */}
-                  <div className="bg-white rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
-                    <div className="p-8 border-b border-gray-50 flex justify-between items-center">
-                      <h3 className="text-xl font-black text-gray-900 capitalize">Detail Laporan {reportSubTab}</h3>
-                    </div>
+                  {/* Tabel Perbandingan */}
+                  <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
                     <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
-                        <thead className="bg-gray-50 text-gray-400 uppercase text-[10px] font-black tracking-widest border-b border-gray-100">
-                          <tr>
-                            <th className="py-5 px-8">No</th>
-                            <th className="py-5 px-8">{reportSubTab === 'tahunan' ? 'Tahun' : reportSubTab === 'bulanan' ? 'Bulan' : 'Tanggal'}</th>
-                            <th className="py-5 px-8 text-right">Pendapatan</th>
-                            <th className="py-5 px-8 text-center">Jumlah Orders</th>
-                            <th className="py-5 px-8 text-center">Status</th>
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr className="bg-gray-900 text-white">
+                            <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800">No</th>
+                            <th className="py-4 px-6 text-left text-xs font-black uppercase tracking-widest border border-gray-800">Kategori Produk</th>
+                            <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800 bg-gray-800/50">
+                              Rentang Periode (MTD)
+                            </th>
+                            <th className="py-4 px-6 text-right text-xs font-black uppercase tracking-widest border border-gray-800">Pendapatan</th>
+                            <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800">Achievement</th>
                           </tr>
                         </thead>
-                        <tbody className="text-sm divide-y divide-gray-50 font-bold">
+                        <tbody className="text-sm">
                           {loading ? (
-                            <tr><td colSpan="5" className="py-20 text-center"><Loader2 className="w-10 h-10 animate-spin text-[#990000] mx-auto" /></td></tr>
+                            <tr><td colSpan={5} className="py-20 text-center"><Loader2 className="w-10 h-10 animate-spin text-[#990000] mx-auto" /></td></tr>
+                          ) : reportComparisonData.length === 0 ? (
+                            <tr><td colSpan={5} className="py-20 text-center text-gray-400 font-medium italic">Tidak ada data untuk periode terpilih</td></tr>
+                          ) : reportSubTab === 'harian' ? (
+                            reportComparisonData.map((row, idx) => (
+                              <React.Fragment key={idx}>
+                                <tr className="hover:bg-blue-50/30 transition-colors">
+                                  <td rowSpan={2} className="py-6 px-6 text-center font-bold text-gray-400 border-x border-b border-gray-100">{idx + 1}</td>
+                                  <td rowSpan={2} className="py-6 px-6 font-black text-gray-900 border-x border-b border-gray-100">{row.account}</td>
+                                  <td className="py-3 px-6 text-center font-bold bg-cyan-50 text-cyan-800 border-b border-gray-100">
+                                    {formatRangeMTD(row.date1)}
+                                  </td>
+                                  <td className="py-3 px-6 text-right font-black text-blue-700 border-b border-gray-100">{formatRupiah(row.revenue)}</td>
+                                  <td rowSpan={2} className="py-6 px-6 text-center border-x border-b border-gray-100">
+                                    <span className={`text-xl font-black ${row.achievement >= 100 ? 'text-green-600' : 'text-red-600'}`}>
+                                      {row.achievement.toFixed(1)}%
+                                    </span>
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-blue-50/30 transition-colors">
+                                  <td className="py-3 px-6 text-center font-bold bg-gray-50 text-gray-500 border-b border-gray-100">
+                                    {formatRangeMTD(row.date2)}
+                                  </td>
+                                  <td className="py-3 px-6 text-right font-bold text-gray-400 border-b border-gray-100">{formatRupiah(row.prevRevenue)}</td>
+                                </tr>
+                              </React.Fragment>
+                            ))
                           ) : (
-                            (reportSubTab === 'tahunan' ? dashboardData.tahunan :
-                              reportSubTab === 'bulanan' ? dashboardData.monthly :
-                                reportSubTab === 'berjalan' ? (dashboardData.daily || []).filter(d => {
-                                  const dateStr = d.tanggal ? (d.tanggal instanceof Date ? d.tanggal.toISOString() : String(d.tanggal)) : '';
-                                  return dateStr.startsWith(new Date().toISOString().substring(0, 7));
-                                }) :
-                                  dashboardData.daily).map((row, idx) => (
-                                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                                      <td className="py-4 px-8 text-gray-400 font-medium">{idx + 1}</td>
-                                      <td className="py-4 px-8 text-gray-900">
-                                        {row.tahun || row.bulan || (row.tanggal ? new Date(row.tanggal).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '-')}
-                                      </td>
-                                      <td className="py-4 px-8 text-right text-[#990000] font-black">{formatRupiah(row.pendapatan)}</td>
-                                      <td className="py-4 px-8 text-center text-gray-600">{row.jumlah_quotation}</td>
-                                      <td className="py-4 px-8 text-center">
-                                        <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase">Verified</span>
-                                      </td>
-                                    </tr>
-                                  ))
+                            reportComparisonData.map((row, idx) => (
+                              <React.Fragment key={idx}>
+                                <tr className="hover:bg-blue-50/30 transition-colors">
+                                  <td rowSpan={2} className="py-6 px-6 text-center font-bold text-gray-400 border-x border-b border-gray-100">{idx + 1}</td>
+                                  <td rowSpan={2} className="py-6 px-6 font-black text-gray-900 border-x border-b border-gray-100">{row.account}</td>
+                                  <td className="py-3 px-6 text-center font-bold bg-cyan-50 text-cyan-800 border-b border-gray-100">
+                                    {new Date(row.date1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+                                  </td>
+                                  <td className="py-3 px-6 text-right font-black text-blue-700 border-b border-gray-100">{formatRupiah(row.val1)}</td>
+                                  <td rowSpan={2} className="py-6 px-6 text-center border-x border-b border-gray-100">
+                                    <span className={`text-xl font-black ${row.achievement >= 100 ? 'text-green-600' : 'text-red-600'}`}>
+                                      {row.achievement.toFixed(1)}%
+                                    </span>
+                                  </td>
+                                </tr>
+                                <tr className="hover:bg-blue-50/30 transition-colors">
+                                  <td className="py-3 px-6 text-center font-bold bg-gray-50 text-gray-500 border-b border-gray-100">
+                                    {new Date(row.date2).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+                                  </td>
+                                  <td className="py-3 px-6 text-right font-bold text-gray-400 border-b border-gray-100">{formatRupiah(row.val2)}</td>
+                                </tr>
+                              </React.Fragment>
+                            ))
                           )}
                         </tbody>
+                        <tfoot>
+                          <tr className="bg-gray-900 text-white font-black uppercase text-xs">
+                            <td colSpan={3} className="py-5 px-6 text-right">Total Pendapatan (Periode Berjalan)</td>
+                            <td className="py-5 px-6 text-right text-emerald-400 text-lg">
+                              {formatRupiah(reportComparisonData.reduce((acc, r) => acc + (reportSubTab === 'harian' ? r.revenue : r.val1), 0))}
+                            </td>
+                            <td></td>
+                          </tr>
+                        </tfoot>
                       </table>
                     </div>
                   </div>
                 </div>
               )}
-
-              {/* === TAB CUSTOMERS === */}
-              {activeTab === 'customers' && (
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <div className="p-6 border-b border-slate-200 flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-slate-800">Customer List</h2>
-                    <button onClick={() => { setCustomerForm({ id: null, nama_customer: '', no_hp: '', alamat: '', catatan: '' }); setShowCustomerModal(true); }} className="bg-[#990000] hover:bg-red-800 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-colors">
-                      <Plus size={18} /> Add Customer
-                    </button>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 uppercase tracking-wider font-bold">
-                        <tr><th className="py-4 px-6">Name</th><th className="py-4 px-6">Phone</th><th className="py-4 px-6">Address</th><th className="py-4 px-6">Notes</th><th className="py-4 px-6 text-center">Action</th></tr>
-                      </thead>
-                      <tbody className="text-sm divide-y divide-slate-100">
-                        {loading ? <tr><td colSpan="5" className="text-center py-10"><Loader2 className="animate-spin text-[#990000] mx-auto" /></td></tr> : customers.map(c => (
-                          <tr key={c.id} className="hover:bg-slate-50">
-                            <td className="py-4 px-6 font-bold text-slate-900">{c.nama_customer}</td>
-                            <td className="py-4 px-6">{c.no_hp}</td>
-                            <td className="py-4 px-6 text-slate-500">{c.alamat}</td>
-                            <td className="py-4 px-6 text-slate-500 italic">{c.catatan}</td>
-                            <td className="py-4 px-6 flex justify-center gap-2">
-                              <button onClick={() => { setCustomerForm(c); setShowCustomerModal(true); }} className="p-2 text-slate-400 hover:text-[#990000] bg-white border border-slate-200 rounded-lg shadow-sm"><Edit size={16} /></button>
-                              <button onClick={() => deleteCustomer(c.id)} className="p-2 text-slate-400 hover:text-red-600 bg-white border border-slate-200 rounded-lg shadow-sm"><Trash2 size={16} /></button>
-                            </td>
-                          </tr>
-                        ))}
-                        {customers.length === 0 && !loading && <tr><td colSpan="5" className="text-center py-10 text-slate-500">No customers found.</td></tr>}
-                      </tbody>
-                    </table>
-                  </div>
+             {/* === TAB CUSTOMERS === */}
+{activeTab === 'customers' && (
+  <div className="bg-white rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700">
+    {/* Padded div dihapus untuk menghilangkan jarak di atas header tabel */}
+    
+    <div className="overflow-x-auto">
+      {/* Tambahkan rounded-t-[2.5rem] dan overflow-hidden agar tabel menyatu dengan kontainer */}
+      <table className="w-full text-left border-collapse rounded-t-[2.5rem] overflow-hidden">
+        <thead className="bg-gray-900 text-white">
+          <tr>
+            <th className="py-4 px-6 text-[10px] font-black uppercase tracking-widest rounded-tl-[2.5rem]">Nama</th>
+            <th className="py-4 px-6 text-[10px] font-black uppercase tracking-widest">No. HP</th>
+            <th className="py-4 px-6 text-[10px] font-black uppercase tracking-widest">Alamat</th>
+            <th className="py-4 px-6 text-[10px] font-black uppercase tracking-widest">Catatan</th>
+            <th className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-center rounded-tr-[2.5rem]">Aksi</th>
+          </tr>
+        </thead>
+        <tbody className="text-sm divide-y divide-gray-50">
+          {loading ? <tr><td colSpan="5" className="text-center py-20"><Loader2 className="w-10 h-10 animate-spin text-[#990000] mx-auto" /></td></tr> : filteredCustomers.map(c => (
+            <tr key={c.id} className="hover:bg-gray-50 transition-colors">
+              <td className="py-4 px-6 font-black text-gray-900">{c.nama_customer}</td>
+              <td className="py-4 px-6 font-medium text-gray-600">{c.no_hp}</td>
+              <td className="py-4 px-6 text-gray-500 text-xs">{c.alamat}</td>
+              <td className="py-4 px-6 text-gray-400 italic text-xs">{c.catatan || '-'}</td>
+              <td className="py-4 px-6">
+                <div className="flex justify-center gap-2">
+                  <button onClick={() => { setCustomerForm(c); setShowCustomerModal(true); }} className="p-2 text-gray-400 hover:text-[#990000] bg-white border border-gray-200 rounded-xl shadow-sm transition-all hover:border-red-200"><Edit size={15} /></button>
+                  <button onClick={() => deleteCustomer(c.id)} className="p-2 text-gray-400 hover:text-red-600 bg-white border border-gray-200 rounded-xl shadow-sm transition-all hover:border-red-200"><Trash2 size={15} /></button>
                 </div>
-              )}
-
+              </td>
+            </tr>
+          ))}
+          {filteredCustomers.length === 0 && !loading && <tr><td colSpan="5" className="text-center py-20 text-gray-400 font-bold italic">Belum ada data pelanggan yang cocok.</td></tr>}
+        </tbody>
+      </table>
+    </div>
+  </div>
+)}
               {/* === TAB QUOTATIONS === */}
               {activeTab === 'quotations' && (
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <div className="p-6 border-b border-slate-200 flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-slate-800">Quotation Management</h2>
-                    <button onClick={() => { setQuotationForm({ id: null, customer_name: '', product_name: '', qty: 1, price: 0, note: '' }); setShowQuotationModal(true); }} className="bg-[#990000] hover:bg-red-800 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-2 transition-colors">
-                      <Plus size={18} /> Create Quotation
+                <div className="bg-white rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700">
+                  <div className="p-8 border-b border-gray-50 flex justify-between items-center">
+                    <div>
+                      <h2 className="text-xl font-black text-gray-900">Manajemen Quotation</h2>
+                      <p className="text-xs text-gray-400 mt-1 font-medium">Buat dan kelola penawaran harga ke pelanggan</p>
+                    </div>
+                    <button onClick={() => { setQuotationForm({ id: null, customer_name: '', product_name: '', qty: 1, price: 0, note: '' }); setShowQuotationModal(true); }} className="flex items-center gap-2 bg-[#990000] text-white px-5 py-2.5 rounded-xl text-xs font-black hover:bg-red-800 transition-all active:scale-95 shadow-lg shadow-red-100">
+                      <Plus size={16} /> Buat Quotation
                     </button>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
-                      <thead className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 uppercase tracking-wider font-bold">
-                        <tr><th className="py-4 px-6">Customer</th><th className="py-4 px-6">Product</th><th className="py-4 px-6">Qty & Price</th><th className="py-4 px-6 text-right">Total Amount</th><th className="py-4 px-6 text-center">Status</th><th className="py-4 px-6 text-center">Action</th></tr>
+                      <thead className="bg-gray-900 text-white">
+                        <tr>
+                          <th className="py-4 px-6 text-[10px] font-black uppercase tracking-widest">Customer</th>
+                          <th className="py-4 px-6 text-[10px] font-black uppercase tracking-widest">Produk</th>
+                          <th className="py-4 px-6 text-[10px] font-black uppercase tracking-widest">Qty & Harga</th>
+                          <th className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-right">Total</th>
+                          <th className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-center">Status</th>
+                          <th className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-center">Aksi</th>
+                        </tr>
                       </thead>
-                      <tbody className="text-sm divide-y divide-slate-100">
-                        {loading ? <tr><td colSpan="6" className="text-center py-10"><Loader2 className="animate-spin text-[#990000] mx-auto" /></td></tr> : quotations.map(q => (
-                          <tr key={q.id} className="hover:bg-slate-50">
-                            <td className="py-4 px-6 font-bold text-slate-900">{q.customer_name}</td>
-                            <td className="py-4 px-6">{q.product_name}</td>
-                            <td className="py-4 px-6">{q.qty} x {formatRupiah(q.price)}</td>
+                      <tbody className="text-sm divide-y divide-gray-50">
+                        {loading ? <tr><td colSpan="6" className="text-center py-20"><Loader2 className="w-10 h-10 animate-spin text-[#990000] mx-auto" /></td></tr> : filteredQuotations.map(q => (
+                          <tr key={q.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="py-4 px-6 font-black text-gray-900">{q.customer_name}</td>
+                            <td className="py-4 px-6 font-medium text-gray-600">{q.product_name}</td>
+                            <td className="py-4 px-6 text-gray-500 text-xs">{q.qty} x {formatRupiah(q.price)}</td>
                             <td className="py-4 px-6 text-right font-black text-[#990000]">{formatRupiah(q.qty * q.price)}</td>
                             <td className="py-4 px-6 text-center">
-                              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${q.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : q.status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700'}`}>{q.status}</span>
+                              <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${q.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : q.status === 'pending' ? 'bg-amber-50 text-amber-700 border border-amber-100' : 'bg-gray-100 text-gray-500'}`}>{q.status}</span>
                             </td>
-                            <td className="py-4 px-6 flex justify-center gap-2">
-                              <button onClick={() => { setPreviewQuotation(q); setShowPreviewModal(true); }} title="Print PDF" className="p-2 text-slate-400 hover:text-blue-600 bg-white border border-slate-200 rounded-lg shadow-sm"><FileText size={16} /></button>
-                              {q.status === 'draft' && (
-                                <>
-                                  <button onClick={() => submitQuotation(q.id)} title="Submit to Finance" className="p-2 text-slate-400 hover:text-emerald-600 bg-white border border-slate-200 rounded-lg shadow-sm"><Send size={16} /></button>
-                                  <button onClick={() => { setQuotationForm(q); setShowQuotationModal(true); }} className="p-2 text-slate-400 hover:text-[#990000] bg-white border border-slate-200 rounded-lg shadow-sm"><Edit size={16} /></button>
-                                  <button onClick={() => deleteQuotation(q.id)} className="p-2 text-slate-400 hover:text-red-600 bg-white border border-slate-200 rounded-lg shadow-sm"><Trash2 size={16} /></button>
-                                </>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                        {quotations.length === 0 && !loading && <tr><td colSpan="6" className="text-center py-10 text-slate-500">No quotations found.</td></tr>}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* === TAB ORDERS === */}
-              {activeTab === 'orders' && (
-                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <div className="p-6 border-b border-slate-200 flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-slate-800">Offline Order</h2>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 uppercase tracking-wider font-bold">
-                        <tr>
-                          <th className="py-4 px-6">Customer</th>
-                          <th className="py-4 px-6">Product</th>
-                          <th className="py-4 px-6 text-center">QTY</th>
-                          <th className="py-4 px-6 text-right">Unit Price</th>
-                          <th className="py-4 px-6 text-right">Total Price</th>
-                          <th className="py-4 px-6 text-center">Payment</th>
-                          <th className="py-4 px-6">Entry Date</th>
-                          <th className="py-4 px-6">Deadline</th>
-                          <th className="py-4 px-6">Status Produksi</th>
-                          <th className="py-4 px-6">Lokasi</th>
-                          <th className="py-4 px-6">Catatan</th>
-                          <th className="py-4 px-6 text-center">Status</th>
-                          <th className="py-4 px-6 text-center">Action</th>
-                        </tr>
-                      </thead>
-                      <tbody className="text-sm divide-y divide-slate-100">
-                        {loading ? <tr><td colSpan="12" className="text-center py-10"><Loader2 className="animate-spin text-[#990000] mx-auto" /></td></tr> : orders.map(o => (
-                          <tr key={o.id} className={`hover:bg-slate-50 ${o.sisa_hari < 5 ? "bg-red-50" : ""}`}>
-
-                            <td className="py-4 px-6 font-bold text-slate-900">{o.customer}</td>
-                            <td className="py-4 px-6">{o.produk}</td>
-                            <td className="py-4 px-6 text-center font-bold">{o.qty}</td>
-                            <td className="py-4 px-6 text-right font-medium">{formatRupiah(o.harga)}</td>
-                            <td className="py-4 px-6 text-right font-black text-[#990000]">{formatRupiah(o.grand_total || (o.qty * o.harga))}</td>
-                            <td className="py-4 px-6 text-center">
-                              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${o.payment_type === 'Fullpayment' ? 'bg-emerald-100 text-emerald-700' :
-                                o.payment_type === 'DP' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
-                                }`}>
-                                {o.payment_type}
-                              </span>
-                            </td>
-                            <td className="py-4 px-6 whitespace-nowrap text-slate-600">{o.created_at ? new Date(o.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</td>
-                            <td className="py-4 px-6 whitespace-nowrap text-red-600 font-semibold">{o.deadline ? new Date(o.deadline).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</td>
                             <td className="py-4 px-6">
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${o.status_produksi === 'Selesai' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>
-                                {o.status_produksi}
-                              </span>
-                            </td>
-                            <td className="py-4 px-6 text-xs text-slate-500">{o.lokasi_proses}</td>
-                            <td className="py-4 px-6 text-xs text-slate-400 italic max-w-[150px] truncate" title={o.catatan}>{o.catatan || '-'}</td>
-                            <td className="py-4 px-6 text-center">
-                              <span title={o.status === 'Rejected' ? `Alasan Penolakan: ${o.quotation_alasan_penolakan || 'Tidak ada alasan'}` : o.status} className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${o.status === 'Invoice Created' || o.status === 'Diproses Produksi' ? 'bg-emerald-100 text-emerald-700' : o.status === 'Pending Finance' ? 'bg-amber-100 text-amber-700' : o.status === 'Rejected' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-700'}`}>{o.status}</span>
-                            </td>
-                            <td className="py-4 px-6 flex flex-wrap justify-center gap-2">
-                              {/* --- Order Actions --- */}
-                              {(!o.quotation_id && (o.status === 'New Order' || o.status === 'Pending' || o.status === 'Rejected')) && (
-                                <button onClick={() => submitOrder(o.id)} title="Submit Order to Finance" className="p-2 text-slate-400 hover:text-emerald-600 bg-white border border-slate-200 rounded-lg shadow-sm"><Send size={16} /></button>
-                              )}
-                              <button onClick={() => navigate('/marketing-offline/create-order', { state: { orderData: { ...o, items: typeof o.items === 'string' ? JSON.parse(o.items) : o.items } } })} className="p-2 text-slate-400 hover:text-blue-600 bg-white border border-slate-200 rounded-lg shadow-sm" title="Edit Order & Quotation"><Edit size={16} /></button>
-                              <button onClick={() => deleteOrder(o.id)} className="p-2 text-slate-400 hover:text-red-600 bg-white border border-slate-200 rounded-lg shadow-sm" title="Delete Order"><Trash2 size={16} /></button>
-
-                              {/* --- Quotation Actions --- */}
-                              {o.quotation_id && (
-                                <>
-                                  <div className="w-full h-px bg-slate-100 my-1 hidden md:block"></div>
-                                  <button onClick={() => navigate(`/quotation/preview/${o.quotation_id}`)} className="p-2 text-slate-400 hover:text-indigo-600 bg-white border border-indigo-100 rounded-lg shadow-sm bg-indigo-50/30" title="View Quotation"><Eye size={16} /></button>
-                                  <button onClick={() => setUploadQuotationModal(o.quotation_id)} className="p-2 text-slate-400 hover:text-emerald-600 bg-white border border-emerald-100 rounded-lg shadow-sm bg-emerald-50/30" title="Upload Dokumen Quotation"><Upload size={16} /></button>
-                                  {o.quotation_status !== 'Submitted' && o.quotation_status !== 'Invoice Created' && o.quotation_status !== 'approved' && o.quotation_status !== 'Diproses Produksi' && (
-                                    <button onClick={() => submitQuotation(o)} className="p-2 text-slate-400 hover:text-orange-600 bg-white border border-orange-100 rounded-lg shadow-sm bg-orange-50/30" title="Submit Quotation ke Finance"><Send size={16} /></button>
-                                  )}
-                                </>
-                              )}
+                              <div className="flex justify-center gap-2">
+                                <button onClick={() => { setPreviewQuotation(q); setShowPreviewModal(true); }} title="Lihat PDF" className="p-2 text-gray-400 hover:text-blue-600 bg-white border border-gray-200 rounded-xl shadow-sm transition-all"><FileText size={15} /></button>
+                                {q.status === 'draft' && (
+                                  <>
+                                    <button onClick={() => submitQuotation(q.id)} title="Submit ke Finance" className="p-2 text-gray-400 hover:text-emerald-600 bg-white border border-gray-200 rounded-xl shadow-sm transition-all"><Send size={15} /></button>
+                                    <button onClick={() => { setQuotationForm(q); setShowQuotationModal(true); }} className="p-2 text-gray-400 hover:text-[#990000] bg-white border border-gray-200 rounded-xl shadow-sm transition-all"><Edit size={15} /></button>
+                                    <button onClick={() => deleteQuotation(q.id)} className="p-2 text-gray-400 hover:text-red-600 bg-white border border-gray-200 rounded-xl shadow-sm transition-all"><Trash2 size={15} /></button>
+                                  </>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         ))}
-                        {orders.length === 0 && !loading && <tr><td colSpan="12" className="text-center py-10 text-slate-500">No orders found.</td></tr>}
+                        {filteredQuotations.length === 0 && !loading && <tr><td colSpan="6" className="text-center py-20 text-gray-400 font-bold italic">Belum ada data quotation yang cocok.</td></tr>}
                       </tbody>
                     </table>
                   </div>
                 </div>
               )}
-
-
+             {/* === TAB ORDERS === */}
+{activeTab === 'orders' && (
+  <div className="bg-white rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700">
+    {/* Div p-8 dihapus/dikosongkan agar tidak menciptakan jarak putih di atas */}
+    
+    <div className="overflow-x-auto">
+      {/* rounded-t-[2.5rem] disini memaksa tabel hitam mengikuti lengkungan container */}
+      <table className="w-full text-left border-collapse rounded-t-[2.5rem] overflow-hidden">
+        <thead className="bg-gray-900 text-white">
+          <tr>
+            <th className="py-4 px-5 text-[10px] font-black uppercase tracking-widest">Customer</th>
+            <th className="py-4 px-5 text-[10px] font-black uppercase tracking-widest">Produk</th>
+            <th className="py-4 px-5 text-[10px] font-black uppercase tracking-widest text-center">QTY</th>
+            <th className="py-4 px-5 text-[10px] font-black uppercase tracking-widest text-right">Harga Satuan</th>
+            <th className="py-4 px-5 text-[10px] font-black uppercase tracking-widest text-right">Total</th>
+            <th className="py-4 px-5 text-[10px] font-black uppercase tracking-widest text-center">Payment</th>
+            <th className="py-4 px-5 text-[10px] font-black uppercase tracking-widest">Tgl Masuk</th>
+            <th className="py-4 px-5 text-[10px] font-black uppercase tracking-widest">Deadline</th>
+            <th className="py-4 px-5 text-[10px] font-black uppercase tracking-widest">Status Produksi</th>
+            <th className="py-4 px-5 text-[10px] font-black uppercase tracking-widest">Lokasi</th>
+            <th className="py-4 px-5 text-[10px] font-black uppercase tracking-widest">Catatan</th>
+            <th className="py-4 px-5 text-[10px] font-black uppercase tracking-widest text-center">Status</th>
+            <th className="py-4 px-5 text-[10px] font-black uppercase tracking-widest text-center">Aksi</th>
+          </tr>
+        </thead>
+        <tbody className="text-sm divide-y divide-gray-50">
+          {loading ? (
+            <tr><td colSpan="13" className="text-center py-20"><Loader2 className="w-10 h-10 animate-spin text-[#990000] mx-auto" /></td></tr>
+          ) : filteredOrders.map(o => (
+            <tr key={o.id} className={`hover:bg-gray-50 transition-colors ${o.sisa_hari < 5 ? 'bg-red-50/50' : ''}`}>
+              <td className="py-4 px-6 font-bold text-slate-900">{o.customer}</td>
+              <td
+                className={`py-4 px-6 font-bold text-slate-900 cursor-pointer select-none transition-all ${expandedProduct === o.id ? 'max-w-none whitespace-normal text-[#990000]' : 'max-w-[180px] truncate hover:text-[#990000]'}`}
+                onClick={() => setExpandedProduct(expandedProduct === o.id ? null : o.id)}
+                title={expandedProduct === o.id ? 'Klik untuk tutup' : 'Klik untuk lihat nama lengkap'}
+              >
+                {o.produk || '-'}
+              </td>
+              <td className="py-4 px-6 text-center font-bold">{o.qty}</td>
+              <td className="py-4 px-6 text-right font-medium">{formatRupiah(o.harga)}</td>
+              <td className="py-4 px-6 text-right font-black text-[#990000]">{formatRupiah(o.grand_total || (o.qty * o.harga))}</td>
+              <td className="py-4 px-6 text-center">
+                <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${o.payment_type === 'Fullpayment' ? 'bg-emerald-100 text-emerald-700' :
+                  o.payment_type === 'DP' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
+                  }`}>
+                  {o.payment_type}
+                </span>
+              </td>
+              <td className="py-4 px-6 whitespace-nowrap text-slate-600">{o.created_at ? new Date(o.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</td>
+              <td className="py-4 px-6 whitespace-nowrap text-red-600 font-semibold">{o.deadline ? new Date(o.deadline).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</td>
+              <td className="py-4 px-5">
+                <span className={`px-2.5 py-1 rounded-full text-[10px] font-black whitespace-nowrap ${
+                  o.status_produksi === 'Selesai'           ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                  o.status_produksi === 'Beli Kain'         ? 'bg-blue-50 text-blue-700 border border-blue-100' :
+                  o.status_produksi === 'Potong'            ? 'bg-purple-50 text-purple-700 border border-purple-100' :
+                  o.status_produksi === 'Jahit'             ? 'bg-orange-50 text-orange-700 border border-orange-100' :
+                  o.status_produksi === 'Quality Control'   ? 'bg-cyan-50 text-cyan-700 border border-cyan-100' :
+                  o.status_produksi === 'Packing'           ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' :
+                                                              'bg-gray-100 text-gray-500 border border-gray-200'
+                }`}>
+                  {o.status_produksi || '-'}
+                </span>
+              </td>
+              <td className="py-4 px-6 text-xs text-slate-500">{o.lokasi_proses}</td>
+              <td className="py-4 px-6 text-xs text-slate-400 italic max-w-[150px] truncate" title={o.catatan}>{o.catatan || '-'}</td>
+              <td className="py-4 px-5 text-center">
+                <span
+                  title={o.status === 'Rejected' ? `Alasan: ${o.quotation_alasan_penolakan || 'Tidak ada alasan'}` : o.status}
+                  className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide whitespace-nowrap ${
+                    o.status === 'Invoice Created'     ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                    o.status === 'Diproses Produksi'   ? 'bg-cyan-50 text-cyan-700 border border-cyan-100' :
+                    o.status === 'Pending Finance'     ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                    o.status === 'New Order'           ? 'bg-blue-50 text-blue-700 border border-blue-100' :
+                    o.status === 'Rejected'            ? 'bg-red-50 text-red-700 border border-red-100' :
+                                                         'bg-gray-100 text-gray-500 border border-gray-200'
+                  }`}
+                >
+                  {o.status}
+                </span>
+              </td>
+              <td className="py-3 px-4 whitespace-nowrap">
+                <div className="flex items-center justify-center gap-1">
+                  {(!o.quotation_id && (o.status === 'New Order' || o.status === 'Pending' || o.status === 'Rejected')) && (
+                    <button onClick={() => submitOrder(o.id)} title="Submit Order ke Finance" className="p-1.5 text-gray-400 hover:text-emerald-600 bg-white border border-gray-200 rounded-lg shadow-sm transition-all"><Send size={14} /></button>
+                  )}
+                  <button onClick={() => navigate('/marketing-offline/create-order', { state: { orderData: { ...o, items: typeof o.items === 'string' ? JSON.parse(o.items) : o.items } } })} className="p-1.5 text-gray-400 hover:text-blue-600 bg-white border border-gray-200 rounded-lg shadow-sm transition-all" title="Edit Order"><Edit size={14} /></button>
+                  <button onClick={() => deleteOrder(o.id)} className="p-1.5 text-gray-400 hover:text-red-600 bg-white border border-gray-200 rounded-lg shadow-sm transition-all" title="Hapus Order"><Trash2 size={14} /></button>
+                  {o.quotation_id && (
+                    <>
+                      <button onClick={() => navigate(`/quotation/preview/${o.quotation_id}`)} className="p-1.5 text-gray-400 hover:text-indigo-600 bg-white border border-gray-200 rounded-lg shadow-sm transition-all" title="Lihat Quotation"><Eye size={14} /></button>
+                      <button onClick={() => setUploadQuotationModal(o.quotation_id)} className="p-1.5 text-gray-400 hover:text-emerald-600 bg-white border border-gray-200 rounded-lg shadow-sm transition-all" title="Upload Dokumen"><Upload size={14} /></button>
+                      {o.quotation_status !== 'Submitted' && o.quotation_status !== 'Invoice Created' && o.quotation_status !== 'approved' && o.quotation_status !== 'Diproses Produksi' && (
+                        <button onClick={() => submitQuotation(o)} className="p-1.5 text-gray-400 hover:text-orange-600 bg-white border border-gray-200 rounded-lg shadow-sm transition-all" title="Submit Quotation ke Finance"><Send size={14} /></button>
+                      )}
+                    </>
+                  )}
+                </div>
+              </td>
+            </tr>
+          ))}
+          {filteredOrders.length === 0 && !loading && <tr><td colSpan="13" className="text-center py-10 text-slate-500 font-bold italic">Belum ada order yang cocok.</td></tr>}
+        </tbody>
+      </table>
+    </div>
+  </div>
+)}
               {/* === TAB INVENTORY === */}
-              {activeTab === 'inventory' && (
-                <div className="bg-white rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700">
-                  <div className="p-8 border-b border-gray-50 flex justify-between items-center">
-                    <h2 className="text-xl font-black text-gray-900">Stock Inventory</h2>
-                    <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50 px-4 py-2 rounded-xl border border-gray-100">
-                      <Package size={14} /> Live Warehouse Data
-                    </div>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                      <thead className="bg-gray-50 text-gray-400 uppercase text-[10px] font-black tracking-widest border-b border-gray-100">
-                        <tr>
-                          <th className="py-5 px-8">Product Name</th>
-                          <th className="py-5 px-8 text-center">Stock Qty</th>
-                          <th className="py-5 px-8 text-center">Status</th>
-                          <th className="py-5 px-8 text-center">Action</th>
-                        </tr>
-                      </thead>
-                      <tbody className="text-sm divide-y divide-gray-50 font-bold">
-                        {loading ? (
-                          <tr><td colSpan="4" className="text-center py-20"><Loader2 className="animate-spin text-[#990000] mx-auto" /></td></tr>
-                        ) : inventory.length === 0 ? (
-                          <tr><td colSpan="4" className="text-center py-20 text-gray-400 italic">Belum ada data inventori.</td></tr>
-                        ) : (
-                          inventory.map(item => (
-                            <tr key={item.id} className="hover:bg-gray-50/50 transition-colors group">
-                              <td className="py-4 px-8 font-black text-gray-900 flex items-center gap-4">
-                                <div className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center group-hover:bg-red-50 transition-colors">
-                                  <Package className="text-gray-400 group-hover:text-[#990000]" size={20} />
-                                </div>
-                                {item.product_name}
-                              </td>
-                              <td className="py-4 px-8 text-center font-black text-xl text-[#990000]">{item.stock_qty}</td>
-                              <td className="py-4 px-8 text-center">
-                                {item.stock_qty > item.minimum_stok ? (
-                                  <span className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">Available</span>
-                                ) : item.stock_qty > 0 ? (
-                                  <span className="bg-orange-50 text-orange-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">Low Stock</span>
-                                ) : (
-                                  <span className="bg-red-50 text-red-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">Out of Stock</span>
-                                )}
-                              </td>
-                              <td className="py-4 px-8 text-center">
-                                <button
-                                  onClick={() => handleOrderFromStock(item)}
-                                  disabled={item.stock_qty <= 0}
-                                  className={`flex items-center gap-2 mx-auto px-6 py-2.5 rounded-xl text-xs font-black transition-all active:scale-95 shadow-lg ${item.stock_qty > 0 ? 'bg-[#990000] text-white hover:bg-red-800 shadow-red-100' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
-                                >
-                                  <ShoppingBag size={14} /> Pesan Sekarang
-                                </button>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
+{activeTab === 'inventory' && (() => {
+  const sizesArray = ['XS','S','M','L','XL','XXL','XXXL','XXXXL','XXXXXL','All Size'];
+  return (
+    // 1. Pastikan kontainer utama punya radius
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700">
+      
+      <div className="overflow-x-auto">
+        <table className="w-full text-left border-collapse">
+          {/* 2. Gunakan THEAD dengan warna, tanpa perlu rounded di dalam th */}
+          <thead className="bg-gray-900 text-xs text-white uppercase tracking-wider font-semibold sticky top-0 z-10">
+            <tr>
+              <th className="p-4 font-semibold">Brand</th>
+              <th className="p-4 font-semibold">Nama Barang</th>
+              <th className="p-4 font-semibold">Kategori</th>
+              <th className="p-4 font-semibold">Cabang</th>
+              {sizesArray.map(size => (
+                <th key={size} className="p-4 font-semibold text-center w-20">{size}</th>
+              ))}
+              <th className="p-4 font-semibold text-center w-28">Total Stok</th>
+              <th className="p-4 font-semibold text-center w-32">Min. Stok</th>
+              <th className="p-4 font-semibold">Rak</th>
+              <th className="p-4 font-semibold text-center">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {/* ... isi data sama persis seperti sebelumnya ... */}
+            {loading ? (
+              <tr><td colSpan={7 + sizesArray.length} className="p-10 text-center"><Loader2 className="w-10 h-10 animate-spin text-[#990000] mx-auto" /></td></tr>
+            ) : filteredInventory.length === 0 ? (
+              <tr><td colSpan={7 + sizesArray.length} className="p-10 text-center text-gray-400 font-bold italic">Stok barang tidak ditemukan.</td></tr>
+            ) : (
+              filteredInventory.map((item, idx) => (
+                <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50 text-sm">
+                  <td className="p-4 font-medium text-gray-600">{item.nama_brand}</td>
+                  <td className="p-4 font-bold text-gray-800">{item.nama_barang}</td>
+                  <td className="p-4"><span className={`px-2 py-0.5 rounded text-[11px] font-bold ${item.kategori === 'Utama' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-gray-100 text-gray-600'}`}>{item.kategori}</span></td>
+                  <td className="p-4">{item.cabang_id}</td>
+                  {sizesArray.map(size => <td key={size} className="p-4 text-center border-x border-gray-100 font-extrabold text-gray-800">{item.sizes?.[size] || '-'}</td>)}
+                  <td className="p-4 text-center font-extrabold text-red-600 text-base">{item.total_stok} Pcs</td>
+                  <td className="p-4 text-center"><span className="bg-red-50 border border-red-100 text-red-700 px-2.5 py-1 rounded-full text-xs font-bold">{item.minimum_stok} Pcs</span></td>
+                  <td className="p-4 font-semibold text-gray-600">{item.kode_rak}</td>
+                  <td className="p-4 text-center">
+                    <button onClick={() => handleOrderFromStock({ product_name: item.nama_barang, stock_qty: item.total_stok })} disabled={item.total_stok <= 0} className={`px-4 py-2 rounded-lg text-xs font-black ${item.total_stok > 0 ? 'bg-[#990000] text-white' : 'bg-gray-100 text-gray-400'}`}>Pesan</button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+})()}
               {/* === TAB PROMO === */}
               {activeTab === 'promo' && (
-                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
-                  <div className="bg-[#990000] p-8 rounded-[2.5rem] shadow-xl shadow-red-200/50 border border-red-800 text-white flex flex-col md:flex-row justify-between items-center gap-6">
-                    <div className="flex-1">
-                      <h2 className="text-2xl font-black mb-2 flex items-center gap-3"><Gift size={32} /> Promo Cuci Gudang</h2>
-                      <p className="text-red-100 font-medium">Daftar produk mengendap (tidak terjual dalam 60 hari terakhir). Segera buat program promo untuk menghabiskan stok!</p>
-                    </div>
-                    <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 text-center min-w-[150px]">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-red-100">Total Produk</p>
-                      <p className="text-3xl font-black">{promoStock.length}</p>
+                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-8 duration-700">
+
+                  {/* Info Banner */}
+                  <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 flex items-start gap-3">
+                    <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={18} />
+                    <div>
+                      <p className="text-sm font-black text-amber-800">Barang Mengendap ≥ 2 Bulan</p>
+                      <p className="text-xs text-amber-600 mt-0.5 font-medium">
+                        Daftar stok cabang Banua yang belum terjual ≥ 60 hari. Klik "Buat Promo" untuk langsung ke tab Inventori dan buat pesanan promo.
+                      </p>
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
+                  <div className="bg-white rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
                     <div className="overflow-x-auto">
                       <table className="w-full text-left border-collapse">
-                        <thead className="bg-gray-50 text-gray-400 uppercase text-[10px] font-black tracking-widest border-b border-gray-100">
+                        <thead className="bg-gray-900 border-b border-gray-800 text-white uppercase tracking-wider">
                           <tr>
-                            <th className="py-5 px-8">Nama Produk</th>
-                            <th className="py-5 px-8 text-center">Stok Mengendap</th>
-                            <th className="py-5 px-8 text-center">Status</th>
-                            <th className="py-5 px-8 text-center">Aksi</th>
+                            <th className="py-4 px-5 text-[10px] font-black">Brand</th>
+                            <th className="py-4 px-5 text-[10px] font-black">Nama Produk</th>
+                            <th className="py-4 px-5 text-[10px] font-black">Kategori</th>
+                            <th className="py-4 px-5 text-[10px] font-black text-center">Ukuran</th>
+                            <th className="py-4 px-5 text-[10px] font-black text-center">Cabang</th>
+                            <th className="py-4 px-5 text-[10px] font-black text-center">Masuk Stok</th>
+                            <th className="py-4 px-5 text-[10px] font-black text-center">Mengendap</th>
+                            <th className="py-4 px-5 text-[10px] font-black text-center">Stok</th>
+                            <th className="py-4 px-5 text-[10px] font-black text-center">Aksi</th>
                           </tr>
                         </thead>
-                        <tbody className="text-sm divide-y divide-gray-50 font-bold">
+                        <tbody className="text-sm text-gray-600 divide-y divide-gray-50">
                           {loading ? (
-                            <tr><td colSpan="4" className="text-center py-20"><Loader2 className="animate-spin text-[#990000] mx-auto" /></td></tr>
-                          ) : promoStock.length === 0 ? (
-                            <tr><td colSpan="4" className="text-center py-20 text-gray-400 italic font-medium">Tidak ada produk mengendap saat ini.</td></tr>
+                            <tr><td colSpan="9" className="text-center py-24">
+                              <Loader2 className="w-10 h-10 animate-spin text-[#990000] mx-auto" />
+                              <p className="text-gray-400 text-sm mt-2">Memuat data stok mengendap...</p>
+                            </td></tr>
+                          ) : filteredPromoStock.length === 0 ? (
+                            <tr><td colSpan="9" className="text-center py-24 text-gray-400 font-bold italic">
+                              Tidak ada produk promo yang cocok.
+                            </td></tr>
                           ) : (
-                            promoStock.map(item => (
-                              <tr key={item.id} className="hover:bg-gray-50/50 transition-colors group">
-                                <td className="py-4 px-8 font-black text-gray-900">{item.product_name}</td>
-                                <td className="py-4 px-8 text-center font-black text-xl text-orange-600">{item.stock_qty}</td>
-                                <td className="py-4 px-8 text-center">
-                                  <span className="bg-orange-50 text-orange-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">Stok Lama</span>
-                                </td>
-                                <td className="py-4 px-8 text-center">
-                                  <button
-                                    onClick={() => handleOrderFromStock(item)}
-                                    className="flex items-center gap-2 mx-auto bg-orange-50 text-orange-600 px-6 py-2.5 rounded-xl text-xs font-black hover:bg-orange-600 hover:text-white transition-all active:scale-95 shadow-lg shadow-orange-100 border border-orange-100"
-                                  >
-                                    <Gift size={14} /> Buat Promo
-                                  </button>
-                                </td>
-                              </tr>
-                            ))
+                            filteredPromoStock.map((item, idx) => {
+                              const hari = parseInt(item.hari_mengendap) || 0;
+                              const bulan = Math.floor(hari / 30);
+                              const badgeClass = hari >= 180
+                                ? 'bg-red-100 text-red-700 border border-red-200'
+                                : hari >= 90
+                                  ? 'bg-orange-100 text-orange-700 border border-orange-200'
+                                  : 'bg-amber-100 text-amber-700 border border-amber-200';
+                              const badgeLabel = hari >= 180 ? `${bulan} bln ⚠️` : hari >= 90 ? `${bulan} bln 🔶` : `${bulan} bln`;
+                              const tglMasuk = item.created_at ? new Date(item.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : '-';
+
+                              return (
+                                <tr key={`${item.id}-${idx}`} className="hover:bg-amber-50/30 transition-colors">
+                                  <td className="py-3.5 px-5 font-bold text-gray-500 text-xs uppercase tracking-wide">{item.nama_brand || '-'}</td>
+                                  <td className="py-3.5 px-5 font-black text-gray-900">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center text-red-600 shrink-0">
+                                        <Package size={13} />
+                                      </div>
+                                      {item.product_name}
+                                    </div>
+                                  </td>
+                                  <td className="py-3.5 px-5">
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${item.kategori === 'Utama' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-gray-100 text-gray-600'}`}>{item.kategori || '-'}</span>
+                                  </td>
+                                  <td className="py-3.5 px-5 text-center font-bold text-gray-600 text-xs">{item.ukuran || '-'}</td>
+                                  <td className="py-3.5 px-5 text-center font-medium text-gray-500 text-xs">{item.cabang_id || '-'}</td>
+                                  <td className="py-3.5 px-5 text-center font-bold text-gray-500 text-xs">{tglMasuk}</td>
+                                  <td className="py-3.5 px-5 text-center">
+                                    <span className={`px-3 py-1 rounded-full text-[11px] font-black ${badgeClass}`}>{badgeLabel}</span>
+                                  </td>
+                                  <td className="py-3.5 px-5 text-center font-black text-red-600 text-base">{item.stock_qty} Pcs</td>
+                                  <td className="py-3.5 px-5 text-center">
+                                    <button
+                                      onClick={() => navigate(`/marketing-offline/inventory?q=${encodeURIComponent(item.product_name)}`)}
+                                      className="px-3 py-1.5 bg-[#990000] text-white rounded-xl text-[10px] font-black hover:bg-red-900 transition-all active:scale-95 shadow-lg shadow-red-100 flex items-center gap-1.5 mx-auto"
+                                    >
+                                      <Gift size={13} /> Buat Promo
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })
                           )}
                         </tbody>
                       </table>
@@ -1086,6 +1571,7 @@ export default function MarketingOfflineBanua() {
             </div>
           </div>
         </div>
+      </div>
       </main>
       {/* Upload Quotation Modal */}
       {uploadQuotationModal && (

@@ -44,15 +44,8 @@ import BackupDatabase from './pages/BackupDatabase';
 import MonitoringSystem from './pages/MonitoringSystem';
 import SystemSettings from './pages/SystemSettings';
 
-// Owner Pages
-import OwnerDashboard from './pages/OwnerDashboard';
-import MarketingOverview from './pages/MarketingOverview';
-import FinanceOverview from './pages/FinanceOverview';
-import GudangOverview from './pages/GudangOverview';
-import ProduksiOverview from './pages/ProduksiOverview';
+import OwnerMonitoring from './pages/OwnerMonitoring';
 import ApprovalCenter from './pages/ApprovalCenter';
-import CabangPerformance from './pages/CabangPerformance';
-import UserSummary from './pages/UserSummary';
 
 // Produksi Pages
 import ProduksiDashboard from './pages/ProduksiDashboard';
@@ -78,7 +71,6 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
   const userRole = (user.role || '').toLowerCase();
 
-  // Owner bypass – owners can access any route they are allowed to
   if (userRole === 'owner') {
     return children;
   }
@@ -303,15 +295,9 @@ function App() {
         } />
 
         {/* OWNER ROUTES */}
-        <Route path="/owner/dashboard" element={<ProtectedRoute allowedRoles={['owner']}><OwnerDashboard /></ProtectedRoute>} />
-        <Route path="/owner/marketing" element={<ProtectedRoute allowedRoles={['owner']}><MarketingOverview /></ProtectedRoute>} />
-        <Route path="/owner/finance" element={<ProtectedRoute allowedRoles={['owner']}><FinanceOverview /></ProtectedRoute>} />
-        <Route path="/owner/gudang" element={<ProtectedRoute allowedRoles={['owner']}><GudangOverview /></ProtectedRoute>} />
-        <Route path="/owner/produksi" element={<ProtectedRoute allowedRoles={['owner']}><ProduksiOverview /></ProtectedRoute>} />
-        <Route path="/owner/report/*" element={<ProtectedRoute allowedRoles={['owner']}><ReportCenter /></ProtectedRoute>} />
+        <Route path="/owner/monitoring" element={<ProtectedRoute allowedRoles={['owner']}><OwnerMonitoring /></ProtectedRoute>} />
+        <Route path="/owner/monitoring/:section" element={<ProtectedRoute allowedRoles={['owner']}><OwnerMonitoring /></ProtectedRoute>} />
         <Route path="/finance/approval" element={<ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance']}><ApprovalCenter /></ProtectedRoute>} />
-        <Route path="/owner/cabang" element={<ProtectedRoute allowedRoles={['owner']}><CabangPerformance /></ProtectedRoute>} />
-        <Route path="/owner/users" element={<ProtectedRoute allowedRoles={['owner']}><UserSummary /></ProtectedRoute>} />
 
         {/* PRODUKSI ROUTES */}
         <Route path="/produksi/dashboard" element={<ProtectedRoute allowedRoles={['produksi', 'owner', 'Manager', 'Admin']}><ProduksiDashboard /></ProtectedRoute>} />

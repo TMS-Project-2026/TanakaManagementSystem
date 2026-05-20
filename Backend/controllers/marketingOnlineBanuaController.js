@@ -19,8 +19,9 @@ exports.getDashboard = (req, res) => {
                          FROM marketing_orders_online 
                          WHERE type = 'online' AND branch = 'Banua' 
                          AND order_date >= ?`,
-        topProducts: `SELECT product_name, SUM(qty) as total_qty, SUM(actual) as total_sales FROM marketing_orders_online WHERE type = 'online' AND branch = 'Banua' GROUP BY product_name ORDER BY total_qty DESC LIMIT 10`,
-        salesChart: `SELECT order_date, SUM(actual) as revenue, COUNT(id) as orders FROM marketing_orders_online WHERE type = 'online' AND branch = 'Banua' AND order_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) GROUP BY order_date ORDER BY order_date ASC`
+        topProducts: `SELECT product_name, SUM(qty) as total_qty, SUM(actual) as total_sales FROM marketing_orders_online WHERE type = 'online' AND branch = 'Banua' GROUP BY product_name ORDER BY total_qty DESC LIMIT 5`,
+        salesChart: `SELECT order_date, SUM(actual) as revenue, COUNT(id) as orders FROM marketing_orders_online WHERE type = 'online' AND branch = 'Banua' AND order_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) GROUP BY order_date ORDER BY order_date ASC`,
+        topToko: `SELECT akun_toko, SUM(actual) as total_revenue, COUNT(id) as total_orders, SUM(qty) as total_qty FROM marketing_orders_online WHERE type = 'online' AND branch = 'Banua' AND akun_toko IS NOT NULL AND akun_toko != '' AND akun_toko != '-' GROUP BY akun_toko ORDER BY total_revenue DESC`
     };
 
     let resultData = {
@@ -34,7 +35,8 @@ exports.getDashboard = (req, res) => {
             totalPotongan: 0
         },
         topProducts: [],
-        salesChart: []
+        salesChart: [],
+        topToko: []
     };
 
     db.query(queries.revenueToday, [today], (err1, res1) => {
@@ -57,7 +59,11 @@ exports.getDashboard = (req, res) => {
                         if (err4) return res.status(500).json({ error: err4.message });
                         resultData.salesChart = res4 || [];
 
-                        res.json(resultData);
+                        db.query(queries.topToko, [], (err5, res5) => {
+                            if (err5) return res.status(500).json({ error: err5.message });
+                            resultData.topToko = res5 || [];
+                            res.json(resultData);
+                        });
                     });
                 });
             });
@@ -71,6 +77,50 @@ exports.getOrders = (req, res) => {
     db.query(sql, [], (err, results) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json(results);
+    });
+};
+
+// UPDATE ORDER (edit HPP, qty, harga, dll)
+exports.updateOrder = (req, res) => {
+    const { id } = req.params;
+    const {
+        akun_toko, product_name, qty, price_unit,
+        potongan_shopee, hpp_aktual, order_date, status, catatan
+    } = req.body;
+
+    // Hitung ulang semua field turunan
+    const q   = parseInt(qty) || 0;
+    const pu  = parseFloat(price_unit) || 0;
+    const ps  = parseFloat(potongan_shopee) || 0;
+    const hpp = parseFloat(hpp_aktual) || 0;
+
+    const total_price      = q * pu;
+    const hpp_total        = q * hpp;
+    const total_hpp_aktual = hpp_total + ps;
+    const actual           = total_price - ps;
+    const actual_satuan    = q > 0 ? actual / q : 0;
+    const profit           = actual - hpp_total;
+
+    const sql = `
+        UPDATE marketing_orders_online SET
+            akun_toko = ?, product_name = ?, qty = ?, price_unit = ?,
+            total_price = ?, potongan_shopee = ?, hpp_aktual = ?,
+            hpp = ?, total_hpp_aktual = ?, actual_satuan = ?,
+            actual = ?, profit = ?, order_date = ?, status = ?, catatan = ?
+        WHERE id = ?
+    `;
+    const values = [
+        akun_toko, product_name, q, pu,
+        total_price, ps, hpp,
+        hpp_total, total_hpp_aktual, actual_satuan,
+        actual, profit, order_date, status, catatan || null,
+        id
+    ];
+
+    db.query(sql, values, (err, result) => {
+        if (err) return res.status(500).json({ message: 'Gagal update: ' + err.message });
+        if (result.affectedRows === 0) return res.status(404).json({ message: 'Data tidak ditemukan' });
+        res.json({ message: 'Order berhasil diperbarui' });
     });
 };
 
@@ -198,22 +248,36 @@ exports.ajukanKeFinance = (req, res) => {
     });
 };
 
-// GET PROMO STOCK (Dead Stock > 60 days)
+// GET PROMO STOCK (Dead Stock >= 60 days / Mengendap >= 2 bulan)
 exports.getPromoStock = (req, res) => {
     const sql = `
-        SELECT s.id, s.nama_barang as product_name, s.jumlah as stock_qty, s.kategori
+        SELECT
+            s.id,
+            s.nama_brand,
+            s.nama_barang       AS product_name,
+            s.jumlah            AS stock_qty,
+            s.kategori,
+            s.cabang_id,
+            s.kode_rak,
+            s.ukuran,
+            s.created_at,
+            DATEDIFF(CURDATE(), s.created_at) AS hari_mengendap
         FROM stok s
-        WHERE s.jumlah > 0
-        AND s.nama_barang NOT IN (
-            SELECT DISTINCT product_name 
-            FROM marketing_orders_online 
-            WHERE order_date >= DATE_SUB(CURDATE(), INTERVAL 60 DAY)
-        )
-        ORDER BY s.jumlah DESC
+        WHERE
+            s.jumlah > 0
+            AND s.cabang_id = 'Banua'
+            AND s.created_at <= DATE_SUB(CURDATE(), INTERVAL 60 DAY)
+            AND s.nama_barang NOT IN (
+                SELECT DISTINCT product_name
+                FROM marketing_orders_online
+                WHERE order_date >= DATE_SUB(CURDATE(), INTERVAL 60 DAY)
+                  AND branch = 'Banua'
+            )
+        ORDER BY hari_mengendap DESC
     `;
     db.query(sql, [], (err, results) => {
         if (err) {
-            console.error("Error get promo stock:", err);
+            console.error('Error get promo stock:', err);
             return res.status(500).json({ error: err.message });
         }
         res.json(results);

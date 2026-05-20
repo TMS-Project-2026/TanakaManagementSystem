@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import * as XLSX from 'xlsx';
 import { shopeeDataAdapter } from '../utils/shopeeAdapter';
+import { getStok } from '../api/gudangApi';
 import {
   LayoutDashboard, ShoppingBag, Package, FileText, Upload, Gift,
   TrendingUp, Users, DollarSign, Calendar, Search, Loader2,
@@ -14,7 +15,7 @@ import {
   LineChart, Line
 } from 'recharts';
 
-const MarketingOnlineBanua = () => {
+const MarketingOnlineBanua = ({ embedded = false }) => {
   // Add CSS to hide number spinners
   useEffect(() => {
     const style = document.createElement('style');
@@ -33,10 +34,16 @@ const MarketingOnlineBanua = () => {
   }, []);
 
   const { tab, subtab } = useParams();
-  const activeTab = tab || 'dashboard';
+  const location = useLocation();
+  const navigate = useNavigate();
+  const activeTab = embedded ? 'dashboard' : (tab || 'dashboard');
   const reportSubTab = subtab || 'harian';
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef(null);
+
+  // Ambil pre-fill search dari query param ?q=... (dipakai saat redirect dari Promo)
+  const searchParams = new URLSearchParams(location.search);
+  const promoHighlight = searchParams.get('q') || '';
 
   // Data States
   const [dashboardData, setDashboardData] = useState({
@@ -50,10 +57,13 @@ const MarketingOnlineBanua = () => {
       totalPotongan: 0
     },
     topProducts: [],
-    salesChart: []
+    salesChart: [],
+    topToko: []
   });
   const [orders, setOrders] = useState([]);
   const [inventory, setInventory] = useState([]);
+  const [stokGudang, setStokGudang] = useState([]);
+  const [stokSearch, setStokSearch] = useState(promoHighlight);
   const [promoStock, setPromoStock] = useState([]);
   const [reports, setReports] = useState({ harian: [], bulanan: [] });
   const [dbProducts, setDbProducts] = useState([]);
@@ -73,6 +83,10 @@ const MarketingOnlineBanua = () => {
 
   const [reportComparisonData, setReportComparisonData] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [tooltipProduk, setTooltipProduk] = useState(null);
+  const [expandedProduct, setExpandedProduct] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editOrder, setEditOrder] = useState(null);
   const [manualOrder, setManualOrder] = useState({
     customer_name: '', akun_toko: '', product_name: '', qty: '', price_unit: '',
     potongan_shopee: '', hpp_aktual: '', order_date: new Date().toISOString().split('T')[0],
@@ -115,6 +129,16 @@ const MarketingOnlineBanua = () => {
     (o.customer_name || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const filteredPromoStock = promoStock.filter(item =>
+    (item.nama_brand || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (item.product_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (item.cabang_id || '').toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredReportComparisonData = reportComparisonData.filter(item =>
+    (item.account || '').toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const fetchDashboard = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -141,9 +165,10 @@ const MarketingOnlineBanua = () => {
   const fetchInventory = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:3000/api/marketing-online-banua/inventory', { headers: { Authorization: `Bearer ${token}` } });
-      setInventory(res.data);
+      const res = await getStok('Banua');
+      if (res.data.status === 'success') {
+        setInventory(res.data.data);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -252,10 +277,45 @@ const MarketingOnlineBanua = () => {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         alert("Pesanan berhasil diajukan ke Finance.");
-        fetchOrders(); // Refresh data
+        fetchOrders();
       } catch (err) {
         alert("Gagal mengajukan ke Finance: " + (err.response?.data?.message || err.message));
       }
+    }
+  };
+
+  const handleOpenEdit = (order) => {
+    setEditOrder({
+      id: order.id,
+      akun_toko: order.akun_toko || '',
+      product_name: order.product_name || '',
+      qty: order.qty || '',
+      price_unit: order.price_unit || '',
+      potongan_shopee: order.potongan_shopee || '',
+      hpp_aktual: order.hpp_aktual || '',
+      order_date: order.order_date ? order.order_date.split('T')[0] : new Date().toISOString().split('T')[0],
+      status: order.status || 'Pesanan Selesai',
+      catatan: order.catatan || ''
+    });
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editOrder?.id) return;
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      await axios.put(`http://localhost:3000/api/marketing-online-banua/orders/${editOrder.id}`, editOrder, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      alert('Order berhasil diperbarui!');
+      setShowEditModal(false);
+      setEditOrder(null);
+      fetchOrders();
+    } catch (err) {
+      alert('Gagal memperbarui: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -289,12 +349,21 @@ const MarketingOnlineBanua = () => {
   }, []);
 
   useEffect(() => {
+    setSearchQuery('');
+    if (activeTab !== 'inventory') {
+      setStokSearch('');
+    }
+
     if (activeTab === 'dashboard') fetchDashboard();
     else if (activeTab === 'orders') {
       fetchOrders();
       fetchDbProducts();
     }
-    else if (activeTab === 'inventory') fetchInventory();
+    else if (activeTab === 'inventory') {
+      fetchInventory();
+      // Sync search dari URL param saat masuk tab inventory dari Promo
+      if (promoHighlight) setStokSearch(promoHighlight);
+    }
     else if (activeTab === 'reports') fetchReports();
     else if (activeTab === 'promo') fetchPromo();
   }, [activeTab, reportSubTab, filterDate1, filterDate2]);
@@ -643,13 +712,19 @@ const MarketingOnlineBanua = () => {
     const profit = actual - hpp;
 
     const finalOrder = {
-      ...manualOrder,
+      customer_name: manualOrder.customer_name || '-',
+      akun_toko: manualOrder.akun_toko || '-',
+      product_name: manualOrder.product_name || '-',
+      address: manualOrder.address || '-',
+      order_date: manualOrder.order_date || new Date().toISOString().split('T')[0],
+      status: manualOrder.status || 'Pesanan Selesai',
+      catatan: manualOrder.catatan || '',
       qty,
       price_unit,
-      hpp_aktual,
+      hpp_aktual,       // nilai satuan HPP yang diinput user (number)
       potongan_shopee,
       total_price,
-      hpp,
+      hpp,              // = qty × hpp_aktual
       total_hpp_aktual,
       actual_satuan,
       actual,
@@ -680,20 +755,36 @@ const MarketingOnlineBanua = () => {
 
   return (
     <div className="flex bg-[#f3f4f6] min-h-screen font-sans relative">
-      <Sidebar />
+      {!embedded && <Sidebar />}
       <main className="flex-1 flex flex-col pt-16 md:pt-0 h-screen overflow-hidden">
-        {/* TOPBAR SEARCH (As per screenshot) */}
-        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center px-10 sticky top-0 z-30 justify-between shrink-0">
-          <div className="relative w-full max-w-lg">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-            <input
-              type="text"
-              placeholder="Cari data marketplace..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-14 pr-6 py-3 bg-gray-50 border border-gray-100 rounded-full text-sm focus:outline-none focus:ring-4 focus:ring-red-50 focus:bg-white focus:border-red-200 transition-all shadow-inner"
-            />
-          </div>
+        {/* TOPBAR SEARCH & PROFILE */}
+        <header className={`h-20 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center px-10 sticky top-0 z-30 shrink-0 ${activeTab !== 'dashboard' ? 'justify-between' : 'justify-end'}`}>
+          {activeTab !== 'dashboard' && (
+            <div className="relative w-full max-w-lg">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+              <input
+                type="text"
+                placeholder={
+                  activeTab === 'orders'
+                    ? "Cari data order online..."
+                    : activeTab === 'promo'
+                    ? "Cari data promo online..."
+                    : activeTab === 'inventory'
+                    ? "Cari brand, barang, kategori..."
+                    : "Cari data..."
+                }
+                value={activeTab === 'inventory' ? stokSearch : searchQuery}
+                onChange={(e) => {
+                  if (activeTab === 'inventory') {
+                    setStokSearch(e.target.value);
+                  } else {
+                    setSearchQuery(e.target.value);
+                  }
+                }}
+                className="w-full pl-14 pr-6 py-3 bg-gray-50 border border-gray-100 rounded-full text-sm focus:outline-none focus:ring-4 focus:ring-red-50 focus:bg-white focus:border-red-200 transition-all shadow-inner"
+              />
+            </div>
+          )}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-2xl border border-gray-100">
               <div className="bg-gray-100 p-2 rounded-full cursor-pointer hover:bg-gray-200 transition-colors" onClick={() => setShowProfile(!showProfile)}>
@@ -713,25 +804,61 @@ const MarketingOnlineBanua = () => {
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto px-10 py-10 bg-[#f8fafc]">
-          {/* Dynamic Header Module Title */}
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
-            <div>
-              <h1 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
-                {activeTab === 'dashboard' && 'Dashboard Online'}
-                {activeTab === 'orders' && 'Order Marketplace'}
-                {activeTab === 'inventory' && 'Stok Inventori'}
-                {activeTab === 'reports' && (reportSubTab === 'bulanan' ? 'Laporan Bulanan Online' : 'Laporan Harian Online')}
-                {activeTab === 'promo' && 'Promo Online'}
-              </h1>
-              <p className="text-gray-500 mt-2 text-sm font-medium">
-                {activeTab === 'dashboard' && 'Ringkasan performa penjualan marketplace'}
-                {activeTab === 'orders' && 'Manajemen data transaksi dan pesanan pelanggan online'}
-                {activeTab === 'inventory' && 'Pantau ketersediaan stok produk untuk marketplace'}
-                {activeTab === 'reports' && 'Analisis perbandingan pendapatan harian dan bulanan'}
-                {activeTab === 'promo' && 'Daftar produk mengendap untuk program cuci gudang'}
-              </p>
-            </div>
+        <div className="flex-1 overflow-y-auto px-6 pb-6 bg-[#f3f4f6] pt-6">
+          <div className={activeTab === 'dashboard' ? '' : 'bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100'}>
+            {/* Dynamic Header Module Title */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
+              <div>
+                <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-tight flex items-center gap-3">
+                  {activeTab === 'dashboard' && (
+                    <>
+                      <div className="bg-red-50 border border-red-100 p-2 rounded-lg shadow-sm">
+                        <LayoutDashboard className="text-[#990000]" size={20} />
+                      </div>
+                      Dashboard Online
+                    </>
+                  )}
+                  {activeTab === 'orders' && (
+                    <>
+                      <div className="bg-blue-50 border border-blue-100 p-2 rounded-lg shadow-sm">
+                        <ShoppingBag className="text-blue-600" size={20} />
+                      </div>
+                      Order Marketplace
+                    </>
+                  )}
+                  {activeTab === 'inventory' && (
+                    <>
+                      <div className="bg-indigo-50 border border-indigo-100 p-2 rounded-lg shadow-sm">
+                        <Package className="text-indigo-600" size={20} />
+                      </div>
+                      Stok Inventori
+                    </>
+                  )}
+                  {activeTab === 'reports' && (
+                    <>
+                      <div className="bg-violet-50 border border-violet-100 p-2 rounded-lg shadow-sm">
+                        <TrendingUp className="text-violet-600" size={20} />
+                      </div>
+                      {reportSubTab === 'bulanan' ? 'Laporan Bulanan Online' : 'Laporan Harian Online'}
+                    </>
+                  )}
+                  {activeTab === 'promo' && (
+                    <>
+                      <div className="bg-rose-50 border border-rose-100 p-2 rounded-lg shadow-sm">
+                        <Gift className="text-rose-600" size={20} />
+                      </div>
+                      Promo Online
+                    </>
+                  )}
+                </h1>
+                <p className="text-sm text-gray-500 mt-2 font-medium">
+                  {activeTab === 'dashboard' && 'Kelola rangkuman data transaksi dan statistik toko online secara ringkas.'}
+                  {activeTab === 'orders' && 'Pantau status pesanan pelanggan dan impor data order dari Excel marketplace.'}
+                  {activeTab === 'inventory' && 'Pantau ketersediaan stok fisik barang siap jual secara real-time.'}
+                  {activeTab === 'reports' && 'Analisis performa pendapatan cabang antar-periode menggunakan tabel & grafik visual.'}
+                  {activeTab === 'promo' && 'Identifikasi produk mengendap lebih dari 60 hari untuk strategi diskon kilat.'}
+                </p>
+              </div>
 
             {/* Action Buttons (As per screenshot colors) */}
             {activeTab === 'orders' && (
@@ -837,50 +964,142 @@ const MarketingOnlineBanua = () => {
                   </div>
                 </div>
 
-                {/* Top Products vs Sales - Bar Chart (1/3 width) */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                  <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                    <Package className="text-orange-500" size={22} /> Top Produk vs Sales
+                {/* Top Products vs Sales - Ranking List */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+                  <h3 className="text-xl font-bold text-gray-800 mb-5 flex items-center gap-2">
+                    <Package className="text-orange-500" size={22} /> Top 5 Produk
                   </h3>
-                  <div className="h-80 w-full">
-                    {dashboardData.topProducts.length > 0 ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={dashboardData.topProducts} layout="vertical" margin={{ left: -20 }}>
-                          <XAxis type="number" hide />
-                          <YAxis
-                            dataKey="product_name"
-                            type="category"
-                            tick={{ fontSize: 10, fill: '#64748b', fontWeight: 'bold' }}
-                            width={100}
-                            axisLine={false}
-                            tickLine={false}
-                          />
-                          <RechartsTooltip
-                            formatter={(value, name) => [name === 'total_sales' ? formatRupiah(value) : value, name === 'total_sales' ? 'Sales' : 'Qty']}
-                            contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                          />
-                          <Bar dataKey="total_qty" name="Qty Terjual" fill="#990000" radius={[0, 4, 4, 0]} barSize={20} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="h-full flex items-center justify-center text-gray-400 font-medium text-center">Belum ada data produk terlaris</div>
-                    )}
-                  </div>
-
-                  {/* Small List for extra detail */}
-                  <div className="mt-4 space-y-2 overflow-y-auto max-h-40 pr-2 custom-scrollbar">
-                    {dashboardData.topProducts.slice(0, 5).map((p, idx) => (
-                      <div key={idx} className="flex items-center justify-between text-xs p-2 bg-gray-50 rounded-lg border border-gray-100">
-                        <span className="font-bold text-gray-700 truncate w-24" title={p.product_name}>{p.product_name}</span>
-                        <div className="text-right">
-                          <span className="font-black text-[#990000]">{p.total_qty} Qty</span>
-                          <span className="block text-[9px] text-gray-400 font-bold">{formatRupiah(p.total_sales)}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  {dashboardData.topProducts.length > 0 ? (
+                    <div className="space-y-3">
+                      {dashboardData.topProducts.slice(0, 5).map((p, idx) => {
+                        const maxQty = dashboardData.topProducts[0]?.total_qty || 1;
+                        const pct = Math.round((p.total_qty / maxQty) * 100);
+                        const rankColors = ['#990000', '#c0392b', '#e74c3c', '#e67e22', '#f39c12'];
+                        const badgeBg = ['bg-red-900', 'bg-red-700', 'bg-red-500', 'bg-orange-500', 'bg-yellow-500'];
+                        return (
+                          <div key={idx} className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              <span className={`${badgeBg[idx]} text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shrink-0`}>
+                                {idx + 1}
+                              </span>
+                              {/* Nama produk — klik untuk lihat nama lengkap */}
+                              <div className="relative flex-1 min-w-0">
+                                <button
+                                  onClick={() => setTooltipProduk(tooltipProduk === idx ? null : idx)}
+                                  className="text-xs font-bold text-gray-800 truncate w-full text-left hover:text-[#990000] transition-colors cursor-pointer"
+                                  title="Klik untuk lihat nama lengkap"
+                                >
+                                  {p.product_name}
+                                </button>
+                                {/* Popup nama lengkap */}
+                                {tooltipProduk === idx && (
+                                  <div
+                                    className="absolute left-0 top-full mt-1 z-50 bg-gray-900 text-white text-xs font-semibold px-3 py-2 rounded-xl shadow-2xl max-w-[220px] leading-snug"
+                                    style={{ animation: 'fadeInDown 0.15s ease' }}
+                                  >
+                                    <span className="text-orange-300 font-black text-[10px] uppercase tracking-wider block mb-0.5">Nama Produk</span>
+                                    {p.product_name}
+                                    {/* Panah atas */}
+                                    <div className="absolute -top-1.5 left-4 w-3 h-3 bg-gray-900 rotate-45 rounded-sm" />
+                                  </div>
+                                )}
+                              </div>
+                              <span className="text-xs font-black text-[#990000] shrink-0">{p.total_qty} Qty</span>
+                            </div>
+                            <div className="flex items-center gap-2 pl-7">
+                              <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                                <div
+                                  className="h-2 rounded-full transition-all duration-700"
+                                  style={{ width: `${pct}%`, backgroundColor: rankColors[idx] }}
+                                />
+                              </div>
+                              <span className="text-[10px] text-gray-400 font-semibold shrink-0 w-20 text-right">
+                                {formatRupiah(p.total_sales)}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center text-gray-400 font-medium text-center text-sm">
+                      Belum ada data produk terlaris
+                    </div>
+                  )}
                 </div>
               </div>
+
+              {/* Top Toko - Persentase Kontribusi Revenue */}
+              {dashboardData.topToko.length > 0 && (() => {
+                const totalRevAll = dashboardData.topToko.reduce((s, t) => s + parseFloat(t.total_revenue || 0), 0);
+                const palette = [
+                  '#990000','#c0392b','#e74c3c','#e67e22','#f39c12',
+                  '#27ae60','#2980b9','#8e44ad','#16a085','#d35400',
+                  '#2c3e50','#1abc9c','#e91e63','#ff5722','#607d8b'
+                ];
+                return (
+                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <div className="flex items-center justify-between mb-5">
+                      <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="text-blue-500" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+                        Kontribusi Toko
+                      </h3>
+                      <span className="text-xs font-black text-gray-400 uppercase tracking-wider bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
+                        {dashboardData.topToko.length} Toko
+                      </span>
+                    </div>
+
+                    {/* Stacked 100% bar di atas */}
+                    <div className="flex h-6 w-full rounded-xl overflow-hidden mb-4 shadow-inner">
+                      {dashboardData.topToko.map((t, i) => {
+                        const pct = totalRevAll > 0 ? (parseFloat(t.total_revenue) / totalRevAll) * 100 : 0;
+                        return (
+                          <div
+                            key={i}
+                            style={{ width: `${pct}%`, backgroundColor: palette[i % palette.length] }}
+                            title={`${t.akun_toko}: ${pct.toFixed(1)}%`}
+                            className="transition-all duration-500 cursor-default"
+                          />
+                        );
+                      })}
+                    </div>
+
+                    {/* List per toko dengan bar persentase individual */}
+                    <div className="space-y-2 mt-2 max-h-[340px] overflow-y-auto pr-1 custom-scrollbar">
+                      {dashboardData.topToko.map((t, i) => {
+                        const pct = totalRevAll > 0 ? (parseFloat(t.total_revenue) / totalRevAll) * 100 : 0;
+                        const color = palette[i % palette.length];
+                        return (
+                          <div key={i} className="flex items-center gap-3">
+                            {/* Warna dot */}
+                            <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                            {/* Nama toko */}
+                            <span className="text-[11px] font-bold text-gray-700 w-32 shrink-0 truncate" title={t.akun_toko}>
+                              {t.akun_toko}
+                            </span>
+                            {/* Bar */}
+                            <div className="flex-1 bg-gray-100 rounded-full h-3 overflow-hidden">
+                              <div
+                                className="h-3 rounded-full transition-all duration-700"
+                                style={{ width: `${pct}%`, backgroundColor: color }}
+                              />
+                            </div>
+                            {/* Persen */}
+                            <span className="text-[11px] font-black w-10 text-right shrink-0" style={{ color }}>
+                              {pct.toFixed(1)}%
+                            </span>
+                            {/* Revenue */}
+                            <span className="text-[10px] text-gray-400 font-semibold w-24 text-right shrink-0">
+                              {formatRupiah(t.total_revenue)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
             </div>
           )}
 
@@ -970,12 +1189,13 @@ const MarketingOnlineBanua = () => {
                           <ChevronDown size={10} className="text-red-400" />
                         </div>
                       </th>
-                      <th className="py-3 px-3 font-semibold text-left min-w-[180px]">
+                      <th className="py-3 px-3 font-semibold border-r border-gray-800 text-left min-w-[180px]">
                         <div className="flex items-center justify-between gap-1">
                           <span>CATATAN</span>
                           <ChevronDown size={10} className="text-red-400" />
                         </div>
                       </th>
+                      <th className="py-3 px-3 font-semibold text-center min-w-[80px]">AKSI</th>
                     </tr>
                   </thead>
                   <tbody className="text-xs text-gray-800 font-sans">
@@ -1015,7 +1235,11 @@ const MarketingOnlineBanua = () => {
                             <td className="py-2.5 px-3 border-r border-gray-100 text-center text-gray-300 text-[10px] select-none font-bold"></td>
                             <td className="py-2.5 px-3 border-r border-gray-100 font-bold text-gray-900 whitespace-nowrap">{formatIndoLongDate(order.order_date)}</td>
                             <td className="py-2.5 px-3 border-r border-gray-100 font-black text-gray-800 uppercase text-[10px] tracking-wide whitespace-nowrap">{order.akun_toko || '-'}</td>
-                            <td className="py-2.5 px-3 border-r border-gray-100 font-bold text-gray-900 max-w-[200px] truncate" title={order.product_name}>{order.product_name}</td>
+                            <td
+                              className={`py-2.5 px-3 border-r border-gray-100 font-bold text-gray-900 cursor-pointer select-none transition-all ${expandedProduct === (order.id || idx) ? 'max-w-none whitespace-normal text-[#990000]' : 'max-w-[200px] truncate hover:text-[#990000]'}`}
+                              onClick={() => setExpandedProduct(expandedProduct === (order.id || idx) ? null : (order.id || idx))}
+                              title={expandedProduct === (order.id || idx) ? 'Klik untuk tutup' : 'Klik untuk lihat nama lengkap'}
+                            >{order.product_name}</td>
                             <td className="py-2.5 px-3 border-r border-gray-100 text-center font-black text-red-600 text-sm">{qty}</td>
                             <td className="py-2.5 px-3 border-r border-gray-100 text-right font-medium text-gray-800">{formatExcelNumber(price_unit)}</td>
                             <td className="py-2.5 px-3 border-r border-gray-100 text-right font-black text-gray-900">{formatExcelNumber(total_price)}</td>
@@ -1026,7 +1250,16 @@ const MarketingOnlineBanua = () => {
                             <td className="py-2.5 px-3 border-r border-gray-100 text-right font-black text-blue-700">{formatExcelNumber(actual_satuan)}</td>
                             <td className="py-2.5 px-3 border-r border-gray-100 text-right font-black text-gray-900">{formatExcelNumber(actual)}</td>
                             <td className={`py-2.5 px-3 border-r border-gray-100 text-right font-black ${profit >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>{formatExcelNumber(profit)}</td>
-                            <td className="py-2.5 px-3 border-gray-100 text-gray-600 font-bold max-w-[180px] truncate" title={order.catatan || order.address}>{order.catatan || order.address || '-'}</td>
+                            <td className="py-2.5 px-3 border-r border-gray-100 text-gray-600 font-bold max-w-[180px] truncate" title={order.catatan || order.address}>{order.catatan || order.address || '-'}</td>
+                            <td className="py-2.5 px-3 text-center">
+                              <button
+                                onClick={() => handleOpenEdit(order)}
+                                className="inline-flex items-center gap-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-lg text-[10px] font-black transition-all hover:scale-105 active:scale-95"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                Edit
+                              </button>
+                            </td>
                           </tr>
                         );
                       })
@@ -1038,62 +1271,152 @@ const MarketingOnlineBanua = () => {
           )}
 
           {/* TAB: INVENTORY */}
-          {activeTab === 'inventory' && (
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead className="bg-gray-900 border-b border-gray-800 text-xs text-white uppercase tracking-wider font-bold">
-                    <tr>
-                      <th className="py-4 px-6">Nama Produk</th>
-                      <th className="py-4 px-6 text-center">Stok Tersedia</th>
-                      <th className="py-4 px-6 text-center">Status Stok</th>
-                      <th className="py-4 px-6 text-center">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-sm text-gray-700 divide-y divide-gray-100">
-                    {loading ? (
-                      <tr><td colSpan="4" className="text-center py-10"><Loader2 className="animate-spin text-[#990000] mx-auto" /></td></tr>
-                    ) : inventory.length === 0 ? (
-                      <tr><td colSpan="4" className="text-center py-10 text-gray-500">Belum ada data inventori online.</td></tr>
-                    ) : (
-                      inventory.map(item => (
-                        <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="py-4 px-6 font-bold text-gray-900 flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center">
-                              <Package className="text-gray-400" size={18} />
-                            </div>
-                            {item.product_name}
-                          </td>
-                          <td className="py-4 px-6 text-center font-black text-lg">{item.stock_qty}</td>
-                          <td className="py-4 px-6 text-center">
-                            {item.stock_qty > 10 ? (
-                              <span className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-xs font-bold">Aman</span>
-                            ) : item.stock_qty > 0 ? (
-                              <span className="bg-orange-50 text-orange-600 px-3 py-1 rounded-full text-xs font-bold">Menipis</span>
-                            ) : (
-                              <span className="bg-red-50 text-red-600 px-3 py-1 rounded-full text-xs font-bold">Habis</span>
-                            )}
-                          </td>
-                          <td className="py-4 px-6 text-center">
-                            <button
-                              onClick={() => handleOrderFromStock(item)}
-                              disabled={item.stock_qty <= 0}
-                              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 mx-auto ${item.stock_qty > 0
-                                  ? 'bg-red-800 text-white hover:bg-red-900 shadow-sm'
-                                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                }`}
-                            >
-                              <ShoppingBag size={14} /> Pesan Sekarang
-                            </button>
-                          </td>
+          {activeTab === 'inventory' && (() => {
+            const sizesArray = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'XXXXL', 'XXXXXL', 'All Size'];
+
+            // Grouping stok identik dengan Stok.jsx
+            const groupedStok = Object.values(inventory.reduce((acc, curr) => {
+              const brand = (curr.nama_brand || '').trim().toLowerCase();
+              const nama  = (curr.nama_barang || '').trim().toLowerCase();
+              const cabang = (curr.cabang_id || '').trim().toLowerCase();
+              const key = `${brand}|${nama}|${cabang}`;
+              if (!acc[key]) {
+                acc[key] = {
+                  id: curr.id,
+                  nama_brand: curr.nama_brand || '-',
+                  nama_barang: curr.nama_barang || '-',
+                  kategori: curr.kategori || '-',
+                  cabang_id: curr.cabang_id || '-',
+                  kode_rak: curr.kode_rak || '-',
+                  total_stok: 0,
+                  minimum_stok: curr.minimum_stok || 5,
+                  sizes: { XS:0, S:0, M:0, L:0, XL:0, XXL:0, XXXL:0, XXXXL:0, XXXXXL:0, 'All Size':0 }
+                };
+              }
+              acc[key].total_stok += Number(curr.jumlah) || 0;
+              if (curr.ukuran && acc[key].sizes[curr.ukuran] !== undefined)
+                acc[key].sizes[curr.ukuran] += Number(curr.jumlah) || 0;
+              if (curr.minimum_stok && curr.minimum_stok > acc[key].minimum_stok)
+                acc[key].minimum_stok = curr.minimum_stok;
+              return acc;
+            }, {}));
+
+            const filteredStok = groupedStok.filter(item => {
+              const q = stokSearch.toLowerCase();
+              return (
+                item.nama_barang.toLowerCase().includes(q) ||
+                item.nama_brand.toLowerCase().includes(q) ||
+                item.cabang_id.toLowerCase().includes(q) ||
+                item.kategori.toLowerCase().includes(q)
+              );
+            });
+
+            return (
+              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {promoHighlight && stokSearch === promoHighlight && (
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full flex items-center gap-1 shadow-sm">
+                      🔍 Filter dari Promo: <strong>{promoHighlight}</strong>
+                    </span>
+                    <button
+                      onClick={() => { setStokSearch(''); navigate('/marketing-online/inventory'); }}
+                      className="text-[10px] text-gray-400 hover:text-gray-600 font-bold bg-white px-2 py-1 rounded-full border border-gray-200 shadow-sm"
+                    >✕ Hapus</button>
+                  </div>
+                )}
+
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                  <div className="overflow-x-auto custom-scrollbar">
+                    <table className="w-full text-left border-collapse">
+                      <thead className="bg-gray-900 text-xs text-white uppercase tracking-wider font-semibold sticky top-0 z-10">
+                        <tr>
+                          <th className="p-4">Brand</th>
+                          <th className="p-4">Nama Barang</th>
+                          <th className="p-4">Kategori</th>
+                          <th className="p-4">Cabang</th>
+                          {sizesArray.map(size => (
+                            <th key={size} className="p-4 text-center w-14">{size}</th>
+                          ))}
+                          <th className="p-4 text-center w-28">Total Stok</th>
+                          <th className="p-4 text-center w-28">Min. Stok</th>
+                          <th className="p-4">Rak</th>
+                          <th className="p-4 text-center w-36">Aksi</th>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                      </thead>
+                      <tbody>
+                        {loading ? (
+                          <tr><td colSpan={17} className="text-center py-16">
+                            <Loader2 className="animate-spin text-[#990000] mx-auto w-8 h-8" />
+                            <p className="text-gray-400 text-sm mt-2 font-medium">Memuat data stok...</p>
+                          </td></tr>
+                        ) : filteredStok.length === 0 ? (
+                          <tr><td colSpan={17} className="text-center py-16 text-gray-400 font-medium">Belum ada data stok barang.</td></tr>
+                        ) : (
+                          filteredStok.map((item, idx) => (
+                            <tr key={idx} className={`border-b border-gray-100 text-sm transition-colors ${
+                              promoHighlight && (item.nama_barang.toLowerCase().includes(promoHighlight.toLowerCase()))
+                                ? 'bg-amber-50/60 hover:bg-amber-100/60'
+                                : 'hover:bg-gray-50'
+                            }`}>
+                              <td className="p-4 font-medium text-gray-600">{item.nama_brand}</td>
+                              <td className="p-4 font-bold text-gray-800">{item.nama_barang}</td>
+                              <td className="p-4">
+                                <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${
+                                  item.kategori === 'Utama' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-gray-100 text-gray-600'
+                                }`}>{item.kategori}</span>
+                              </td>
+                              <td className="p-4 text-gray-700 font-medium">{item.cabang_id}</td>
+                              {sizesArray.map(size => {
+                                const qty = item.sizes[size] || 0;
+                                return (
+                                  <td key={size} className="p-4 text-center bg-gray-50/10 border-x border-gray-100 font-extrabold text-gray-800">
+                                    {qty > 0 ? qty : <span className="text-gray-300 font-normal">-</span>}
+                                  </td>
+                                );
+                              })}
+                              <td className="p-4 text-center font-extrabold text-red-600 text-base">{item.total_stok} Pcs</td>
+                              <td className="p-4 text-center bg-gray-50/10 border-l border-gray-100">
+                                <span className="bg-red-50 border border-red-100 text-red-700 px-2.5 py-1 rounded-full text-xs font-bold">
+                                  {item.minimum_stok} Pcs
+                                </span>
+                              </td>
+                              <td className="p-4 font-semibold text-gray-600">{item.kode_rak}</td>
+                              <td className="p-4 text-center">
+                                <button
+                                  onClick={() => {
+                                    setManualOrder(prev => ({
+                                      ...prev,
+                                      product_name: item.nama_barang,
+                                      akun_toko: '',
+                                      qty: 1,
+                                      price_unit: '',
+                                      potongan_shopee: '',
+                                      hpp_aktual: '',
+                                      order_date: new Date().toISOString().split('T')[0],
+                                      status: 'Pesanan Selesai'
+                                    }));
+                                    setShowManualModal(true);
+                                  }}
+                                  disabled={item.total_stok <= 0}
+                                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 mx-auto ${
+                                    item.total_stok > 0
+                                      ? 'bg-[#990000] text-white hover:bg-red-900 shadow-sm hover:shadow-md active:scale-95'
+                                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                  }`}
+                                >
+                                  <ShoppingBag size={13} /> Pesan Sekarang
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {activeTab === 'reports' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -1122,12 +1445,6 @@ const MarketingOnlineBanua = () => {
                     onChange={e => setFilterDate2(reportSubTab === 'harian' ? e.target.value : e.target.value + "-01")}
                   />
                 </div>
-                <button
-                  onClick={fetchReports}
-                  className="bg-[#990000] text-white px-8 py-3 rounded-xl font-bold hover:bg-red-800 transition-all shadow-lg shadow-red-100"
-                >
-                  Proses Laporan
-                </button>
               </div>
 
               {/* Data Table */}
@@ -1146,9 +1463,9 @@ const MarketingOnlineBanua = () => {
                       </tr>
                     </thead>
                     <tbody className="text-sm">
-                      {reportComparisonData.length > 0 ? (
+                      {filteredReportComparisonData.length > 0 ? (
                         reportSubTab === 'harian' ? (
-                          reportComparisonData.map((row, idx) => (
+                          filteredReportComparisonData.map((row, idx) => (
                             <React.Fragment key={idx}>
                               <tr className="hover:bg-blue-50/30 transition-colors">
                                 <td rowSpan={2} className="py-6 px-6 text-center font-bold text-gray-400 border-x border-b border-gray-100">{idx + 1}</td>
@@ -1172,7 +1489,7 @@ const MarketingOnlineBanua = () => {
                             </React.Fragment>
                           ))
                         ) : (
-                          reportComparisonData.map((row, idx) => (
+                          filteredReportComparisonData.map((row, idx) => (
                             <React.Fragment key={idx}>
                               <tr className="hover:bg-blue-50/30 transition-colors">
                                 <td rowSpan={2} className="py-6 px-6 text-center font-bold text-gray-400 border-x border-b border-gray-100">{idx + 1}</td>
@@ -1198,7 +1515,7 @@ const MarketingOnlineBanua = () => {
                         )
                       ) : (
                         <tr>
-                          <td colSpan={5} className="py-20 text-center text-gray-400 font-medium italic">Tidak ada data untuk periode terpilih</td>
+                          <td colSpan={5} className="py-20 text-center text-gray-400 font-medium italic">Tidak ada data untuk periode terpilih atau cocok.</td>
                         </tr>
                       )}
                     </tbody>
@@ -1206,7 +1523,7 @@ const MarketingOnlineBanua = () => {
                       <tr className="bg-gray-900 text-white font-black uppercase text-xs">
                         <td colSpan={3} className="py-5 px-6 text-right">Total Pendapatan (Periode Berjalan)</td>
                         <td className="py-5 px-6 text-right text-emerald-400 text-lg">
-                          {formatRupiah(reportComparisonData.reduce((acc, curr) => acc + (reportSubTab === 'harian' ? curr.revenue : curr.val1), 0))}
+                          {formatRupiah(filteredReportComparisonData.reduce((acc, curr) => acc + (reportSubTab === 'harian' ? curr.revenue : curr.val1), 0))}
                         </td>
                         <td></td>
                       </tr>
@@ -1236,7 +1553,7 @@ const MarketingOnlineBanua = () => {
 
                 <div className="h-96 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={reportComparisonData}>
+                    <BarChart data={filteredReportComparisonData}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                       <XAxis
                         dataKey="account"
@@ -1266,65 +1583,113 @@ const MarketingOnlineBanua = () => {
             </div>
           )}
 
-          {/* TAB: PROMO ONLINE (Table Style) */}
+          {/* TAB: PROMO ONLINE */}
           {activeTab === 'promo' && (
-            <div className="bg-white rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead className="bg-gray-900 border-b border-gray-800 text-white uppercase tracking-wider">
-                    <tr>
-                      <th className="py-4 px-6 text-[10px] font-black">Nama Produk</th>
-                      <th className="py-4 px-6 text-[10px] font-black">Kategori</th>
-                      <th className="py-4 px-6 text-[10px] font-black text-center">Sejak Tanggal</th>
-                      <th className="py-4 px-6 text-[10px] font-black text-center">Stok Mengendap</th>
-                      <th className="py-4 px-6 text-[10px] font-black text-center">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-sm text-gray-600 divide-y divide-gray-50">
-                    {loading ? (
-                      <tr><td colSpan="5" className="text-center py-24"><Loader2 className="w-10 h-10 animate-spin text-[#990000] mx-auto" /></td></tr>
-                    ) : promoStock.filter(item => {
-                      if (!item.last_sold_date) return true;
-                      const diff = new Date() - new Date(item.last_sold_date);
-                      return diff / (1000 * 60 * 60 * 24) >= 60;
-                    }).length === 0 ? (
-                      <tr><td colSpan="5" className="text-center py-24 text-gray-400 font-bold italic">Tidak ada produk yang mengendap (&gt; 60 hari).</td></tr>
-                    ) : (
-                      promoStock.filter(item => {
-                        if (!item.last_sold_date) return true;
-                        const diff = new Date() - new Date(item.last_sold_date);
-                        return diff / (1000 * 60 * 60 * 24) >= 60;
-                      }).map(item => (
-                        <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="py-4 px-6 font-black text-gray-900">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center text-red-600">
-                                <Package size={14} />
-                              </div>
-                              {item.product_name}
-                            </div>
-                          </td>
-                          <td className="py-4 px-6 font-medium text-gray-500 uppercase text-[10px] tracking-widest">{item.kategori || '-'}</td>
-                          <td className="py-4 px-6 text-center font-bold text-gray-600">{item.last_sold_date ? formatDate(item.last_sold_date) : 'Stok Lama'}</td>
-                          <td className="py-4 px-6 text-center font-black text-red-600 text-lg">{item.stock_qty}</td>
-                          <td className="py-4 px-6 text-center">
-                            <button
-                              onClick={() => handleOrderFromStock(item)}
-                              className="px-4 py-2 bg-red-800 text-white rounded-xl text-[10px] font-black hover:bg-red-900 transition-all active:scale-95 shadow-lg shadow-red-100 flex items-center gap-2 mx-auto"
-                            >
-                              <Gift size={14} /> Buat Promo
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-8 duration-700">
+
+              {/* Info banner */}
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 flex items-start gap-3">
+                <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={18} />
+                <div>
+                  <p className="text-sm font-black text-amber-800">Barang Mengendap ≥ 2 Bulan</p>
+                  <p className="text-xs text-amber-600 mt-0.5 font-medium">
+                    Daftar ini menampilkan stok cabang Banua yang belum terjual selama ≥ 60 hari dan tidak ada transaksi dalam 2 bulan terakhir. Segera buat promo untuk menggerakkan stok ini.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
+                <div className="overflow-x-auto custom-scrollbar">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="bg-gray-900 border-b border-gray-800 text-white uppercase tracking-wider">
+                      <tr>
+                        <th className="py-4 px-5 text-[10px] font-black">Brand</th>
+                        <th className="py-4 px-5 text-[10px] font-black">Nama Produk</th>
+                        <th className="py-4 px-5 text-[10px] font-black">Kategori</th>
+                        <th className="py-4 px-5 text-[10px] font-black text-center">Ukuran</th>
+                        <th className="py-4 px-5 text-[10px] font-black text-center">Cabang</th>
+                        <th className="py-4 px-5 text-[10px] font-black text-center">Masuk Stok</th>
+                        <th className="py-4 px-5 text-[10px] font-black text-center">Mengendap</th>
+                        <th className="py-4 px-5 text-[10px] font-black text-center">Stok</th>
+                        <th className="py-4 px-5 text-[10px] font-black text-center">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-sm text-gray-600 divide-y divide-gray-50">
+                      {loading ? (
+                        <tr><td colSpan="9" className="text-center py-24">
+                          <Loader2 className="w-10 h-10 animate-spin text-[#990000] mx-auto" />
+                          <p className="text-gray-400 text-sm mt-2">Memuat data stok mengendap...</p>
+                        </td></tr>
+                      ) : filteredPromoStock.length === 0 ? (
+                        <tr><td colSpan="9" className="text-center py-24 text-gray-400 font-bold italic">
+                          Tidak ada produk promo yang cocok.
+                        </td></tr>
+                      ) : (
+                        filteredPromoStock.map((item, idx) => {
+                          const hari = parseInt(item.hari_mengendap) || 0;
+                          const bulan = Math.floor(hari / 30);
+                          // Badge warna berdasarkan lama mengendap
+                          const badgeClass = hari >= 180
+                            ? 'bg-red-100 text-red-700 border border-red-200'
+                            : hari >= 90
+                              ? 'bg-orange-100 text-orange-700 border border-orange-200'
+                              : 'bg-amber-100 text-amber-700 border border-amber-200';
+                          const badgeLabel = hari >= 180
+                            ? `${bulan} bln ⚠️`
+                            : hari >= 90
+                              ? `${bulan} bln 🔶`
+                              : `${bulan} bln`;
+
+                          return (
+                            <tr key={`${item.id}-${idx}`} className="hover:bg-amber-50/30 transition-colors">
+                              <td className="py-3.5 px-5 font-bold text-gray-500 text-xs uppercase tracking-wide">{item.nama_brand || '-'}</td>
+                              <td className="py-3.5 px-5 font-black text-gray-900">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center text-red-600 shrink-0">
+                                    <Package size={13} />
+                                  </div>
+                                  {item.product_name}
+                                </div>
+                              </td>
+                              <td className="py-3.5 px-5">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${item.kategori === 'Utama' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-gray-100 text-gray-600'}`}>
+                                  {item.kategori || '-'}
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-5 text-center font-bold text-gray-600 text-xs">{item.ukuran || '-'}</td>
+                              <td className="py-3.5 px-5 text-center font-medium text-gray-500 text-xs">{item.cabang_id || '-'}</td>
+                              <td className="py-3.5 px-5 text-center font-bold text-gray-500 text-xs">{formatDate(item.created_at)}</td>
+                              <td className="py-3.5 px-5 text-center">
+                                <span className={`px-3 py-1 rounded-full text-[11px] font-black ${badgeClass}`}>
+                                  {badgeLabel}
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-5 text-center font-black text-red-600 text-base">{item.stock_qty} Pcs</td>
+                              <td className="py-3.5 px-5 text-center">
+                                <button
+                                  onClick={() => {
+                                    // Navigate ke tab Stok Inventori dengan filter nama produk
+                                    setStokSearch(item.product_name);
+                                    navigate(`/marketing-online/inventory?q=${encodeURIComponent(item.product_name)}`);
+                                  }}
+                                  className="px-3 py-1.5 bg-[#990000] text-white rounded-xl text-[10px] font-black hover:bg-red-900 transition-all active:scale-95 shadow-lg shadow-red-100 flex items-center gap-1.5 mx-auto"
+                                >
+                                  <Gift size={13} /> Buat Promo
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
         </div>
-      </main>
+      </div>
+    </main>
 
       {/* IMPORT MODAL PREVIEW */}
       {showImportModal && (
@@ -1408,6 +1773,136 @@ const MarketingOnlineBanua = () => {
         loading={loading}
         formatRupiah={formatRupiah}
       />
+
+      {/* EDIT ORDER MODAL */}
+      {showEditModal && editOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between px-8 py-6 border-b border-gray-100 sticky top-0 bg-white z-10 rounded-t-3xl">
+              <div>
+                <h2 className="text-xl font-black text-gray-900">Edit Order</h2>
+                <p className="text-xs text-gray-400 font-medium mt-0.5">Perbarui data pesanan — semua kalkulasi dihitung ulang otomatis</p>
+              </div>
+              <button onClick={() => { setShowEditModal(false); setEditOrder(null); }} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+                <X size={20} className="text-gray-500" />
+              </button>
+            </div>
+
+            <div className="px-8 py-6 space-y-5">
+              {/* Baris 1: Tanggal & Akun Toko */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Tanggal Order</label>
+                  <input type="date" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-medium text-sm"
+                    value={editOrder.order_date} onChange={e => setEditOrder({ ...editOrder, order_date: e.target.value })} />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Akun Toko</label>
+                  <input type="text" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-medium text-sm"
+                    value={editOrder.akun_toko} onChange={e => setEditOrder({ ...editOrder, akun_toko: e.target.value })} placeholder="Nama akun toko" />
+                </div>
+              </div>
+
+              {/* Nama Produk */}
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Nama Produk</label>
+                <input type="text" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-medium text-sm"
+                  value={editOrder.product_name} onChange={e => setEditOrder({ ...editOrder, product_name: e.target.value })} placeholder="Nama produk" />
+              </div>
+
+              {/* Baris 2: Qty & Harga Satuan */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Qty</label>
+                  <input type="number" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-medium text-sm"
+                    value={editOrder.qty} onChange={e => setEditOrder({ ...editOrder, qty: e.target.value })} placeholder="0" min="0" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Harga Satuan</label>
+                  <input type="number" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-medium text-sm"
+                    value={editOrder.price_unit} onChange={e => setEditOrder({ ...editOrder, price_unit: e.target.value })} placeholder="0" min="0" />
+                </div>
+              </div>
+
+              {/* Baris 3: HPP Satuan & Potongan Shopee */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#990000] uppercase mb-2">⚡ HPP Satuan</label>
+                  <input type="number" className="w-full p-3 bg-red-50 border border-red-200 rounded-xl outline-none focus:ring-2 focus:ring-red-100 font-bold text-sm text-[#990000]"
+                    value={editOrder.hpp_aktual} onChange={e => setEditOrder({ ...editOrder, hpp_aktual: e.target.value })} placeholder="0" min="0" />
+                  <p className="text-[10px] text-gray-400 mt-1">Ubah jika harga bahan baku berubah</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Potongan Shopee</label>
+                  <input type="number" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-medium text-sm"
+                    value={editOrder.potongan_shopee} onChange={e => setEditOrder({ ...editOrder, potongan_shopee: e.target.value })} placeholder="0" min="0" />
+                </div>
+              </div>
+
+              {/* Preview Kalkulasi Otomatis */}
+              {(() => {
+                const q   = parseInt(editOrder.qty) || 0;
+                const pu  = parseFloat(editOrder.price_unit) || 0;
+                const ps  = parseFloat(editOrder.potongan_shopee) || 0;
+                const hpp = parseFloat(editOrder.hpp_aktual) || 0;
+                const totalHarga   = q * pu;
+                const hppTotal     = q * hpp;
+                const totalHppAkt  = hppTotal + ps;
+                const actual       = totalHarga - ps;
+                const profit       = actual - hppTotal;
+                return (
+                  <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 grid grid-cols-3 gap-3">
+                    {[
+                      { label: 'Total Harga', val: totalHarga, color: 'text-gray-800' },
+                      { label: 'Total HPP', val: totalHppAkt, color: 'text-orange-600' },
+                      { label: 'Actual', val: actual, color: 'text-blue-700' },
+                      { label: 'HPP (qty×hpp)', val: hppTotal, color: 'text-gray-600' },
+                      { label: 'Profit', val: profit, color: profit >= 0 ? 'text-emerald-700' : 'text-red-600' },
+                    ].map((item, i) => (
+                      <div key={i} className="text-center">
+                        <p className="text-[9px] font-black uppercase text-gray-400 tracking-wider">{item.label}</p>
+                        <p className={`text-sm font-black ${item.color} mt-0.5`}>{formatRupiah(item.val)}</p>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+
+              {/* Status & Catatan */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Status</label>
+                  <select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-bold text-sm"
+                    value={editOrder.status} onChange={e => setEditOrder({ ...editOrder, status: e.target.value })}>
+                    <option value="Pesanan Selesai">Pesanan Selesai</option>
+                    <option value="Menunggu Finance">Menunggu Finance</option>
+                    <option value="Batal">Batal</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Catatan</label>
+                  <input type="text" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-medium text-sm"
+                    value={editOrder.catatan} onChange={e => setEditOrder({ ...editOrder, catatan: e.target.value })} placeholder="Catatan tambahan..." />
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-8 py-5 border-t border-gray-100 flex justify-end gap-3 sticky bottom-0 bg-white rounded-b-3xl">
+              <button onClick={() => { setShowEditModal(false); setEditOrder(null); }}
+                className="px-6 py-2.5 rounded-xl text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">
+                Batal
+              </button>
+              <button onClick={handleSaveEdit} disabled={loading}
+                className="px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition-all flex items-center gap-2">
+                {loading ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />}
+                Simpan Perubahan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

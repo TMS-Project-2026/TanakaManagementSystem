@@ -188,7 +188,7 @@ const Stok = () => {
                                 <div className="bg-red-50 border border-red-100 p-2 rounded-lg shadow-sm">
                                     <Package className="text-red-600" size={20} />
                                 </div>
-                                Stok <span className="text-red-600">Barang</span>
+                                Stok Barang
                             </h1>
                             <p className="text-sm text-gray-500 mt-2 font-medium">Monitoring terpusat kuantitas stok dari ukuran XS hingga All Size di semua cabang</p>
                         </div>

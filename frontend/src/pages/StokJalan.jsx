@@ -241,7 +241,7 @@ const StokJalan = () => {
                                     <div className="bg-red-50 border border-red-100 p-2 rounded-lg shadow-sm">
                                         <Layers className="text-red-600" size={20} />
                                     </div>
-                                    Stok <span className="text-red-600">Jalan & Produksi</span>
+                                    Stok Jalan & Produksi
                                 </h1>
                                 <p className="text-sm text-gray-500 mt-2 font-medium">Pelacakan sebaran ukuran proses produksi seragam (Work Order, Jahit, Bordir, Finishing) di semua cabang</p>
                             </div>

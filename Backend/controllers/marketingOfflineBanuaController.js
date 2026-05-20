@@ -229,6 +229,17 @@ exports.updateOrder = (req, res) => {
         ],
         (err) => {
             if (err) return res.status(500).json({ message: err.message });
+            
+            // Auto save customer on update if not exists
+            if (customer) {
+                db.query("SELECT id FROM marketing_customers WHERE nama_customer = ? AND type = 'offline' AND branch = 'Banua'", [customer], (errCust, resCust) => {
+                    if (!errCust && resCust.length === 0) {
+                        db.query("INSERT INTO marketing_customers (nama_customer, alamat, no_hp, email, up_penagihan, type, branch) VALUES (?, ?, ?, ?, ?, 'offline', 'Banua')", 
+                        [customer, alamat_pt || '', cp_penagihan || '', email || '', up_penagihan || '']);
+                    }
+                });
+            }
+
             res.json({ message: "Order berhasil diupdate" });
         }
     );
@@ -319,53 +330,24 @@ exports.getReports = (req, res) => {
 
     const queries = {
         harian: `
-            SELECT tanggal, SUM(pendapatan) as pendapatan, SUM(jumlah_quotation) as jumlah_quotation
-            FROM (
-                SELECT DATE(created_at) as tanggal, total as pendapatan, 1 as jumlah_quotation
-                FROM marketing_quotations 
-                WHERE type = 'offline' AND branch = 'Banua' AND status = 'approved'
-                UNION ALL
-                SELECT DATE(created_at) as tanggal, 
-                       COALESCE(JSON_UNQUOTE(JSON_EXTRACT(items, '$[0].qty')) * JSON_UNQUOTE(JSON_EXTRACT(items, '$[0].harga_satuan')), 0) as pendapatan, 
-                       1 as jumlah_quotation
-                FROM marketing_orders_offline 
-                WHERE type = 'offline' AND branch = 'Banua'
-            ) t
-            WHERE 1=1 ${dateFilter ? dateFilter.replace('AND DATE(created_at)', 'AND tanggal') : ''}
-            GROUP BY tanggal 
+            SELECT DATE(created_at) as tanggal, SUM(grand_total) as pendapatan, COUNT(*) as jumlah_quotation
+            FROM marketing_orders_offline
+            WHERE type = 'offline' AND branch = 'Banua' ${dateFilter}
+            GROUP BY DATE(created_at)
             ORDER BY tanggal DESC
         `,
         bulanan: `
-            SELECT bulan, SUM(pendapatan) as pendapatan, SUM(jumlah_quotation) as jumlah_quotation
-            FROM (
-                SELECT DATE_FORMAT(created_at, '%Y-%m') as bulan, total as pendapatan, 1 as jumlah_quotation
-                FROM marketing_quotations 
-                WHERE type = 'offline' AND branch = 'Banua' AND status = 'approved'
-                UNION ALL
-                SELECT DATE_FORMAT(created_at, '%Y-%m') as bulan, 
-                       COALESCE(JSON_UNQUOTE(JSON_EXTRACT(items, '$[0].qty')) * JSON_UNQUOTE(JSON_EXTRACT(items, '$[0].harga_satuan')), 0) as pendapatan, 
-                       1 as jumlah_quotation
-                FROM marketing_orders_offline 
-                WHERE type = 'offline' AND branch = 'Banua'
-            ) t
-            WHERE 1=1 ${dateFilter ? `AND bulan BETWEEN DATE_FORMAT(?, '%Y-%m') AND DATE_FORMAT(?, '%Y-%m')` : ''}
-            GROUP BY bulan 
+            SELECT DATE_FORMAT(created_at, '%Y-%m') as bulan, SUM(grand_total) as pendapatan, COUNT(*) as jumlah_quotation
+            FROM marketing_orders_offline
+            WHERE type = 'offline' AND branch = 'Banua' ${dateFilter}
+            GROUP BY DATE_FORMAT(created_at, '%Y-%m')
             ORDER BY bulan DESC
         `,
         tahunan: `
-            SELECT tahun, SUM(pendapatan) as pendapatan, SUM(jumlah_quotation) as jumlah_quotation
-            FROM (
-                SELECT YEAR(created_at) as tahun, total as pendapatan, 1 as jumlah_quotation
-                FROM marketing_quotations 
-                WHERE type = 'offline' AND branch = 'Banua' AND status = 'approved'
-                UNION ALL
-                SELECT YEAR(created_at) as tahun, 
-                       COALESCE(JSON_UNQUOTE(JSON_EXTRACT(items, '$[0].qty')) * JSON_UNQUOTE(JSON_EXTRACT(items, '$[0].harga_satuan')), 0) as pendapatan, 
-                       1 as jumlah_quotation
-                FROM marketing_orders_offline 
-                WHERE type = 'offline' AND branch = 'Banua'
-            ) t
-            GROUP BY tahun 
+            SELECT YEAR(created_at) as tahun, SUM(grand_total) as pendapatan, COUNT(*) as jumlah_quotation
+            FROM marketing_orders_offline
+            WHERE type = 'offline' AND branch = 'Banua'
+            GROUP BY YEAR(created_at)
             ORDER BY tahun DESC
         `,
         dashboardSummary: `
@@ -374,26 +356,20 @@ exports.getReports = (req, res) => {
                 (SELECT COUNT(*) FROM marketing_orders_offline WHERE type='offline' AND branch='Banua' ${dateFilter}) as total_orders,
                 (SELECT COUNT(*) FROM marketing_quotations WHERE type='offline' AND branch='Banua' AND status='pending' ${dateFilter}) as pending_quotations,
                 (
-                    SELECT SUM(pendapatan) FROM (
-                        SELECT total as pendapatan, created_at FROM marketing_quotations WHERE type = 'offline' AND branch = 'Banua' AND status = 'approved'
-                        UNION ALL
-                        SELECT JSON_UNQUOTE(JSON_EXTRACT(items, '$[0].qty')) * JSON_UNQUOTE(JSON_EXTRACT(items, '$[0].harga_satuan')) as pendapatan, created_at FROM marketing_orders_offline WHERE type = 'offline' AND branch = 'Banua'
-                    ) combined
-                    WHERE 1=1 ${dateFilter}
+                    SELECT SUM(grand_total) 
+                    FROM marketing_orders_offline 
+                    WHERE type = 'offline' AND branch = 'Banua' ${dateFilter}
                 ) as range_revenue
         `,
         comparisons: `
             SELECT 
-                SUM(CASE WHEN DATE(created_at) = CURDATE() THEN revenue ELSE 0 END) as revenue_today,
-                SUM(CASE WHEN DATE(created_at) = CURDATE() - INTERVAL 1 DAY THEN revenue ELSE 0 END) as revenue_yesterday,
-                SUM(CASE WHEN YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE()) THEN revenue ELSE 0 END) as revenue_this_month,
-                SUM(CASE WHEN YEAR(created_at) = YEAR(CURDATE() - INTERVAL 1 MONTH) AND MONTH(created_at) = MONTH(CURDATE() - INTERVAL 1 MONTH) THEN revenue ELSE 0 END) as revenue_last_month,
-                SUM(CASE WHEN YEAR(created_at) = YEAR(CURDATE()) - 1 AND MONTH(created_at) = MONTH(CURDATE()) THEN revenue ELSE 0 END) as revenue_thismonth_lastyear
-            FROM (
-                SELECT created_at, total as revenue FROM marketing_quotations WHERE type = 'offline' AND branch = 'Banua' AND status = 'approved'
-                UNION ALL
-                SELECT created_at, COALESCE(JSON_UNQUOTE(JSON_EXTRACT(items, '$[0].qty')) * JSON_UNQUOTE(JSON_EXTRACT(items, '$[0].harga_satuan')), 0) as revenue FROM marketing_orders_offline WHERE type = 'offline' AND branch = 'Banua'
-            ) combined
+                SUM(CASE WHEN DATE(created_at) = CURDATE() THEN grand_total ELSE 0 END) as revenue_today,
+                SUM(CASE WHEN DATE(created_at) = CURDATE() - INTERVAL 1 DAY THEN grand_total ELSE 0 END) as revenue_yesterday,
+                SUM(CASE WHEN YEAR(created_at) = YEAR(CURDATE()) AND MONTH(created_at) = MONTH(CURDATE()) THEN grand_total ELSE 0 END) as revenue_this_month,
+                SUM(CASE WHEN YEAR(created_at) = YEAR(CURDATE() - INTERVAL 1 MONTH) AND MONTH(created_at) = MONTH(CURDATE() - INTERVAL 1 MONTH) THEN grand_total ELSE 0 END) as revenue_last_month,
+                SUM(CASE WHEN YEAR(created_at) = YEAR(CURDATE()) - 1 AND MONTH(created_at) = MONTH(CURDATE()) THEN grand_total ELSE 0 END) as revenue_thismonth_lastyear
+            FROM marketing_orders_offline
+            WHERE type = 'offline' AND branch = 'Banua'
         `
     };
 
@@ -426,19 +402,32 @@ exports.getReports = (req, res) => {
     });
 };
 
-// GET PROMO STOCK (Dead Stock > 60 days)
+// GET PROMO STOCK (Dead Stock >= 60 days / Mengendap >= 2 bulan) - identik dengan Marketing Online
 exports.getPromoStock = (req, res) => {
     const sql = `
-        SELECT s.id, s.nama_barang as product_name, s.jumlah as stock_qty, s.kategori
+        SELECT
+            s.id,
+            s.nama_brand,
+            s.nama_barang       AS product_name,
+            s.jumlah            AS stock_qty,
+            s.kategori,
+            s.cabang_id,
+            s.kode_rak,
+            s.ukuran,
+            s.created_at,
+            DATEDIFF(CURDATE(), s.created_at) AS hari_mengendap
         FROM stok s
-        WHERE s.jumlah > 0
-        AND s.nama_barang NOT IN (
-            SELECT DISTINCT product_name 
-            FROM marketing_quotations 
-            WHERE type = 'offline' AND branch = 'Banua' AND status = 'approved'
-            AND created_at >= DATE_SUB(CURDATE(), INTERVAL 60 DAY)
-        )
-        ORDER BY s.jumlah DESC
+        WHERE
+            s.jumlah > 0
+            AND s.cabang_id = 'Banua'
+            AND s.created_at <= DATE_SUB(CURDATE(), INTERVAL 60 DAY)
+            AND s.nama_barang NOT IN (
+                SELECT DISTINCT produk
+                FROM marketing_orders_offline
+                WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 60 DAY)
+                  AND branch = 'Banua'
+            )
+        ORDER BY hari_mengendap DESC
     `;
     db.query(sql, [], (err, results) => {
         if (err) {

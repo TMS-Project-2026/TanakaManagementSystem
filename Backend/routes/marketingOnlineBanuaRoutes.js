@@ -10,5 +10,6 @@ router.post('/import', verifyToken, controller.importShopee);
 router.get('/inventory', verifyToken, controller.getInventory);
 router.get('/reports', verifyToken, controller.getReports);
 router.get('/promo', verifyToken, controller.getPromoStock);
+router.put('/orders/:id', verifyToken, controller.updateOrder);
 
 module.exports = router;

@@ -6,7 +6,7 @@ import {
 import { DollarSign, Banknote, CreditCard, ArrowUpRight, AlertCircle, FileText, ArrowRight } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 
-const FinanceDashboard = () => {
+const FinanceDashboard = ({ embedded = false }) => {
     const [data, setData] = useState({
         totalRevenue: 0,
         totalExpense: 0,
@@ -41,7 +41,7 @@ const FinanceDashboard = () => {
 
     return (
         <div className="flex bg-[#f8fafc] min-h-screen font-sans relative">
-            <Sidebar />
+            {!embedded && <Sidebar />}
 
             <main className="flex-1 flex flex-col pt-16 md:pt-0 h-screen overflow-hidden">
                 <div className="flex-1 overflow-y-auto px-4 sm:px-10 pb-10 pt-8 sm:pt-10">

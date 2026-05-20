@@ -307,7 +307,7 @@ const BarangMasuk = () => {
                                 <div className="bg-green-50 border border-green-100 p-2 rounded-lg shadow-sm">
                                     <Download className="text-green-600" size={20} />
                                 </div>
-                                Barang <span className="text-green-600">Masuk</span>
+                                Barang Masuk
                             </h1>
                             <p className="text-sm text-gray-500 mt-2 font-medium">Catat penambahan stok barang langsung dengan ukuran XS - All Size</p>
                         </div>

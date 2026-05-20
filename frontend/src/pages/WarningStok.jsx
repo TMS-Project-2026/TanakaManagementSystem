@@ -74,7 +74,7 @@ const WarningStok = () => {
                                 <div className="bg-red-50 border border-red-100 p-2 rounded-lg shadow-sm">
                                     <AlertTriangle className="text-[#990000]" size={20} />
                                 </div>
-                                Warning <span className="text-[#990000]">Stok</span>
+                                Warning Stok
                             </h1>
                             <p className="text-sm text-gray-500 mt-2 font-medium">Pantau dan kelola barang yang jumlah stoknya menipis atau habis</p>
                         </div>

@@ -39,8 +39,11 @@ const Sidebar = () => {
     { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} />, roles: ['Admin', 'Manager', 'Marketing'], group: 'Sales' },
     { name: 'Order Offline', path: '/marketing', icon: <Users size={20} />, roles: ['Admin', 'Manager', 'Marketing'], group: 'Sales' },
     { name: 'Order Marketplace', path: '/sales-online', icon: <ShoppingBag size={20} />, roles: ['Admin', 'Manager', 'Marketing'], group: 'Sales' },
-    { name: 'Dashboard Banua', path: '/marketing-offline/dashboard', icon: <TrendingUp size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline'], group: 'Offline Banua' },
+    { name: 'Dashboard Offline', path: '/marketing-offline/dashboard', icon: <TrendingUp size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline'], group: 'Offline Banua' },
     { name: 'Order Offline', path: '/marketing-offline/orders', icon: <ShoppingBag size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline'], group: 'Offline Banua' },
+    { name: 'Stok Inventory', path: '/marketing-offline/inventory', icon: <Package size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline'], group: 'Offline Banua' },
+    { name: 'Customer', path: '/marketing-offline/customers', icon: <Users size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline'], group: 'Offline Banua' },
+    { name: 'Promo', path: '/marketing-offline/promo', icon: <Gift size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline'], group: 'Offline Banua' },
     {
       name: 'Report',
       path: '/marketing-offline/reports',
@@ -49,13 +52,9 @@ const Sidebar = () => {
       group: 'Offline Banua',
       subMenu: [
         { title: 'Laporan Harian', path: '/marketing-offline/reports/harian' },
-        { title: 'Laporan Bulanan', path: '/marketing-offline/reports/bulanan' },
-        { title: 'Laporan Tahunan', path: '/marketing-offline/reports/tahunan' },
-        { title: 'Laporan Berjalan', path: '/marketing-offline/reports/berjalan' }
+        { title: 'Laporan Bulanan', path: '/marketing-offline/reports/bulanan' }
       ]
     },
-    { name: 'Stok Inventory', path: '/marketing-offline/inventory', icon: <Package size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline'], group: 'Offline Banua' },
-    { name: 'Promo', path: '/marketing-offline/promo', icon: <Gift size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline'], group: 'Offline Banua' },
     { name: 'Dashboard Online', path: '/marketing-online/dashboard', icon: <LayoutDashboard size={20} />, roles: ['marketing_online', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE BANUA' },
     { name: 'Order Marketplace', path: '/marketing-online/orders', icon: <ShoppingBag size={20} />, roles: ['marketing_online', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE BANUA' },
     { name: 'Stok Inventori', path: '/marketing-online/inventory', icon: <Package size={20} />, roles: ['marketing_online', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE BANUA' },
@@ -106,14 +105,11 @@ const Sidebar = () => {
     { name: 'Monitoring System', path: '/it/monitoring', icon: <Monitor size={20} />, roles: ['admin_it', 'Admin'], group: 'System' },
     { name: 'Settings Sistem', path: '/it/settings', icon: <Sliders size={20} />, roles: ['admin_it', 'Admin'], group: 'System' },
 
-    // MENU OWNER EKSKLUSIF
-    { name: 'Owner Dashboard', path: '/owner/dashboard', icon: <LayoutDashboard size={20} />, roles: ['owner'], group: 'Owner' },
-    { name: 'Finance Overview', path: '/owner/finance', icon: <DollarSign size={20} />, roles: ['owner'], group: 'Owner' },
-    { name: 'Operations Overview', path: '/owner/produksi', icon: <Settings size={20} />, roles: ['owner'], group: 'Owner' },
-    { name: 'Warehouse Overview', path: '/owner/gudang', icon: <Package size={20} />, roles: ['owner'], group: 'Owner' },
-    { name: 'Branch Performance', path: '/owner/cabang', icon: <MapPin size={20} />, roles: ['owner'], group: 'Owner' },
-    { name: 'Reports & Analytics', path: '/owner/report', icon: <FileText size={20} />, roles: ['owner'], group: 'Owner' },
-    { name: 'User Summary', path: '/owner/users', icon: <Users size={20} />, roles: ['owner'], group: 'Owner' },
+    // MENU OWNER — Dashboard Monitoring
+    { name: 'Overview Mkt Online', path: '/owner/monitoring', icon: <TrendingUp size={20} />, roles: ['owner'], group: 'Owner Monitoring' },
+    { name: 'Overview Mkt Offline', path: '/owner/monitoring', icon: <LayoutDashboard size={20} />, roles: ['owner'], group: 'Owner Monitoring' },
+    { name: 'Overview Dashboard Finance', path: '/owner/monitoring', icon: <DollarSign size={20} />, roles: ['owner'], group: 'Owner Monitoring' },
+    { name: 'Overview Dashboard Gudang', path: '/owner/monitoring', icon: <Package size={20} />, roles: ['owner'], group: 'Owner Monitoring' },
 
     // MENU PRODUKSI
     { name: 'Dashboard Produksi', path: '/produksi/dashboard', icon: <Layers size={20} />, roles: ['produksi', 'owner', 'Manager', 'Admin'], group: 'Produksi' },
@@ -233,8 +229,8 @@ const Sidebar = () => {
                       </span>
                     )}
                     {item.subMenu && (
-                      <ChevronDown 
-                        size={14} 
+                      <ChevronDown
+                        size={14}
                         className={`transition-transform duration-200 ${(expandedMenus[item.name] || location.pathname.startsWith(item.path)) ? 'rotate-180' : ''}`}
                       />
                     )}
@@ -253,8 +249,8 @@ const Sidebar = () => {
                               if (sub.path) navigate(sub.path);
                             }}
                             className={`text-[13px] cursor-pointer py-2 px-4 rounded-xl transition-all duration-200 flex items-center gap-2 ${isSubActive
-                                ? 'bg-red-800 text-white font-black shadow-sm'
-                                : 'text-gray-600 font-bold hover:bg-red-50 hover:text-red-800'
+                              ? 'bg-red-800 text-white font-black shadow-sm'
+                              : 'text-gray-600 font-bold hover:bg-red-50 hover:text-red-800'
                               }`}
                           >
                             {sub.title || sub}

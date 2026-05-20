@@ -198,7 +198,7 @@ const BarangKeluar = () => {
                                 <div className="bg-red-50 border border-red-100 p-2 rounded-lg shadow-sm">
                                     <Upload className="text-red-600" size={20} />
                                 </div>
-                                Barang <span className="text-red-600">Keluar</span>
+                                Barang Keluar
                             </h1>
                             <p className="text-sm text-gray-500 mt-2 font-medium">Catat pengeluaran stok barang massal dengan validasi instan level stok</p>
                         </div>
