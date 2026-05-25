@@ -15,7 +15,7 @@ import {
   LineChart, Line
 } from 'recharts';
 
-const MarketingOnlineBanua = ({ embedded = false }) => {
+const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
   // Add CSS to hide number spinners
   useEffect(() => {
     const style = document.createElement('style');
@@ -36,7 +36,7 @@ const MarketingOnlineBanua = ({ embedded = false }) => {
   const { tab, subtab } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const activeTab = embedded ? 'dashboard' : (tab || 'dashboard');
+  const activeTab = forcedTab || (embedded ? 'dashboard' : (tab || 'dashboard'));
   const reportSubTab = subtab || 'harian';
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef(null);
@@ -74,14 +74,34 @@ const MarketingOnlineBanua = ({ embedded = false }) => {
   const [showProfile, setShowProfile] = useState(false);
 
   // Report Filtering States
-  const [filterDate1, setFilterDate1] = useState(new Date().toISOString().split('T')[0]);
+  const [filterDate1, setFilterDate1] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+  });
   const [filterDate2, setFilterDate2] = useState(() => {
     const d = new Date();
     d.setMonth(d.getMonth() - 1);
-    return d.toISOString().split('T')[0];
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+  });
+  // filterDateEnd: tanggal akhir rentang untuk laporan bulanan
+  const [filterDateEnd, setFilterDateEnd] = useState(new Date().toISOString().split('T')[0]);
+  const [filterDateEnd2, setFilterDateEnd2] = useState(() => {
+    const d = new Date();
+    d.setDate(0); // last day of previous month
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   });
 
   const [reportComparisonData, setReportComparisonData] = useState([]);
+  const [dailyTargets, setDailyTargets] = useState({
+    'Shopee': 10000000,
+    'Tokopedia': 5000000,
+    'Tiktok': 8000000,
+    'Lazada': 2000000,
+    'Bukalapak': 1000000,
+    'Unknown': 1000000
+  });
+  const [globalMonthlyTarget, setGlobalMonthlyTarget] = useState(150000000);
+  const [globalYearlyTarget, setGlobalYearlyTarget] = useState(1500000000);
   const [searchQuery, setSearchQuery] = useState('');
   const [tooltipProduk, setTooltipProduk] = useState(null);
   const [expandedProduct, setExpandedProduct] = useState(null);
@@ -195,18 +215,12 @@ const MarketingOnlineBanua = ({ embedded = false }) => {
         const dailyData = [];
         const accounts = [...new Set(allOrders.map(o => o.akun_toko || 'Unknown'))];
 
-        // Helper to sum revenue within Month-to-Date (MTD) up to a target day
-        const getMtdRevenue = (orders, account, targetDateStr) => {
+        const getDailyRevenue = (orders, account, targetDateStr) => {
           if (!targetDateStr) return 0;
           const targetDate = new Date(targetDateStr);
           const targetYear = targetDate.getFullYear();
-          const targetMonth = targetDate.getMonth(); // 0-11
+          const targetMonth = targetDate.getMonth();
           const targetDay = targetDate.getDate();
-
-          // Start of target month: YYYY-MM-01 00:00:00
-          const startOfMonth = new Date(targetYear, targetMonth, 1);
-          // End of target day: YYYY-MM-DD 23:59:59
-          const endOfMtd = new Date(targetYear, targetMonth, targetDay, 23, 59, 59);
 
           return orders
             .filter(o => {
@@ -214,7 +228,9 @@ const MarketingOnlineBanua = ({ embedded = false }) => {
               if (orderAcc !== account) return false;
               
               const orderDate = new Date(o.order_date);
-              return orderDate >= startOfMonth && orderDate <= endOfMtd;
+              return orderDate.getFullYear() === targetYear &&
+                     orderDate.getMonth() === targetMonth &&
+                     orderDate.getDate() === targetDay;
             })
             .reduce((sum, o) => {
               const total_price = parseFloat(o.total_price) || 0;
@@ -224,15 +240,60 @@ const MarketingOnlineBanua = ({ embedded = false }) => {
         };
 
         accounts.forEach(acc => {
-          const mtd1Revenue = getMtdRevenue(allOrders, acc, filterDate1);
-          const mtd2Revenue = getMtdRevenue(allOrders, acc, filterDate2);
-          const achievement = mtd2Revenue > 0 ? (mtd1Revenue / mtd2Revenue) * 100 : (mtd1Revenue > 0 ? 100 : 0);
+          const rev = getDailyRevenue(allOrders, acc, filterDate1);
+          const target = dailyTargets[acc] || 2000000;
+          const ach = target > 0 ? (rev / target) * 100 : 0;
 
+          if (rev > 0 || target > 0) {
+            dailyData.push({
+              account: acc,
+              revenue: rev,
+              target: target,
+              achievement: ach
+            });
+          }
+        });
+
+        dailyData.sort((a, b) => b.revenue - a.revenue);
+        setReportComparisonData(dailyData);
+      } else if (reportSubTab === 'berjalan') {
+        const dailyData = [];
+        const accounts = [...new Set(allOrders.map(o => o.akun_toko || 'Unknown'))];
+
+        // Helper to sum revenue within arbitrary date range
+        const getRangeRevenue = (orders, account, startDateStr, endDateStr) => {
+          if (!startDateStr || !endDateStr) return 0;
+          const startDate = new Date(startDateStr);
+          startDate.setHours(0, 0, 0, 0);
+          const endDate = new Date(endDateStr);
+          endDate.setHours(23, 59, 59, 999);
+
+          return orders
+            .filter(o => {
+              const orderAcc = o.akun_toko || 'Unknown';
+              if (orderAcc !== account) return false;
+              
+              const orderDate = new Date(o.order_date);
+              return orderDate >= startDate && orderDate <= endDate;
+            })
+            .reduce((sum, o) => {
+              const total_price = parseFloat(o.total_price) || 0;
+              const potongan_shopee = parseFloat(o.potongan_shopee) || 0;
+              return sum + (total_price - potongan_shopee);
+            }, 0);
+        };
+
+        accounts.forEach(acc => {
+          const mtd1Revenue = getRangeRevenue(allOrders, acc, filterDate1, filterDateEnd);
+          const mtd2Revenue = getRangeRevenue(allOrders, acc, filterDate2, filterDateEnd2);
+          const achievement = mtd2Revenue > 0 ? (mtd1Revenue / mtd2Revenue) * 100 : (mtd1Revenue > 0 ? 100 : 0);
           if (mtd1Revenue > 0 || mtd2Revenue > 0) {
             dailyData.push({
               account: acc,
               date1: filterDate1,
+              date1End: filterDateEnd,
               date2: filterDate2,
+              date2End: filterDateEnd2,
               revenue: mtd1Revenue,       // Primary Periode
               prevRevenue: mtd2Revenue,   // Pembanding Periode
               achievement: achievement
@@ -242,24 +303,92 @@ const MarketingOnlineBanua = ({ embedded = false }) => {
 
         dailyData.sort((a, b) => b.revenue - a.revenue);
         setReportComparisonData(dailyData);
+      } else if (reportSubTab === 'tahunan') {
+        const today = new Date();
+        const limitMonth = today.getMonth(); // 0-11
+        const limitDay = today.getDate();
+
+        // Extract year from filterDate1 and filterDate2
+        const y1 = new Date(filterDate1).getFullYear();
+        const y2 = new Date(filterDate2).getFullYear();
+
+        const getYearlyYtdOnlineRevenue = (orders, account, yearNum) => {
+          return orders
+            .filter(o => {
+              const orderAcc = o.akun_toko || 'Unknown';
+              if (orderAcc !== account) return false;
+              
+              const od = new Date(o.order_date);
+              if (od.getFullYear() !== yearNum) return false;
+
+              // YTD: up to current month & day of that year
+              return od.getMonth() < limitMonth || (od.getMonth() === limitMonth && od.getDate() <= limitDay);
+            })
+            .reduce((sum, o) => {
+              const total_price = parseFloat(o.total_price) || 0;
+              const potongan_shopee = parseFloat(o.potongan_shopee) || 0;
+              return sum + (total_price - potongan_shopee);
+            }, 0);
+        };
+
+        const accounts = [...new Set(allOrders.map(o => o.akun_toko || 'Unknown'))];
+        const yearlyData = [];
+
+        accounts.forEach(acc => {
+          const v1 = getYearlyYtdOnlineRevenue(allOrders, acc, y1);
+          const v2 = getYearlyYtdOnlineRevenue(allOrders, acc, y2);
+          const achievement = v2 > 0 ? (v1 / v2) * 100 : (v1 > 0 ? 100 : 0);
+
+          if (v1 > 0 || v2 > 0) {
+            yearlyData.push({
+              account: acc,
+              date1: `${y1}`,
+              date2: `${y2}`,
+              val1: v1,
+              val2: v2,
+              revenue: v1,
+              prevRevenue: v2,
+              growth: achievement
+            });
+          }
+        });
+
+        yearlyData.sort((a, b) => b.val1 - a.val1);
+        setReportComparisonData(yearlyData);
       } else {
-        // Bulanan comparison (stays as requested before: comparison of two months)
+        // Laporan Bulanan: rentang tanggal (filterDate1 s.d. filterDateEnd)
+        // Pembanding: bulan yang sama di tahun sebelumnya
+        const startCurrent = new Date(filterDate1);
+        const endCurrent = new Date(filterDateEnd);
+
+        // Hitung rentang yang sama di tahun lalu
+        const startPrev = new Date(startCurrent);
+        startPrev.setFullYear(startPrev.getFullYear() - 1);
+        const endPrev = new Date(endCurrent);
+        endPrev.setFullYear(endPrev.getFullYear() - 1);
+
         const groupedByAccount = {};
         allOrders.forEach(order => {
           const acc = order.akun_toko || 'Unknown';
-          if (!groupedByAccount[acc]) groupedByAccount[acc] = { date1: 0, date2: 0 };
-          const orderDate = order.order_date.split('T')[0];
+          if (!groupedByAccount[acc]) groupedByAccount[acc] = { current: 0, prev: 0 };
+          const orderDate = new Date(order.order_date);
           const revenue = parseFloat(order.total_price || 0) - parseFloat(order.potongan_shopee || 0);
-          const monthYear = orderDate.substring(0, 7);
-          if (monthYear === filterDate1.substring(0, 7)) groupedByAccount[acc].date1 += revenue;
-          if (monthYear === filterDate2.substring(0, 7)) groupedByAccount[acc].date2 += revenue;
+          if (orderDate >= startCurrent && orderDate <= endCurrent) groupedByAccount[acc].current += revenue;
+          if (orderDate >= startPrev && orderDate <= endPrev) groupedByAccount[acc].prev += revenue;
         });
-        const finalReport = Object.keys(groupedByAccount).map(acc => ({
-          account: acc,
-          val1: groupedByAccount[acc].date1,
-          val2: groupedByAccount[acc].date2,
-          achievement: groupedByAccount[acc].date2 > 0 ? (groupedByAccount[acc].date1 / groupedByAccount[acc].date2) * 100 : (groupedByAccount[acc].date1 > 0 ? 100 : 0)
-        })).sort((a, b) => b.val1 - a.val1);
+
+        const finalReport = Object.keys(groupedByAccount).map(acc => {
+          return {
+            account: acc,
+            val1: groupedByAccount[acc].current,
+            val2: groupedByAccount[acc].prev,
+            startCurrent: filterDate1,
+            endCurrent: filterDateEnd,
+            startPrev: startPrev.toISOString().split('T')[0],
+            endPrev: endPrev.toISOString().split('T')[0],
+            growth: groupedByAccount[acc].prev > 0 ? (groupedByAccount[acc].current / groupedByAccount[acc].prev) * 100 : (groupedByAccount[acc].current > 0 ? 100 : 0)
+          };
+        }).filter(r => r.val1 > 0 || r.val2 > 0).sort((a, b) => b.val1 - a.val1);
         setReportComparisonData(finalReport);
       }
     } catch (err) {
@@ -366,7 +495,7 @@ const MarketingOnlineBanua = ({ embedded = false }) => {
     }
     else if (activeTab === 'reports') fetchReports();
     else if (activeTab === 'promo') fetchPromo();
-  }, [activeTab, reportSubTab, filterDate1, filterDate2]);
+  }, [activeTab, reportSubTab, filterDate1, filterDate2, filterDateEnd, filterDateEnd2]);
 
 
   // Handle Excel Import
@@ -839,7 +968,7 @@ const MarketingOnlineBanua = ({ embedded = false }) => {
                       <div className="bg-violet-50 border border-violet-100 p-2 rounded-lg shadow-sm">
                         <TrendingUp className="text-violet-600" size={20} />
                       </div>
-                      {reportSubTab === 'bulanan' ? 'Laporan Bulanan Online' : 'Laporan Harian Online'}
+                      {reportSubTab === 'tahunan' ? 'Laporan Tahunan Online' : reportSubTab === 'bulanan' ? 'Laporan Bulanan Online' : reportSubTab === 'berjalan' ? 'Laporan Bulan Berjalan Online' : 'Laporan Harian Online'}
                     </>
                   )}
                   {activeTab === 'promo' && (
@@ -1423,28 +1552,101 @@ const MarketingOnlineBanua = ({ embedded = false }) => {
 
               {/* Date Filters */}
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-wrap gap-6 items-end">
-                <div className="flex-1 min-w-[200px]">
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
-                    {reportSubTab === 'harian' ? 'Sampai Tanggal' : 'Bulan Berjalan'}
-                  </label>
-                  <input
-                    type={reportSubTab === 'harian' ? 'date' : 'month'}
-                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100"
-                    value={reportSubTab === 'harian' ? filterDate1 : filterDate1.substring(0, 7)}
-                    onChange={e => setFilterDate1(reportSubTab === 'harian' ? e.target.value : e.target.value + "-01")}
-                  />
-                </div>
-                <div className="flex-1 min-w-[200px]">
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">
-                    {reportSubTab === 'harian' ? 'Dari Tanggal' : 'Bulan Lalu'}
-                  </label>
-                  <input
-                    type={reportSubTab === 'harian' ? 'date' : 'month'}
-                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100"
-                    value={reportSubTab === 'harian' ? filterDate2 : filterDate2.substring(0, 7)}
-                    onChange={e => setFilterDate2(reportSubTab === 'harian' ? e.target.value : e.target.value + "-01")}
-                  />
-                </div>
+                {reportSubTab === 'tahunan' ? (
+                  <>
+                    <div className="flex-1 min-w-[250px] p-3 bg-gray-50 border border-gray-200 rounded-xl">
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Periode Tahun (Utama)</label>
+                      <select
+                        className="w-full p-2 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-100 text-sm font-medium"
+                        value={new Date(filterDate1).getFullYear()}
+                        onChange={e => {
+                          const year = e.target.value;
+                          const currentMonthDay = new Date().toISOString().substring(4, 10);
+                          setFilterDate1(`${year}${currentMonthDay}`);
+                        }}
+                      >
+                        {(() => {
+                          const currentYear = new Date().getFullYear();
+                          const years = [];
+                          for (let y = currentYear + 1; y >= 2020; y--) years.push(y);
+                          return years.map(y => <option key={y} value={y}>{y}</option>);
+                        })()}
+                      </select>
+                    </div>
+                    <div className="flex-1 min-w-[250px] p-3 bg-violet-50 border border-violet-200 rounded-xl">
+                      <label className="block text-xs font-bold text-violet-600 uppercase mb-2">Tahun Pembanding</label>
+                      <select
+                        className="w-full p-2 bg-white border border-violet-300 rounded-lg outline-none focus:ring-2 focus:ring-violet-300 text-sm font-medium text-violet-700"
+                        value={new Date(filterDate2).getFullYear()}
+                        onChange={e => {
+                          const year = e.target.value;
+                          const currentMonthDay = new Date().toISOString().substring(4, 10);
+                          setFilterDate2(`${year}${currentMonthDay}`);
+                        }}
+                      >
+                        {(() => {
+                          const currentYear = new Date().getFullYear();
+                          const years = [];
+                          for (let y = currentYear + 1; y >= 2020; y--) years.push(y);
+                          return years.map(y => <option key={y} value={y}>{y}</option>);
+                        })()}
+                      </select>
+                    </div>
+                  </>
+                ) : reportSubTab === 'harian' ? (
+                  <div className="flex-1 min-w-[200px]">
+                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Pilih Tanggal</label>
+                    <input
+                      type="date"
+                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100"
+                      value={filterDate1}
+                      onChange={e => setFilterDate1(e.target.value)}
+                    />
+                  </div>
+                ) : reportSubTab === 'berjalan' ? (
+                  <>
+                    <div className="flex-1 min-w-[250px] p-3 bg-gray-50 border border-gray-200 rounded-xl">
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Periode Bulan</label>
+                      <div className="flex items-center space-x-2">
+                        <input type="date" className="w-full p-2 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-100 text-sm font-medium" value={filterDate1} onChange={e => setFilterDate1(e.target.value)} />
+                        <span className="text-gray-400 font-black">—</span>
+                        <input type="date" className="w-full p-2 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-100 text-sm font-medium" value={filterDateEnd} onChange={e => setFilterDateEnd(e.target.value)} />
+                      </div>
+                    </div>
+                    
+                    <div className="flex-1 min-w-[250px] p-3 bg-violet-50 border border-violet-200 rounded-xl">
+                      <label className="block text-xs font-bold text-violet-600 uppercase mb-2">Periode Pembanding</label>
+                      <div className="flex items-center space-x-2">
+                        <input type="date" className="w-full p-2 bg-white border border-violet-300 rounded-lg outline-none focus:ring-2 focus:ring-violet-300 text-sm font-medium text-violet-700" value={filterDate2} onChange={e => setFilterDate2(e.target.value)} />
+                        <span className="text-violet-400 font-black">—</span>
+                        <input type="date" className="w-full p-2 bg-white border border-violet-300 rounded-lg outline-none focus:ring-2 focus:ring-violet-300 text-sm font-medium text-violet-700" value={filterDateEnd2} onChange={e => setFilterDateEnd2(e.target.value)} />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  // Laporan Bulanan: rentang tanggal + pembanding tahun lalu otomatis
+                  <>
+                    <div className="flex-1 min-w-[200px]">
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Dari Tanggal</label>
+                      <input
+                        type="date"
+                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-violet-100"
+                        value={filterDate1}
+                        onChange={e => setFilterDate1(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex items-end pb-3 text-gray-400 font-black text-lg select-none">—</div>
+                    <div className="flex-1 min-w-[200px]">
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Sampai Tanggal</label>
+                      <input
+                        type="date"
+                        className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-violet-100"
+                        value={filterDateEnd}
+                        onChange={e => setFilterDateEnd(e.target.value)}
+                      />
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Data Table */}
@@ -1455,36 +1657,115 @@ const MarketingOnlineBanua = ({ embedded = false }) => {
                       <tr className="bg-gray-900 text-white">
                         <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800">No</th>
                         <th className="py-4 px-6 text-left text-xs font-black uppercase tracking-widest border border-gray-800">Nama Akun</th>
-                        <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800 bg-gray-800/50">
-                          {reportSubTab === 'harian' ? 'Rentang Tanggal (MTD)' : 'Bulan'}
-                        </th>
-                        <th className="py-4 px-6 text-right text-xs font-black uppercase tracking-widest border border-gray-800">Pendapatan</th>
-                        <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800">Achievement</th>
+                        {reportSubTab === 'harian' && (
+                          <>
+                            <th className="py-4 px-6 text-right text-xs font-black uppercase tracking-widest border border-gray-800">Pendapatan Hari Ini</th>
+                            <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800">Target Harian</th>
+                            <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800">Achievement</th>
+                          </>
+                        )}
+                        {reportSubTab === 'bulanan' && (
+                          <>
+                            <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800 bg-gray-800/50 min-w-[220px]">Rentang Tanggal</th>
+                            <th className="py-4 px-6 text-right text-xs font-black uppercase tracking-widest border border-gray-800">Pendapatan</th>
+                            <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800">Pertumbuhan</th>
+                          </>
+                        )}
+                        {(reportSubTab === 'berjalan' || reportSubTab === 'tahunan') && (
+                          <>
+                            <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800 bg-gray-800/50 min-w-[220px]">
+                              {reportSubTab === 'berjalan' ? 'Rentang Tanggal (Berjalan)' : 'Periode Tahun (YTD)'}
+                            </th>
+                            <th className="py-4 px-6 text-right text-xs font-black uppercase tracking-widest border border-gray-800">Pendapatan</th>
+                            <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800">Pertumbuhan</th>
+                          </>
+                        )}
                       </tr>
                     </thead>
                     <tbody className="text-sm">
                       {filteredReportComparisonData.length > 0 ? (
                         reportSubTab === 'harian' ? (
                           filteredReportComparisonData.map((row, idx) => (
+                            <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
+                              <td className="py-4 px-6 text-center font-bold text-gray-400 border-x border-b border-gray-100">{idx + 1}</td>
+                              <td className="py-4 px-6 font-black text-gray-900 border-x border-b border-gray-100">{row.account}</td>
+                              <td className="py-4 px-6 text-right font-black text-blue-700 border-b border-gray-100">{formatRupiah(row.revenue)}</td>
+                              <td className="py-4 px-6 text-center border-b border-gray-100">
+                                <input
+                                  type="number"
+                                  className="p-2 border border-gray-200 rounded-lg text-center font-bold w-36 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300"
+                                  value={row.target}
+                                  onChange={e => {
+                                    const newVal = parseFloat(e.target.value) || 0;
+                                    setDailyTargets(prev => ({
+                                      ...prev,
+                                      [row.account]: newVal
+                                    }));
+                                    setReportComparisonData(prev => prev.map((item, i) => {
+                                      if (i === idx) {
+                                        return {
+                                          ...item,
+                                          target: newVal,
+                                          achievement: newVal > 0 ? (item.revenue / newVal) * 100 : 0
+                                        };
+                                      }
+                                      return item;
+                                    }));
+                                  }}
+                                />
+                              </td>
+                              <td className="py-4 px-6 text-center border-x border-b border-gray-100">
+                                <span className={`text-xl font-black ${row.achievement >= 100 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {row.achievement.toFixed(2)}%
+                                </span>
+                              </td>
+                            </tr>
+                          ))
+                        ) : reportSubTab === 'berjalan' ? (
+                          filteredReportComparisonData.map((row, idx) => (
                             <React.Fragment key={idx}>
                               <tr className="hover:bg-blue-50/30 transition-colors">
                                 <td rowSpan={2} className="py-6 px-6 text-center font-bold text-gray-400 border-x border-b border-gray-100">{idx + 1}</td>
                                 <td rowSpan={2} className="py-6 px-6 font-black text-gray-900 border-x border-b border-gray-100">{row.account}</td>
                                 <td className="py-3 px-6 text-center font-bold bg-cyan-50 text-cyan-800 border-b border-gray-100">
-                                  {formatMtdRange(row.date1)}
+                                  {new Date(row.date1).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} – {new Date(row.date1End).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                                 </td>
                                 <td className="py-3 px-6 text-right font-black text-blue-700 border-b border-gray-100">{formatRupiah(row.revenue)}</td>
                                 <td rowSpan={2} className="py-6 px-6 text-center border-x border-b border-gray-100">
                                   <span className={`text-xl font-black ${row.achievement >= 100 ? 'text-green-600' : 'text-red-600'}`}>
-                                    {row.achievement.toFixed(2)}%
+                                    {row.achievement?.toFixed(2)}%
                                   </span>
                                 </td>
                               </tr>
                               <tr className="hover:bg-blue-50/30 transition-colors">
-                                <td className="py-3 px-6 text-center font-bold bg-gray-50 text-gray-500 border-b border-gray-100">
-                                  {formatMtdRange(row.date2)}
+                                <td className="py-3 px-6 text-center font-bold bg-violet-50 text-violet-700 border-b border-gray-100">
+                                  ↩ {new Date(row.date2).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} – {new Date(row.date2End).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                                 </td>
                                 <td className="py-3 px-6 text-right font-bold text-gray-400 border-b border-gray-100">{formatRupiah(row.prevRevenue)}</td>
+                              </tr>
+                            </React.Fragment>
+                          ))
+                        ) : reportSubTab === 'tahunan' ? (
+                          filteredReportComparisonData.map((row, idx) => (
+                            <React.Fragment key={idx}>
+                              <tr className="hover:bg-blue-50/30 transition-colors">
+                                <td rowSpan={2} className="py-6 px-6 text-center font-bold text-gray-400 border-x border-b border-gray-100">{idx + 1}</td>
+                                <td rowSpan={2} className="py-6 px-6 font-black text-gray-900 border-x border-b border-gray-100">{row.account}</td>
+                                <td className="py-3 px-6 text-center font-bold bg-cyan-50 text-cyan-800 border-b border-gray-100">
+                                  Tahun {row.date1} (YTD)
+                                </td>
+                                <td className="py-3 px-6 text-right font-black text-blue-700 border-b border-gray-100">{formatRupiah(row.val1)}</td>
+                                <td rowSpan={2} className="py-6 px-6 text-center border-x border-b border-gray-100">
+                                  <span className={`text-xl font-black ${row.growth >= 100 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {row.growth?.toFixed(2)}%
+                                  </span>
+                                </td>
+                              </tr>
+                              <tr className="hover:bg-blue-50/30 transition-colors">
+                                <td className="py-3 px-6 text-center font-bold bg-violet-50 text-violet-700 border-b border-gray-100">
+                                  ↩ Tahun {row.date2} (YTD)
+                                </td>
+                                <td className="py-3 px-6 text-right font-bold text-gray-400 border-b border-gray-100">{formatRupiah(row.val2)}</td>
                               </tr>
                             </React.Fragment>
                           ))
@@ -1495,20 +1776,20 @@ const MarketingOnlineBanua = ({ embedded = false }) => {
                                 <td rowSpan={2} className="py-6 px-6 text-center font-bold text-gray-400 border-x border-b border-gray-100">{idx + 1}</td>
                                 <td rowSpan={2} className="py-6 px-6 font-black text-gray-900 border-x border-b border-gray-100">{row.account}</td>
                                 <td className="py-3 px-6 text-center font-bold bg-cyan-50 text-cyan-800 border-b border-gray-100">
-                                  {new Date(filterDate1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+                                  {new Date(row.startCurrent || filterDate1).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} – {new Date(row.endCurrent || filterDateEnd).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                                 </td>
                                 <td className="py-3 px-6 text-right font-black text-blue-700 border-b border-gray-100">{formatRupiah(row.val1)}</td>
                                 <td rowSpan={2} className="py-6 px-6 text-center border-x border-b border-gray-100">
-                                  <span className={`text-xl font-black ${row.achievement >= 100 ? 'text-green-600' : 'text-red-600'}`}>
-                                    {row.achievement.toFixed(2)}%
+                                  <span className={`text-xl font-black ${row.growth >= 100 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {row.growth?.toFixed(2)}%
                                   </span>
                                 </td>
                               </tr>
                               <tr className="hover:bg-blue-50/30 transition-colors">
-                                <td className="py-3 px-6 text-center font-bold bg-gray-50 text-gray-500 border-b border-gray-100">
-                                  {new Date(filterDate2).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+                                <td className="py-3 px-6 text-center font-bold bg-violet-50 text-violet-700 border-b border-gray-100">
+                                  ↩ {new Date(row.startPrev || filterDate1).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} – {new Date(row.endPrev || filterDateEnd).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                                 </td>
-                                <td className="py-3 px-6 text-right font-bold text-gray-400 border-b border-gray-100">{formatRupiah(row.val2)}</td>
+                                <td className="py-3 px-6 text-right font-bold text-violet-500 border-b border-gray-100">{formatRupiah(row.val2)}</td>
                               </tr>
                             </React.Fragment>
                           ))
@@ -1521,12 +1802,78 @@ const MarketingOnlineBanua = ({ embedded = false }) => {
                     </tbody>
                     <tfoot>
                       <tr className="bg-gray-900 text-white font-black uppercase text-xs">
-                        <td colSpan={3} className="py-5 px-6 text-right">Total Pendapatan (Periode Berjalan)</td>
+                        <td colSpan={reportSubTab === 'harian' ? 2 : 3} className="py-5 px-6 text-right">Total Pendapatan (Periode Berjalan)</td>
                         <td className="py-5 px-6 text-right text-emerald-400 text-lg">
-                          {formatRupiah(filteredReportComparisonData.reduce((acc, curr) => acc + (reportSubTab === 'harian' ? curr.revenue : curr.val1), 0))}
+                          {formatRupiah(filteredReportComparisonData.reduce((acc, curr) => acc + (reportSubTab === 'harian' ? curr.revenue : curr.val1 || curr.revenue), 0))}
                         </td>
-                        <td></td>
+                        {reportSubTab === 'harian' ? (
+                          <>
+                            <td className="py-5 px-6 text-center text-emerald-400 text-lg font-black">
+                              {formatRupiah(filteredReportComparisonData.reduce((acc, curr) => acc + curr.target, 0))}
+                            </td>
+                            <td className="py-5 px-6 text-center text-emerald-400 text-lg font-black">
+                              {(() => {
+                                const totalRev = filteredReportComparisonData.reduce((acc, curr) => acc + curr.revenue, 0);
+                                const totalTarget = filteredReportComparisonData.reduce((acc, curr) => acc + curr.target, 0);
+                                const pct = totalTarget > 0 ? (totalRev / totalTarget) * 100 : 0;
+                                return `${pct.toFixed(2)}%`;
+                              })()}
+                            </td>
+                          </>
+                        ) : (reportSubTab === 'bulanan' || reportSubTab === 'berjalan') ? (
+                          <>
+                            <td className="py-5 px-6 text-center text-emerald-400 text-lg font-black">
+                              {(() => {
+                                const isBulanan = reportSubTab === 'bulanan';
+                                const totalRev = filteredReportComparisonData.reduce((acc, curr) => acc + (isBulanan ? curr.val1 : curr.revenue), 0);
+                                const totalPrev = filteredReportComparisonData.reduce((acc, curr) => acc + (isBulanan ? curr.val2 : curr.prevRevenue), 0);
+                                const pct = totalPrev > 0 ? (totalRev / totalPrev) * 100 : (totalRev > 0 ? 100 : 0);
+                                return `${pct.toFixed(2)}%`;
+                              })()}
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="py-5 px-6 text-center text-emerald-400 text-lg font-black">
+                              {(() => {
+                                const totalRev = filteredReportComparisonData.reduce((acc, curr) => acc + (curr.val1 || curr.revenue), 0);
+                                const totalPrev = filteredReportComparisonData.reduce((acc, curr) => acc + (curr.val2 || curr.prevRevenue), 0);
+                                const pct = totalPrev > 0 ? (totalRev / totalPrev) * 100 : (totalRev > 0 ? 100 : 0);
+                                return `${pct.toFixed(2)}%`;
+                              })()}
+                            </td>
+                          </>
+                        )}
                       </tr>
+                      {(reportSubTab === 'bulanan' || reportSubTab === 'berjalan' || reportSubTab === 'tahunan') && (
+                        <tr className="bg-gray-800 text-white font-black uppercase text-xs">
+                          <td colSpan={3} className="py-4 px-6 text-right text-gray-300">Target Keseluruhan ({reportSubTab === 'bulanan' ? 'Bulan Ini' : (reportSubTab === 'berjalan' ? 'MTD' : 'YTD')})</td>
+                          <td className="py-4 px-6 text-right border-l border-gray-700">
+                            <div className="flex justify-end">
+                              <input
+                                type="number"
+                                className="p-2 bg-gray-700 border border-gray-600 rounded-lg text-right font-bold w-40 outline-none focus:ring-2 focus:ring-blue-400 text-emerald-400"
+                                value={reportSubTab === 'tahunan' ? globalYearlyTarget : globalMonthlyTarget}
+                                onChange={e => {
+                                  const val = parseFloat(e.target.value) || 0;
+                                  if (reportSubTab === 'tahunan') setGlobalYearlyTarget(val);
+                                  else setGlobalMonthlyTarget(val);
+                                }}
+                              />
+                            </div>
+                          </td>
+                          <td className="py-4 px-6 text-center text-blue-400 text-lg font-black border-l border-gray-700">
+                            {(() => {
+                                const isTahunan = reportSubTab === 'tahunan';
+                                const isBulanan = reportSubTab === 'bulanan';
+                                const totalRev = filteredReportComparisonData.reduce((acc, curr) => acc + (isTahunan ? curr.val1 : (isBulanan ? curr.val1 : curr.revenue)), 0);
+                                const targetToUse = isTahunan ? globalYearlyTarget : globalMonthlyTarget;
+                                const pct = targetToUse > 0 ? (totalRev / targetToUse) * 100 : 0;
+                                return `${pct.toFixed(2)}%`;
+                            })()} <span className="text-xs text-gray-400 block mt-1">(Ach. Target)</span>
+                          </td>
+                        </tr>
+                      )}
                     </tfoot>
                   </table>
                 </div>
@@ -1536,17 +1883,25 @@ const MarketingOnlineBanua = ({ embedded = false }) => {
               <div className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100">
                 <div className="flex justify-between items-center mb-8">
                   <div>
-                    <h3 className="text-xl font-black text-gray-900">Perbandingan Performa Akun</h3>
-                    <p className="text-sm text-gray-500 mt-1">Visualisasi pendapatan antara dua periode terpilih</p>
+                    <h3 className="text-xl font-black text-gray-900">
+                      {reportSubTab === 'harian' ? 'Pencapaian Target Akun' : 'Perbandingan Performa Akun'}
+                    </h3>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {reportSubTab === 'harian' ? 'Visualisasi pendapatan harian terhadap target' : 'Visualisasi pendapatan antara dua periode terpilih'}
+                    </p>
                   </div>
                   <div className="flex gap-4">
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                      <span className="text-[10px] font-bold uppercase text-gray-400">Periode Utama</span>
+                      <span className="text-[10px] font-bold uppercase text-gray-400">
+                        {reportSubTab === 'harian' ? 'Pendapatan Hari Ini' : 'Periode Utama'}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
-                      <span className="text-[10px] font-bold uppercase text-gray-400">Pembanding</span>
+                      <div className={`w-3 h-3 ${reportSubTab === 'harian' ? 'bg-emerald-500' : 'bg-gray-300'} rounded-full`}></div>
+                      <span className="text-[10px] font-bold uppercase text-gray-400">
+                        {reportSubTab === 'harian' ? 'Target Harian' : 'Pembanding'}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -1574,8 +1929,8 @@ const MarketingOnlineBanua = ({ embedded = false }) => {
                         contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}
                         formatter={(val) => formatRupiah(val)}
                       />
-                      <Bar dataKey={reportSubTab === 'harian' ? 'revenue' : 'val1'} fill="#3b82f6" radius={[6, 6, 0, 0]} name="Periode Utama" barSize={30} />
-                      <Bar dataKey={reportSubTab === 'harian' ? 'prevRevenue' : 'val2'} fill="#e2e8f0" radius={[6, 6, 0, 0]} name="Pembanding" barSize={30} />
+                      <Bar dataKey={reportSubTab === 'harian' ? 'revenue' : (reportSubTab === 'berjalan' ? 'revenue' : 'val1')} fill="#3b82f6" radius={[6, 6, 0, 0]} name="Periode Utama" barSize={30} />
+                      <Bar dataKey={reportSubTab === 'harian' ? 'target' : (reportSubTab === 'berjalan' ? 'prevRevenue' : 'val2')} fill={reportSubTab === 'harian' ? '#10b981' : '#e2e8f0'} radius={[6, 6, 0, 0]} name="Pembanding" barSize={30} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

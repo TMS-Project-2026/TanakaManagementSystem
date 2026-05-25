@@ -135,6 +135,11 @@ function App() {
             <GudangDashboard />
           </ProtectedRoute>
         } />
+        <Route path="/gudang/order-marketplace" element={
+          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Gudang']}>
+            <MarketingOnlineBanua forcedTab="orders" />
+          </ProtectedRoute>
+        } />
         <Route path="/stok" element={
           <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Gudang']}>
             <Stok />
