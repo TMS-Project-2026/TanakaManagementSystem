@@ -357,38 +357,74 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
         setReportComparisonData(yearlyData);
       } else {
         // Laporan Bulanan: rentang tanggal (filterDate1 s.d. filterDateEnd)
-        // Pembanding: bulan yang sama di tahun sebelumnya
+        // Pembanding: Target, Bulan Sebelumnya, dan Tahun Sebelumnya
         const startCurrent = new Date(filterDate1);
+        startCurrent.setHours(0, 0, 0, 0);
         const endCurrent = new Date(filterDateEnd);
+        endCurrent.setHours(23, 59, 59, 999);
 
-        // Hitung rentang yang sama di tahun lalu
-        const startPrev = new Date(startCurrent);
-        startPrev.setFullYear(startPrev.getFullYear() - 1);
-        const endPrev = new Date(endCurrent);
-        endPrev.setFullYear(endPrev.getFullYear() - 1);
+        // Bulan sebelumnya
+        const startPrevMonth = new Date(startCurrent);
+        startPrevMonth.setMonth(startPrevMonth.getMonth() - 1);
+        if (startPrevMonth.getDate() !== startCurrent.getDate()) startPrevMonth.setDate(0);
 
-        const groupedByAccount = {};
-        allOrders.forEach(order => {
-          const acc = order.akun_toko || 'Unknown';
-          if (!groupedByAccount[acc]) groupedByAccount[acc] = { current: 0, prev: 0 };
-          const orderDate = new Date(order.order_date);
-          const revenue = parseFloat(order.total_price || 0) - parseFloat(order.potongan_shopee || 0);
-          if (orderDate >= startCurrent && orderDate <= endCurrent) groupedByAccount[acc].current += revenue;
-          if (orderDate >= startPrev && orderDate <= endPrev) groupedByAccount[acc].prev += revenue;
+        const endPrevMonth = new Date(endCurrent);
+        endPrevMonth.setMonth(endPrevMonth.getMonth() - 1);
+        if (endPrevMonth.getDate() !== endCurrent.getDate()) endPrevMonth.setDate(0);
+
+        // Tahun lalu
+        const startPrevYear = new Date(startCurrent);
+        startPrevYear.setFullYear(startPrevYear.getFullYear() - 1);
+        if (startPrevYear.getDate() !== startCurrent.getDate()) startPrevYear.setDate(0);
+
+        const endPrevYear = new Date(endCurrent);
+        endPrevYear.setFullYear(endPrevYear.getFullYear() - 1);
+        if (endPrevYear.getDate() !== endCurrent.getDate()) endPrevYear.setDate(0);
+
+        const accounts = [...new Set(allOrders.map(o => o.akun_toko || 'Unknown'))];
+        const finalReport = [];
+
+        accounts.forEach(acc => {
+          let currentRev = 0;
+          let prevMonthRev = 0;
+          let prevYearRev = 0;
+
+          allOrders.forEach(order => {
+            if ((order.akun_toko || 'Unknown') !== acc) return;
+            const orderDate = new Date(order.order_date);
+            const revenue = parseFloat(order.total_price || 0) - parseFloat(order.potongan_shopee || 0);
+
+            if (orderDate >= startCurrent && orderDate <= endCurrent) currentRev += revenue;
+            if (orderDate >= startPrevMonth && orderDate <= endPrevMonth) prevMonthRev += revenue;
+            if (orderDate >= startPrevYear && orderDate <= endPrevYear) prevYearRev += revenue;
+          });
+
+          if (currentRev > 0 || prevMonthRev > 0 || prevYearRev > 0) {
+            finalReport.push({
+              account: acc,
+              currentRevenue: currentRev,
+              dateCurrent: filterDate1,
+              dateCurrentEnd: filterDateEnd,
+              comparisons: [
+                { id: 'target', title: 'Target', compareValue: 0 }, // dynamically uses globalMonthlyTarget in render
+                { 
+                  id: 'prev_month', title: 'Bulan Sebelumnya', compareValue: prevMonthRev, 
+                  dateCompare: new Date(startPrevMonth.getTime() - startPrevMonth.getTimezoneOffset() * 60000).toISOString().split('T')[0], 
+                  dateCompareEnd: new Date(endPrevMonth.getTime() - endPrevMonth.getTimezoneOffset() * 60000).toISOString().split('T')[0] 
+                },
+                { 
+                  id: 'prev_year', title: 'Tahun Lalu', compareValue: prevYearRev, 
+                  dateCompare: new Date(startPrevYear.getTime() - startPrevYear.getTimezoneOffset() * 60000).toISOString().split('T')[0], 
+                  dateCompareEnd: new Date(endPrevYear.getTime() - endPrevYear.getTimezoneOffset() * 60000).toISOString().split('T')[0] 
+                }
+              ]
+            });
+          }
         });
-
-        const finalReport = Object.keys(groupedByAccount).map(acc => {
-          return {
-            account: acc,
-            val1: groupedByAccount[acc].current,
-            val2: groupedByAccount[acc].prev,
-            startCurrent: filterDate1,
-            endCurrent: filterDateEnd,
-            startPrev: startPrev.toISOString().split('T')[0],
-            endPrev: endPrev.toISOString().split('T')[0],
-            growth: groupedByAccount[acc].prev > 0 ? (groupedByAccount[acc].current / groupedByAccount[acc].prev) * 100 : (groupedByAccount[acc].current > 0 ? 100 : 0)
-          };
-        }).filter(r => r.val1 > 0 || r.val2 > 0).sort((a, b) => b.val1 - a.val1);
+        
+        // Sort by current revenue descending
+        finalReport.sort((a, b) => b.currentRevenue - a.currentRevenue);
+        
         setReportComparisonData(finalReport);
       }
     } catch (err) {
@@ -1624,7 +1660,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                     </div>
                   </>
                 ) : (
-                  // Laporan Bulanan: rentang tanggal + pembanding tahun lalu otomatis
+                  // Laporan Bulanan: rentang tanggal + target
                   <>
                     <div className="flex-1 min-w-[200px]">
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Dari Tanggal</label>
@@ -1643,6 +1679,15 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                         className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-violet-100"
                         value={filterDateEnd}
                         onChange={e => setFilterDateEnd(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex-1 min-w-[200px]">
+                      <label className="block text-xs font-bold text-emerald-600 uppercase mb-2">Target Pendapatan</label>
+                      <input
+                        type="number"
+                        className="w-full p-3 bg-emerald-50 border border-emerald-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-300 text-emerald-700 font-bold"
+                        value={globalMonthlyTarget}
+                        onChange={e => setGlobalMonthlyTarget(parseFloat(e.target.value) || 0)}
                       />
                     </div>
                   </>
@@ -1666,9 +1711,9 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                         )}
                         {reportSubTab === 'bulanan' && (
                           <>
-                            <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800 bg-gray-800/50 min-w-[220px]">Rentang Tanggal</th>
+                            <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800 bg-gray-800/50 min-w-[220px]">Periode</th>
                             <th className="py-4 px-6 text-right text-xs font-black uppercase tracking-widest border border-gray-800">Pendapatan</th>
-                            <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800">Pertumbuhan</th>
+                            <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800">Pencapaian</th>
                           </>
                         )}
                         {(reportSubTab === 'berjalan' || reportSubTab === 'tahunan') && (
@@ -1769,31 +1814,71 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                               </tr>
                             </React.Fragment>
                           ))
-                        ) : (
-                          filteredReportComparisonData.map((row, idx) => (
-                            <React.Fragment key={idx}>
-                              <tr className="hover:bg-blue-50/30 transition-colors">
-                                <td rowSpan={2} className="py-6 px-6 text-center font-bold text-gray-400 border-x border-b border-gray-100">{idx + 1}</td>
-                                <td rowSpan={2} className="py-6 px-6 font-black text-gray-900 border-x border-b border-gray-100">{row.account}</td>
-                                <td className="py-3 px-6 text-center font-bold bg-cyan-50 text-cyan-800 border-b border-gray-100">
-                                  {new Date(row.startCurrent || filterDate1).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} – {new Date(row.endCurrent || filterDateEnd).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                </td>
-                                <td className="py-3 px-6 text-right font-black text-blue-700 border-b border-gray-100">{formatRupiah(row.val1)}</td>
-                                <td rowSpan={2} className="py-6 px-6 text-center border-x border-b border-gray-100">
-                                  <span className={`text-xl font-black ${row.growth >= 100 ? 'text-green-600' : 'text-red-600'}`}>
-                                    {row.growth?.toFixed(2)}%
-                                  </span>
-                                </td>
-                              </tr>
-                              <tr className="hover:bg-blue-50/30 transition-colors">
-                                <td className="py-3 px-6 text-center font-bold bg-violet-50 text-violet-700 border-b border-gray-100">
-                                  ↩ {new Date(row.startPrev || filterDate1).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} – {new Date(row.endPrev || filterDateEnd).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                </td>
-                                <td className="py-3 px-6 text-right font-bold text-violet-500 border-b border-gray-100">{formatRupiah(row.val2)}</td>
-                              </tr>
-                            </React.Fragment>
-                          ))
-                        )
+                        ) : reportSubTab === 'bulanan' ? (
+                          filteredReportComparisonData.map((accRow, idx) => {
+                            const comparisons = [
+                              { 
+                                titleCompare: 'Target',
+                                valueCompare: globalMonthlyTarget,
+                                dateCompare1: null,
+                                dateCompare2: null
+                              },
+                              { 
+                                titleCompare: 'Bulan Sebelumnya',
+                                valueCompare: accRow.comparisons.find(c => c.id === 'prev_month')?.compareValue || 0,
+                                dateCompare1: accRow.comparisons.find(c => c.id === 'prev_month')?.dateCompare,
+                                dateCompare2: accRow.comparisons.find(c => c.id === 'prev_month')?.dateCompareEnd
+                              },
+                              { 
+                                titleCompare: 'Tahun Lalu',
+                                valueCompare: accRow.comparisons.find(c => c.id === 'prev_year')?.compareValue || 0,
+                                dateCompare1: accRow.comparisons.find(c => c.id === 'prev_year')?.dateCompare,
+                                dateCompare2: accRow.comparisons.find(c => c.id === 'prev_year')?.dateCompareEnd
+                              }
+                            ];
+                            return (
+                              <React.Fragment key={idx}>
+                                {comparisons.map((comp, compIdx) => {
+                                  const ach = comp.valueCompare > 0 ? (accRow.currentRevenue / comp.valueCompare) * 100 : (accRow.currentRevenue > 0 ? 100 : 0);
+                                  return (
+                                    <React.Fragment key={`${idx}-${compIdx}`}>
+                                      <tr className="hover:bg-blue-50/30 transition-colors border-t border-gray-100">
+                                        {compIdx === 0 && (
+                                          <>
+                                            <td rowSpan={6} className="py-6 px-6 text-center font-bold text-gray-400 border-x border-b border-gray-100">{idx + 1}</td>
+                                            <td rowSpan={6} className="py-6 px-6 font-black text-gray-900 border-x border-b border-gray-100">{accRow.account}</td>
+                                          </>
+                                        )}
+                                        <td className="py-3 px-6 text-center font-bold bg-cyan-50 text-cyan-800 border-b border-gray-100">
+                                          {accRow.dateCurrent && accRow.dateCurrentEnd ? `${new Date(accRow.dateCurrent).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} – ${new Date(accRow.dateCurrentEnd).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}` : 'Bulan Ini'}
+                                        </td>
+                                        <td className="py-3 px-6 text-right font-black text-blue-700 border-b border-gray-100">{formatRupiah(accRow.currentRevenue)}</td>
+                                        <td rowSpan={2} className="py-6 px-6 text-center border-x border-b border-gray-100">
+                                          <span className={`text-xl font-black ${ach >= 100 ? 'text-green-600' : 'text-red-600'}`}>
+                                            {ach.toFixed(2)}%
+                                          </span>
+                                        </td>
+                                      </tr>
+                                      <tr className="hover:bg-blue-50/30 transition-colors">
+                                        <td className="py-3 px-6 text-center font-bold bg-violet-50 text-violet-700 border-b border-gray-100">
+                                          {comp.dateCompare1 && comp.dateCompare2 ? (
+                                            <>
+                                              <span className="text-[10px] uppercase tracking-wider opacity-60 block mb-0.5">{comp.titleCompare}</span>
+                                              ↩ {new Date(comp.dateCompare1).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} – {new Date(comp.dateCompare2).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                            </>
+                                          ) : (
+                                            `↩ ${comp.titleCompare}`
+                                          )}
+                                        </td>
+                                        <td className="py-3 px-6 text-right font-bold text-gray-400 border-b border-gray-100">{formatRupiah(comp.valueCompare)}</td>
+                                      </tr>
+                                    </React.Fragment>
+                                  );
+                                })}
+                              </React.Fragment>
+                            );
+                          })
+                        ) : null
                       ) : (
                         <tr>
                           <td colSpan={5} className="py-20 text-center text-gray-400 font-medium italic">Tidak ada data untuk periode terpilih atau cocok.</td>
@@ -1801,39 +1886,49 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                       )}
                     </tbody>
                     <tfoot>
-                      <tr className="bg-gray-900 text-white font-black uppercase text-xs">
-                        <td colSpan={reportSubTab === 'harian' ? 2 : 3} className="py-5 px-6 text-right">Total Pendapatan (Periode Berjalan)</td>
-                        <td className="py-5 px-6 text-right text-emerald-400 text-lg">
-                          {formatRupiah(filteredReportComparisonData.reduce((acc, curr) => acc + (reportSubTab === 'harian' ? curr.revenue : curr.val1 || curr.revenue), 0))}
-                        </td>
-                        {reportSubTab === 'harian' ? (
-                          <>
-                            <td className="py-5 px-6 text-center text-emerald-400 text-lg font-black">
-                              {formatRupiah(filteredReportComparisonData.reduce((acc, curr) => acc + curr.target, 0))}
-                            </td>
-                            <td className="py-5 px-6 text-center text-emerald-400 text-lg font-black">
-                              {(() => {
-                                const totalRev = filteredReportComparisonData.reduce((acc, curr) => acc + curr.revenue, 0);
-                                const totalTarget = filteredReportComparisonData.reduce((acc, curr) => acc + curr.target, 0);
-                                const pct = totalTarget > 0 ? (totalRev / totalTarget) * 100 : 0;
-                                return `${pct.toFixed(2)}%`;
-                              })()}
-                            </td>
-                          </>
-                        ) : (reportSubTab === 'bulanan' || reportSubTab === 'berjalan') ? (
-                          <>
-                            <td className="py-5 px-6 text-center text-emerald-400 text-lg font-black">
-                              {(() => {
-                                const isBulanan = reportSubTab === 'bulanan';
-                                const totalRev = filteredReportComparisonData.reduce((acc, curr) => acc + (isBulanan ? curr.val1 : curr.revenue), 0);
-                                const totalPrev = filteredReportComparisonData.reduce((acc, curr) => acc + (isBulanan ? curr.val2 : curr.prevRevenue), 0);
-                                const pct = totalPrev > 0 ? (totalRev / totalPrev) * 100 : (totalRev > 0 ? 100 : 0);
-                                return `${pct.toFixed(2)}%`;
-                              })()}
-                            </td>
-                          </>
-                        ) : (
-                          <>
+                      {reportSubTab === 'bulanan' ? (
+                        <tr className="bg-gray-900 text-white font-black uppercase text-xs">
+                          <td colSpan={3} className="py-5 px-6 text-right tracking-widest text-gray-300">Total Keseluruhan (Bulan Ini)</td>
+                          <td className="py-5 px-6 text-right text-emerald-400 text-lg">
+                            {formatRupiah(filteredReportComparisonData.reduce((acc, curr) => acc + curr.currentRevenue, 0))}
+                          </td>
+                          <td className="py-5 px-6 text-center">
+                            {(() => {
+                              const totalRev = filteredReportComparisonData.reduce((acc, curr) => acc + curr.currentRevenue, 0);
+                              const totalTarget = filteredReportComparisonData.reduce((acc, curr) => acc + globalMonthlyTarget, 0);
+                              const pct = totalTarget > 0 ? (totalRev / totalTarget) * 100 : (totalRev > 0 ? 100 : 0);
+                              return (
+                                <div>
+                                  <span className={`text-lg font-black ${pct >= 100 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                    {pct.toFixed(2)}%
+                                  </span>
+                                  <span className="text-[10px] text-gray-400 block mt-1 font-semibold uppercase tracking-wider">(vs Total Target)</span>
+                                </div>
+                              );
+                            })()}
+                          </td>
+                        </tr>
+                      ) : (
+                        <tr className="bg-gray-900 text-white font-black uppercase text-xs">
+                          <td colSpan={reportSubTab === 'harian' ? 2 : 3} className="py-5 px-6 text-right">Total Pendapatan (Periode Berjalan)</td>
+                          <td className="py-5 px-6 text-right text-emerald-400 text-lg">
+                            {formatRupiah(filteredReportComparisonData.reduce((acc, curr) => acc + (reportSubTab === 'harian' ? curr.revenue : curr.val1 || curr.revenue), 0))}
+                          </td>
+                          {reportSubTab === 'harian' ? (
+                            <>
+                              <td className="py-5 px-6 text-center text-emerald-400 text-lg font-black">
+                                {formatRupiah(filteredReportComparisonData.reduce((acc, curr) => acc + curr.target, 0))}
+                              </td>
+                              <td className="py-5 px-6 text-center text-emerald-400 text-lg font-black">
+                                {(() => {
+                                  const totalRev = filteredReportComparisonData.reduce((acc, curr) => acc + curr.revenue, 0);
+                                  const totalTarget = filteredReportComparisonData.reduce((acc, curr) => acc + curr.target, 0);
+                                  const pct = totalTarget > 0 ? (totalRev / totalTarget) * 100 : 0;
+                                  return `${pct.toFixed(2)}%`;
+                                })()}
+                              </td>
+                            </>
+                          ) : (
                             <td className="py-5 px-6 text-center text-emerald-400 text-lg font-black">
                               {(() => {
                                 const totalRev = filteredReportComparisonData.reduce((acc, curr) => acc + (curr.val1 || curr.revenue), 0);
@@ -1842,12 +1937,12 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                                 return `${pct.toFixed(2)}%`;
                               })()}
                             </td>
-                          </>
-                        )}
-                      </tr>
-                      {(reportSubTab === 'bulanan' || reportSubTab === 'berjalan' || reportSubTab === 'tahunan') && (
+                          )}
+                        </tr>
+                      )}
+                      {(reportSubTab === 'berjalan' || reportSubTab === 'tahunan') && (
                         <tr className="bg-gray-800 text-white font-black uppercase text-xs">
-                          <td colSpan={3} className="py-4 px-6 text-right text-gray-300">Target Keseluruhan ({reportSubTab === 'bulanan' ? 'Bulan Ini' : (reportSubTab === 'berjalan' ? 'MTD' : 'YTD')})</td>
+                          <td colSpan={3} className="py-4 px-6 text-right text-gray-300">Target Keseluruhan ({reportSubTab === 'berjalan' ? 'MTD' : 'YTD'})</td>
                           <td className="py-4 px-6 text-right border-l border-gray-700">
                             <div className="flex justify-end">
                               <input
@@ -1866,7 +1961,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                             {(() => {
                                 const isTahunan = reportSubTab === 'tahunan';
                                 const isBulanan = reportSubTab === 'bulanan';
-                                const totalRev = filteredReportComparisonData.reduce((acc, curr) => acc + (isTahunan ? curr.val1 : (isBulanan ? curr.val1 : curr.revenue)), 0);
+                                const totalRev = isBulanan ? (filteredReportComparisonData[0]?.revenue || 0) : filteredReportComparisonData.reduce((acc, curr) => acc + (isTahunan ? curr.val1 : curr.revenue), 0);
                                 const targetToUse = isTahunan ? globalYearlyTarget : globalMonthlyTarget;
                                 const pct = targetToUse > 0 ? (totalRev / targetToUse) * 100 : 0;
                                 return `${pct.toFixed(2)}%`;
@@ -1890,25 +1985,36 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                       {reportSubTab === 'harian' ? 'Visualisasi pendapatan harian terhadap target' : 'Visualisasi pendapatan antara dua periode terpilih'}
                     </p>
                   </div>
-                  <div className="flex gap-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                      <span className="text-[10px] font-bold uppercase text-gray-400">
-                        {reportSubTab === 'harian' ? 'Pendapatan Hari Ini' : 'Periode Utama'}
-                      </span>
+                  {reportSubTab !== 'bulanan' && (
+                    <div className="flex gap-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                        <span className="text-[10px] font-bold uppercase text-gray-400">
+                          {reportSubTab === 'harian' ? 'Pendapatan Hari Ini' : 'Periode Utama'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 ${reportSubTab === 'harian' ? 'bg-emerald-500' : 'bg-gray-300'} rounded-full`}></div>
+                        <span className="text-[10px] font-bold uppercase text-gray-400">
+                          {reportSubTab === 'harian' ? 'Target Harian' : 'Pembanding'}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className={`w-3 h-3 ${reportSubTab === 'harian' ? 'bg-emerald-500' : 'bg-gray-300'} rounded-full`}></div>
-                      <span className="text-[10px] font-bold uppercase text-gray-400">
-                        {reportSubTab === 'harian' ? 'Target Harian' : 'Pembanding'}
-                      </span>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
                 <div className="h-96 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={filteredReportComparisonData}>
+                    <BarChart data={
+                      reportSubTab === 'bulanan' ? filteredReportComparisonData.map(acc => ({
+                        account: acc.account,
+                        revenue: acc.currentRevenue,
+                        target: globalMonthlyTarget,
+                        prevMonth: acc.comparisons.find(c => c.id === 'prev_month')?.compareValue || 0,
+                        prevYear: acc.comparisons.find(c => c.id === 'prev_year')?.compareValue || 0
+                      })) : 
+                      filteredReportComparisonData
+                    }>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                       <XAxis
                         dataKey="account"
@@ -1916,8 +2022,8 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                         tickLine={false}
                         tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
                         interval={0}
-                        angle={-20}
-                        textAnchor="end"
+                        angle={reportSubTab === 'bulanan' ? 0 : -20}
+                        textAnchor={reportSubTab === 'bulanan' ? 'center' : 'end'}
                       />
                       <YAxis
                         axisLine={false}
@@ -1929,8 +2035,18 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                         contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}
                         formatter={(val) => formatRupiah(val)}
                       />
-                      <Bar dataKey={reportSubTab === 'harian' ? 'revenue' : (reportSubTab === 'berjalan' ? 'revenue' : 'val1')} fill="#3b82f6" radius={[6, 6, 0, 0]} name="Periode Utama" barSize={30} />
-                      <Bar dataKey={reportSubTab === 'harian' ? 'target' : (reportSubTab === 'berjalan' ? 'prevRevenue' : 'val2')} fill={reportSubTab === 'harian' ? '#10b981' : '#e2e8f0'} radius={[6, 6, 0, 0]} name="Pembanding" barSize={30} />
+                      <Legend />
+                      <Bar dataKey={reportSubTab === 'harian' ? 'revenue' : (reportSubTab === 'berjalan' ? 'revenue' : (reportSubTab === 'bulanan' ? 'revenue' : 'val1'))} fill="#3b82f6" radius={[6, 6, 0, 0]} name="Periode Utama" barSize={20} />
+                      
+                      {reportSubTab === 'bulanan' ? (
+                        <>
+                          <Bar dataKey="target" fill="#94a3b8" radius={[6, 6, 0, 0]} name="Target" barSize={20} />
+                          <Bar dataKey="prevMonth" fill="#10b981" radius={[6, 6, 0, 0]} name="Bulan Sebelumnya" barSize={20} />
+                          <Bar dataKey="prevYear" fill="#f59e0b" radius={[6, 6, 0, 0]} name="Tahun Lalu" barSize={20} />
+                        </>
+                      ) : (
+                        <Bar dataKey={reportSubTab === 'harian' ? 'target' : (reportSubTab === 'berjalan' ? 'prevRevenue' : 'val2')} fill={reportSubTab === 'harian' ? '#10b981' : '#e2e8f0'} radius={[6, 6, 0, 0]} name="Pembanding" barSize={20} />
+                      )}
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

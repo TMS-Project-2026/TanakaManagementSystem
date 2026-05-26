@@ -52,7 +52,6 @@ const Sidebar = () => {
       group: 'Offline Banua',
       subMenu: [
         { title: 'Laporan Harian', path: '/marketing-offline/reports/harian' },
-        { title: 'Laporan Bulan Berjalan', path: '/marketing-offline/reports/berjalan' },
         { title: 'Laporan Bulanan', path: '/marketing-offline/reports/bulanan' },
         { title: 'Laporan Tahunan', path: '/marketing-offline/reports/tahunan' }
       ]
@@ -69,7 +68,6 @@ const Sidebar = () => {
       group: 'MARKETPLACE BANUA',
       subMenu: [
         { title: 'Laporan Harian', path: '/marketing-online/reports/harian' },
-        { title: 'Laporan Bulan Berjalan', path: '/marketing-online/reports/berjalan' },
         { title: 'Laporan Bulanan', path: '/marketing-online/reports/bulanan' },
         { title: 'Laporan Tahunan', path: '/marketing-online/reports/tahunan' }
       ]
