@@ -52,7 +52,8 @@ const Sidebar = () => {
       group: 'Offline Banua',
       subMenu: [
         { title: 'Laporan Harian', path: '/marketing-offline/reports/harian' },
-        { title: 'Laporan Bulanan', path: '/marketing-offline/reports/bulanan' }
+        { title: 'Laporan Bulanan', path: '/marketing-offline/reports/bulanan' },
+        { title: 'Laporan Tahunan', path: '/marketing-offline/reports/tahunan' }
       ]
     },
     { name: 'Dashboard Online', path: '/marketing-online/dashboard', icon: <LayoutDashboard size={20} />, roles: ['marketing_online', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE BANUA' },
@@ -67,10 +68,12 @@ const Sidebar = () => {
       group: 'MARKETPLACE BANUA',
       subMenu: [
         { title: 'Laporan Harian', path: '/marketing-online/reports/harian' },
-        { title: 'Laporan Bulanan', path: '/marketing-online/reports/bulanan' }
+        { title: 'Laporan Bulanan', path: '/marketing-online/reports/bulanan' },
+        { title: 'Laporan Tahunan', path: '/marketing-online/reports/tahunan' }
       ]
     },
     { name: 'Dashboard Gudang', path: '/gudang', icon: <LayoutDashboard size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
+    { name: 'Order Marketplace', path: '/gudang/order-marketplace', icon: <ShoppingBag size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Barang Masuk', path: '/barang-masuk', icon: <TrendingUp size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Barang Keluar', path: '/barang-keluar', icon: <TrendingDown size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Mutasi Barang', path: '/mutasi', icon: <ArrowRightLeft size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
