@@ -1760,8 +1760,8 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                                 />
                               </td>
                               <td className="py-4 px-6 text-center border-x border-b border-gray-100">
-                                <span className={`text-xl font-black ${row.achievement >= 100 ? 'text-green-600' : 'text-red-600'}`}>
-                                  {row.achievement.toFixed(2)}%
+                                <span className={`text-xl font-black ${(row.achievement || 0) >= 100 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {Number(row.achievement || 0).toFixed(2)}%
                                 </span>
                               </td>
                             </tr>
@@ -1825,15 +1825,15 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                               },
                               { 
                                 titleCompare: 'Bulan Sebelumnya',
-                                valueCompare: accRow.comparisons.find(c => c.id === 'prev_month')?.compareValue || 0,
-                                dateCompare1: accRow.comparisons.find(c => c.id === 'prev_month')?.dateCompare,
-                                dateCompare2: accRow.comparisons.find(c => c.id === 'prev_month')?.dateCompareEnd
+                                valueCompare: accRow.comparisons?.find(c => c.id === 'prev_month')?.compareValue || 0,
+                                dateCompare1: accRow.comparisons?.find(c => c.id === 'prev_month')?.dateCompare,
+                                dateCompare2: accRow.comparisons?.find(c => c.id === 'prev_month')?.dateCompareEnd
                               },
                               { 
                                 titleCompare: 'Tahun Lalu',
-                                valueCompare: accRow.comparisons.find(c => c.id === 'prev_year')?.compareValue || 0,
-                                dateCompare1: accRow.comparisons.find(c => c.id === 'prev_year')?.dateCompare,
-                                dateCompare2: accRow.comparisons.find(c => c.id === 'prev_year')?.dateCompareEnd
+                                valueCompare: accRow.comparisons?.find(c => c.id === 'prev_year')?.compareValue || 0,
+                                dateCompare1: accRow.comparisons?.find(c => c.id === 'prev_year')?.dateCompare,
+                                dateCompare2: accRow.comparisons?.find(c => c.id === 'prev_year')?.dateCompareEnd
                               }
                             ];
                             return (
@@ -2010,8 +2010,8 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                         account: acc.account,
                         revenue: acc.currentRevenue,
                         target: globalMonthlyTarget,
-                        prevMonth: acc.comparisons.find(c => c.id === 'prev_month')?.compareValue || 0,
-                        prevYear: acc.comparisons.find(c => c.id === 'prev_year')?.compareValue || 0
+                        prevMonth: acc.comparisons?.find(c => c.id === 'prev_month')?.compareValue || 0,
+                        prevYear: acc.comparisons?.find(c => c.id === 'prev_year')?.compareValue || 0
                       })) : 
                       filteredReportComparisonData
                     }>

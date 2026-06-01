@@ -1,5 +1,12 @@
 const db = require('../config/db');
 
+// Helper: trim ISO datetime to YYYY-MM-DD for MySQL DATE columns
+const parseDate = (val) => {
+    if (!val) return null;
+    // Handles '2026-07-03T17:00:00.000Z' → '2026-07-03'
+    return String(val).substring(0, 10);
+};
+
 // ================= CUSTOMER =================
 exports.getCustomers = (req, res) => {
     db.query("SELECT * FROM marketing_customers WHERE type = 'offline' AND branch = 'Banua' ORDER BY created_at DESC", (err, results) => {
@@ -176,7 +183,7 @@ exports.createOrder = (req, res) => {
         [
             customer, alamat_pt, up_penagihan, cp_penagihan, email,
             itemsJson, subtotal || 0, ppn_persen || 0, jumlah_ppn || 0, diskon || 0, diskon_persen || 0, grand_total || (harga * qty),
-            produk, qty, harga, deadline || null, status || 'New Order', payment_type || 'DP', 
+            produk, qty, harga, parseDate(deadline), status || 'New Order', payment_type || 'DP', 
             status_produksi || 'Beli Kain', lokasi_proses || 'Internal', catatan
         ],
         (err, result) => {
@@ -224,7 +231,7 @@ exports.updateOrder = (req, res) => {
         [
             customer, alamat_pt, up_penagihan, cp_penagihan, email,
             itemsJson, subtotal || 0, ppn_persen || 0, jumlah_ppn || 0, diskon || 0, diskon_persen || 0, grand_total || (harga * qty),
-            produk, qty, harga, deadline || null, status, payment_type, 
+            produk, qty, harga, parseDate(deadline), status, payment_type, 
             status_produksi, lokasi_proses, catatan, req.params.id
         ],
         (err) => {
@@ -311,8 +318,8 @@ exports.bulkCreateOrders = (req, res) => {
 
 // ================= INVENTORY =================
 exports.getInventory = (req, res) => {
-    // Inventory view only from stok table for branch Banua
-    db.query("SELECT id, nama_barang as product_name, jumlah as stock_qty, minimum_stok FROM stok WHERE cabang_id = 'Banua'", (err, results) => {
+    // Inventory view from stok table for branch Banua (case-insensitive)
+    db.query("SELECT id, nama_brand, nama_barang, nama_barang as product_name, jumlah, jumlah as stock_qty, kategori, kode_rak, ukuran, cabang_id, minimum_stok, created_at FROM stok WHERE LOWER(cabang_id) = 'banua'", (err, results) => {
         if (err) return res.status(500).json({ message: err.message });
         res.json(results);
     });
@@ -419,13 +426,13 @@ exports.getPromoStock = (req, res) => {
         FROM stok s
         WHERE
             s.jumlah > 0
-            AND s.cabang_id = 'Banua'
+            AND LOWER(s.cabang_id) = 'banua'
             AND s.created_at <= DATE_SUB(CURDATE(), INTERVAL 60 DAY)
             AND s.nama_barang NOT IN (
                 SELECT DISTINCT produk
                 FROM marketing_orders_offline
                 WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 60 DAY)
-                  AND branch = 'Banua'
+                  AND LOWER(branch) = 'banua'
             )
         ORDER BY hari_mengendap DESC
     `;

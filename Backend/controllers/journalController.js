@@ -58,6 +58,96 @@ exports.getJournalStats = (req, res) => {
   });
 };
 
+// GET finance summary: revenue, receivable (piutang), penerimaan (cash in bank), piutang berjalan
+exports.getFinanceSummary = (req, res) => {
+  // 1. Total Revenue = SUM semua nominal piutang (termasuk yang sudah lunas)
+  const sqlRevenue = `SELECT COALESCE(SUM(nominal), 0) as total_revenue FROM piutang WHERE status != 'Void'`;
+
+  // 2. Total Receivable = SUM sisa piutang yang belum lunas
+  const sqlReceivable = `SELECT COALESCE(SUM(sisa), 0) as total_receivable FROM piutang WHERE status NOT IN ('Paid','Void')`;
+
+  // 3. Total Penerimaan = SUM yang sudah terbayar dari piutang
+  const sqlCash = `SELECT COALESCE(SUM(terbayar), 0) as total_cash_in_bank FROM piutang WHERE status != 'Void'`;
+
+  // 4. Total Transaksi
+  const sqlTx = `SELECT COUNT(*) as total_tx FROM piutang WHERE status != 'Void'`;
+
+  db.query(sqlRevenue, [], (err1, resRevenue) => {
+    if (err1) return res.status(500).json({ error: 'Gagal mengambil revenue' });
+
+    db.query(sqlReceivable, [], (err2, resReceivable) => {
+      if (err2) return res.status(500).json({ error: 'Gagal mengambil piutang' });
+
+      db.query(sqlCash, [], (err3, resCash) => {
+        if (err3) return res.status(500).json({ error: 'Gagal mengambil penerimaan' });
+
+        db.query(sqlTx, [], (err4, resTx) => {
+          if (err4) return res.status(500).json({ error: 'Gagal mengambil total transaksi' });
+
+          const total_revenue = parseFloat(resRevenue[0].total_revenue) || 0;
+          const total_receivable = parseFloat(resReceivable[0].total_receivable) || 0;
+          const total_cash_in_bank = parseFloat(resCash[0].total_cash_in_bank) || 0;
+          const total_tx = resTx[0].total_tx || 0;
+
+          // Piutang Berjalan = Total Receivable (sisa yang belum dibayar)
+          const piutang_berjalan = total_receivable;
+
+          // Persentase terbayar = (Total Penerimaan / Total Revenue) × 100%
+          let piutang_terbayar_persen = total_revenue > 0 ? (total_cash_in_bank / total_revenue) * 100 : 0;
+          piutang_terbayar_persen = Math.min(piutang_terbayar_persen, 100);
+
+          res.status(200).json({
+            total_revenue,
+            total_receivable,
+            total_cash_in_bank,
+            total_tx,
+            piutang_terbayar_persen: parseFloat(piutang_terbayar_persen.toFixed(2)),
+            piutang_berjalan: parseFloat(piutang_berjalan.toFixed(2))
+          });
+        });
+      });
+    });
+  });
+};
+
+// GET purchase finance summary: total payable (hutang), total purchase (all), cash paid out (sudah dibayar)
+exports.getPurchaseFinanceSummary = (req, res) => {
+  // 1. Total Payable = SUM sisa hutang yang belum lunas
+  const sqlPayable = `SELECT COALESCE(SUM(sisa), 0) as total_payable FROM hutang WHERE status NOT IN ('Paid','Void')`;
+
+  // 2. Total Purchase = SUM semua nominal hutang (termasuk yang sudah lunas)
+  const sqlPurchase = `SELECT COALESCE(SUM(nominal), 0) as total_purchase, COUNT(*) as total_tx FROM hutang WHERE status != 'Void'`;
+
+  // 3. Cash Paid Out = SUM yang sudah terbayar dari hutang
+  const sqlPaid = `SELECT COALESCE(SUM(terbayar), 0) as cash_paid_out FROM hutang WHERE status != 'Void'`;
+
+  db.query(sqlPayable, [], (err1, resPayable) => {
+    if (err1) return res.status(500).json({ error: 'Gagal mengambil data payable' });
+
+    db.query(sqlPurchase, [], (err2, resPurchase) => {
+      if (err2) return res.status(500).json({ error: 'Gagal mengambil data purchase' });
+
+      db.query(sqlPaid, [], (err3, resPaid) => {
+        if (err3) return res.status(500).json({ error: 'Gagal mengambil data cash paid' });
+
+        const total_payable = parseFloat(resPayable[0].total_payable) || 0;
+        const total_purchase = parseFloat(resPurchase[0].total_purchase) || 0;
+        const cash_paid_out = parseFloat(resPaid[0].cash_paid_out) || 0;
+        const total_tx = resPurchase[0].total_tx || 0;
+
+        res.status(200).json({
+          total_payable,
+          total_purchase,
+          cash_paid_out,
+          total_tx
+        });
+      });
+    });
+  });
+};
+
+
+
 // GET by ID
 exports.getJournalById = (req, res) => {
   const { id } = req.params;

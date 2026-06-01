@@ -55,6 +55,14 @@ const Login = () => {
                 navigate('/marketing-online/dashboard');
             } else if (userRole === 'marketing_offline') {
                 navigate('/marketing-offline/dashboard');
+            } else if (userRole === 'marketing_offline_tanaka') {
+                navigate('/marketing-offline-tanaka/dashboard');
+            } else if (userRole === 'marketing_accestret') {
+                navigate('/accestret/marketing/dashboard');
+            } else if (userRole === 'gudang_accestret') {
+                navigate('/accestret/gudang/dashboard');
+            } else if (userRole === 'produksi_accestret') {
+                navigate('/accestret/produksi/dashboard');
             } else if (userRole === 'marketing') {
                 navigate('/marketing');
             } else {

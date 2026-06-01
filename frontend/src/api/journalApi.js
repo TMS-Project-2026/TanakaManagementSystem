@@ -9,6 +9,14 @@ export const journalApi = {
     const response = await axiosInstance.get('/journal/stats/summary', { params: type ? { type } : {} });
     return response.data;
   },
+  getFinanceSummary: async () => {
+    const response = await axiosInstance.get('/journal/stats/finance-summary');
+    return response.data;
+  },
+  getPurchaseSummary: async () => {
+    const response = await axiosInstance.get('/journal/stats/purchase-summary');
+    return response.data;
+  },
   getJournalById: async (id) => {
     const response = await axiosInstance.get(`/journal/${id}`);
     return response.data;

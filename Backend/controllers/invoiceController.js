@@ -116,7 +116,27 @@ exports.createInvoice = (req, res) => {
 
     db.query(sql, values, (err, result) => {
         if (err) return res.status(500).json({ status: "error", message: err.message });
-        res.status(201).json({ status: "success", message: "Invoice berhasil dibuat!", id: result.insertId });
+        
+        // Auto-create Piutang
+        const piutangSql = `
+            INSERT INTO piutang (no_ref, customer, invoice_id, cabang, nominal, terbayar, sisa, jatuh_tempo, status, keterangan) 
+            VALUES (?, ?, ?, ?, ?, 0, ?, ?, 'Unpaid', 'Auto-generated dari Invoice')
+        `;
+        const no_ref_ar = `AR-${generatedNoInvoice ? generatedNoInvoice.replace(/[^A-Z0-9]/g, '') : Date.now()}`;
+        const piutangValues = [
+            no_ref_ar,
+            nama_pt || 'Unknown Customer',
+            generatedNoInvoice || '',
+            cabang || 'Banua',
+            grand_total || 0,
+            grand_total || 0,
+            tanggal_jatuh_tempo || new Date().toISOString().split('T')[0]
+        ];
+        
+        db.query(piutangSql, piutangValues, (errAr) => {
+            if (errAr) console.error("Gagal auto-create Piutang:", errAr);
+            res.status(201).json({ status: "success", message: "Invoice berhasil dibuat dan disinkronkan ke AR!", id: result.insertId });
+        });
     });
 };
 

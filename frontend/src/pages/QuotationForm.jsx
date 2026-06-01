@@ -25,8 +25,8 @@ const QuotationForm = () => {
         tanggal_berlaku: '', order_id: null,
         nama_pt: '', alamat_pt: '', up_penagihan: '', cp_penagihan: '', email_customer: '',
         deskripsi_pesanan: '',
-        items_detail: [{ rincian: '', ukuran: '', qty: 1, harga_satuan: 0, satuan: 'Pcs' }],
-        subtotal: 0, ppn_persen: 0, jumlah_ppn: 0, diskon_persen: 0, diskon: 0, grand_total_quo: 0,
+        items_detail: [{ rincian: '', ukuran: '', qty: 1, harga_satuan: 0, diskon_item: 0, satuan: 'Pcs' }],
+        subtotal: 0, ppn_persen: 0, jumlah_ppn: 0, diskon_persen: 0, diskon: 0, ongkos_kirim: 0, grand_total_quo: 0,
         jenis_pembayaran: '', term_of_payment: '', payment_note: '',
         nama_marketing: '', nama_client_ttd: '', status: 'Draft'
     });
@@ -50,8 +50,8 @@ const QuotationForm = () => {
         const items = order.items ? (typeof order.items === 'string' ? JSON.parse(order.items) : order.items) : [];
         const mappedItems = items.length > 0 ? items.map(i => ({
             rincian: i.nama_produk || i.rincian || '', ukuran: i.ukuran || '',
-            qty: i.qty || 1, harga_satuan: i.harga_satuan || i.harga || 0, satuan: i.satuan || 'Pcs'
-        })) : [{ rincian: order.nama_produk || '', ukuran: order.ukuran || '', qty: order.qty || 1, harga_satuan: order.harga || 0, satuan: 'Pcs' }];
+            qty: i.qty || 1, harga_satuan: i.harga_satuan || i.harga || 0, diskon_item: i.diskon_item || 0, satuan: i.satuan || 'Pcs'
+        })) : [{ rincian: order.nama_produk || '', ukuran: order.ukuran || '', qty: order.qty || 1, harga_satuan: order.harga || 0, diskon_item: order.diskon_item || 0, satuan: 'Pcs' }];
         setForm(prev => ({
             ...prev, cabang: order.cabang || 'Banua', order_id: order.id,
             nama_pt: order.nama_customer || order.nama_pt || '',
@@ -81,12 +81,16 @@ const QuotationForm = () => {
     }, []);
 
     useEffect(() => {
-        let subtotal = form.items_detail.reduce((acc, item) => acc + (Number(item.qty) * Number(item.harga_satuan)), 0);
+        const subtotal = form.items_detail.reduce((acc, item) => {
+            const qty = Number(item.qty || 0);
+            const harga = Number(item.harga_satuan || 0);
+            return acc + (qty * harga);
+        }, 0);
         const jumlah_ppn = subtotal * (Number(form.ppn_persen) / 100);
         const diskon = subtotal * (Number(form.diskon_persen || 0) / 100);
-        const grand_total_quo = subtotal + jumlah_ppn - diskon;
+        const grand_total_quo = subtotal + jumlah_ppn - diskon + Number(form.ongkos_kirim || 0);
         setForm(prev => ({ ...prev, subtotal, jumlah_ppn, diskon, grand_total_quo }));
-    }, [form.items_detail, form.ppn_persen, form.diskon_persen]);
+    }, [form.items_detail, form.ppn_persen, form.diskon_persen, form.ongkos_kirim]);
 
     useEffect(() => {
         let note = '';
@@ -98,13 +102,36 @@ const QuotationForm = () => {
 
     const handleItemChange = (index, e) => {
         const { name, value } = e.target;
-        const newItems = [...form.items_detail];
-        newItems[index][name] = value;
-        if (name === 'rincian') { setActiveItemIndex(index); const matches = Array.isArray(products) ? products.filter(p => p.nama_produk.toLowerCase().includes(value.toLowerCase())) : []; setFilteredProducts(matches); }
+        const newItems = [...form.items_detail].map((item, i) => i === index ? { ...item } : item);
+
+        if (name === 'harga_satuan') {
+            // User mengetik langsung di field harga satuan (nilai gabungan)
+            // Simpan base = nilai baru - bordir yang sudah ada
+            const combined = Number(value) || 0;
+            const bordir = Number(newItems[index].harga_bordir) || 0;
+            newItems[index].harga_satuan = combined;
+            newItems[index].harga_satuan_base = combined - bordir;
+        } else if (name === 'harga_bordir') {
+            // Saat bordir diisi → harga satuan otomatis bertambah (base + bordir baru)
+            const bordir = Number(value) || 0;
+            const base = Number(newItems[index].harga_satuan_base ?? newItems[index].harga_satuan) || 0;
+            newItems[index].harga_bordir = bordir;
+            newItems[index].harga_satuan_base = base;
+            newItems[index].harga_satuan = base + bordir; // ← field langsung berubah
+        } else {
+            newItems[index][name] = value;
+            if (name === 'rincian') {
+                setActiveItemIndex(index);
+                const matches = Array.isArray(products)
+                    ? products.filter(p => p.nama_produk.toLowerCase().includes(value.toLowerCase()))
+                    : [];
+                setFilteredProducts(matches);
+            }
+        }
         setForm({ ...form, items_detail: newItems });
     };
     const selectProduct = (index, prod) => { const newItems = [...form.items_detail]; newItems[index].rincian = prod.nama_produk; setForm({ ...form, items_detail: newItems }); setFilteredProducts([]); setActiveItemIndex(null); };
-    const addItem = () => setForm({ ...form, items_detail: [...form.items_detail, { rincian: '', ukuran: '', qty: 1, harga_satuan: 0, satuan: 'Pcs' }] });
+    const addItem = () => setForm({ ...form, items_detail: [...form.items_detail, { rincian: '', ukuran: '', qty: 1, harga_satuan: 0, harga_bordir: 0, bordir: '', satuan: 'Pcs' }] });
     const removeItem = (index) => { if (form.items_detail.length > 1) setForm({ ...form, items_detail: form.items_detail.filter((_, i) => i !== index) }); };
 
     const fetchQuotation = async () => {
@@ -112,7 +139,7 @@ const QuotationForm = () => {
             const res = await getQuotationById(id);
             if (res.data.status === 'success') {
                 const d = res.data.data;
-                setForm({ ...d, tanggal_quotation: d.tanggal_quotation?.split('T')[0] || '', tanggal_berlaku: d.tanggal_berlaku?.split('T')[0] || '', items_detail: typeof d.items_detail === 'string' ? JSON.parse(d.items_detail) : (d.items_detail || [{ rincian: '', ukuran: '', qty: 1, harga_satuan: 0, satuan: 'Pcs' }]) });
+                setForm({ ...d, tanggal_quotation: d.tanggal_quotation?.split('T')[0] || '', tanggal_berlaku: d.tanggal_berlaku?.split('T')[0] || '', items_detail: typeof d.items_detail === 'string' ? JSON.parse(d.items_detail) : (d.items_detail || [{ rincian: '', ukuran: '', qty: 1, harga_satuan: 0, diskon_item: 0, satuan: 'Pcs' }]) });
             }
         } catch (err) { console.error('Gagal memuat quotation', err); }
     };
@@ -200,25 +227,61 @@ const QuotationForm = () => {
                             <div className="mb-4"><label className={labelClass}>Deskripsi Pesanan</label><textarea name="deskripsi_pesanan" value={form.deskripsi_pesanan} onChange={handleChange} rows={2} placeholder="Deskripsi umum pesanan..." className={`${inputClass} resize-none`}></textarea></div>
                             <div className="space-y-4 mb-6">
                                 {form.items_detail.map((item, index) => (
-                                    <div key={index} className="grid grid-cols-12 gap-3 bg-gray-50 p-4 rounded-lg border border-gray-200 relative pt-8 md:pt-4">
-                                        <div className="col-span-12 md:col-span-4 relative">
-                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Nama Produk</label>
-                                            <input type="text" name="rincian" value={item.rincian} onChange={(e) => handleItemChange(index, e)} onFocus={() => { setActiveItemIndex(index); const m = Array.isArray(products) ? products.filter(p => p.nama_produk.toLowerCase().includes(item.rincian.toLowerCase())) : []; setFilteredProducts(m); }} onBlur={() => setTimeout(() => setActiveItemIndex(null), 200)} placeholder="Nama Produk" className="w-full p-2 border border-gray-300 rounded-lg text-sm" autoComplete="off" />
-                                            {activeItemIndex === index && filteredProducts.length > 0 && (
-                                                <ul className="absolute z-20 w-full bg-white border border-gray-200 mt-1 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                                                    {filteredProducts.map(prod => (<li key={prod.id} onClick={() => selectProduct(index, prod)} className="p-2 hover:bg-gray-50 cursor-pointer text-sm">{prod.nama_produk}</li>))}
-                                                </ul>
-                                            )}
+                                    <div key={index} className="bg-gray-50 p-4 rounded-lg border border-gray-200 relative">
+                                        <div className="grid grid-cols-12 gap-3 pt-6 md:pt-0">
+                                            <div className="col-span-12 md:col-span-3 relative">
+                                                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Nama Produk</label>
+                                                <input type="text" name="rincian" value={item.rincian} onChange={(e) => handleItemChange(index, e)} onFocus={() => { setActiveItemIndex(index); const m = Array.isArray(products) ? products.filter(p => p.nama_produk.toLowerCase().includes(item.rincian.toLowerCase())) : []; setFilteredProducts(m); }} onBlur={() => setTimeout(() => setActiveItemIndex(null), 200)} placeholder="Nama Produk" className="w-full p-2 border border-gray-300 rounded-lg text-sm" autoComplete="off" />
+                                                {activeItemIndex === index && filteredProducts.length > 0 && (
+                                                    <ul className="absolute z-20 w-full bg-white border border-gray-200 mt-1 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                                                        {filteredProducts.map(prod => (<li key={prod.id} onClick={() => selectProduct(index, prod)} className="p-2 hover:bg-gray-50 cursor-pointer text-sm">{prod.nama_produk}</li>))}
+                                                    </ul>
+                                                )}
+                                            </div>
+                                            <div className="col-span-6 md:col-span-2"><label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Ukuran</label>
+                                                <select name="ukuran" value={item.ukuran || ''} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white">
+                                                    <option value="">- Ukuran -</option>{['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'XXXXL', 'XXXXXL'].map(sz => <option key={sz} value={sz}>{sz}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="col-span-3 md:col-span-1"><label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 text-center">Qty</label><input type="number" name="qty" value={item.qty} onChange={(e) => handleItemChange(index, e)} min="1" className="w-full p-2 border border-gray-300 rounded-lg text-center text-sm" /></div>
+                                            <div className="col-span-3 md:col-span-1"><label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 text-center">Unit</label><input type="text" name="satuan" value={item.satuan} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 border border-gray-300 rounded-lg text-center text-sm" /></div>
+                                            {/* Harga Satuan + Bordir */}
+                                            <div className="col-span-12 md:col-span-4">
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 text-right">Harga Satuan</label>
+                                                        <input type="number" name="harga_satuan"
+                                                            value={item.harga_satuan}
+                                                            onChange={(e) => handleItemChange(index, e)}
+                                                            min="0" className="w-full p-2 border border-gray-300 rounded-lg text-right text-sm font-semibold" />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 text-right">+ Bordir</label>
+                                                        <input type="number" name="harga_bordir"
+                                                            value={item.harga_bordir || 0}
+                                                            onChange={(e) => handleItemChange(index, e)}
+                                                            min="0" className="w-full p-2 border border-amber-200 bg-amber-50 rounded-lg text-right text-sm" placeholder="0" />
+                                                    </div>
+                                                </div>
+                                                {/* Harga gabung (setelah bordir) + total baris */}
+                                                <div className="flex justify-between items-center mt-1.5 px-1 bg-blue-50 rounded py-1">
+                                                    <span className="text-[10px] text-gray-500">
+                                                        Harga/pcs: <span className="font-bold text-gray-800">Rp {Number(item.harga_satuan || 0).toLocaleString('id-ID')}</span>
+                                                    </span>
+                                                    <span className="text-[10px] text-gray-500">
+                                                        Total: <span className="font-bold text-blue-700">Rp {(Number(item.qty||0) * Number(item.harga_satuan||0)).toLocaleString('id-ID')}</span>
+                                                    </span>
+                                                </div>
+                                                {Number(item.harga_bordir) > 0 && (
+                                                    <div className="mt-1 px-1">
+                                                        <input type="text" name="bordir" value={item.bordir || ''} onChange={(e) => handleItemChange(index, e)} placeholder="Keterangan bordir (mis: Sablon Dada)" className="w-full p-1.5 border border-amber-200 bg-amber-50 rounded text-xs text-gray-600" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="absolute top-2 right-2 md:static md:col-span-0 flex items-start justify-end pt-5">
+                                                <button type="button" onClick={() => removeItem(index)} className="text-red-400 hover:text-red-600 p-1"><X size={16} /></button>
+                                            </div>
                                         </div>
-                                        <div className="col-span-6 md:col-span-2"><label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Ukuran</label>
-                                            <select name="ukuran" value={item.ukuran || ''} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white">
-                                                <option value="">- Ukuran -</option>{['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'XXXXL', 'XXXXXL'].map(sz => <option key={sz} value={sz}>{sz}</option>)}
-                                            </select>
-                                        </div>
-                                        <div className="col-span-3 md:col-span-1"><label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 text-center">Qty</label><input type="number" name="qty" value={item.qty} onChange={(e) => handleItemChange(index, e)} min="1" className="w-full p-2 border border-gray-300 rounded-lg text-center text-sm" /></div>
-                                        <div className="col-span-3 md:col-span-1"><label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 text-center">Unit</label><input type="text" name="satuan" value={item.satuan} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 border border-gray-300 rounded-lg text-center text-sm" /></div>
-                                        <div className="col-span-12 md:col-span-3"><label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 text-right">Harga Satuan</label><input type="number" name="harga_satuan" value={item.harga_satuan} onChange={(e) => handleItemChange(index, e)} min="0" className="w-full p-2 border border-gray-300 rounded-lg text-right text-sm font-semibold" /></div>
-                                        <div className="absolute top-2 right-2 md:static md:col-span-1 flex items-end justify-center"><button type="button" onClick={() => removeItem(index)} className="text-red-400 hover:text-red-600 p-2"><X size={18} /></button></div>
                                     </div>
                                 ))}
                                 <button type="button" onClick={addItem} className="text-sm font-semibold text-blue-700 bg-blue-50 px-4 py-2 rounded-lg border border-blue-100 hover:bg-blue-100">+ Tambah Item</button>
@@ -228,6 +291,7 @@ const QuotationForm = () => {
                                     <div className="flex items-center justify-between gap-4"><label className="text-sm font-semibold text-gray-700 w-1/3">Subtotal</label><span className="w-2/3 text-right font-bold text-gray-800">Rp {form.subtotal.toLocaleString('id-ID')}</span></div>
                                     <div className="flex items-center justify-between gap-4"><label className="text-sm font-semibold text-gray-700 w-1/3">PPN (%)</label><input type="number" name="ppn_persen" value={form.ppn_persen} onChange={handleChange} min="0" max="100" className="w-1/3 p-2 border border-gray-300 rounded-lg text-right" /><span className="w-1/3 text-right text-sm text-gray-600">Rp {form.jumlah_ppn.toLocaleString('id-ID')}</span></div>
                                     <div className="flex items-center justify-between gap-4"><label className="text-sm font-semibold text-gray-700 w-1/3">Diskon (%)</label><input type="number" name="diskon_persen" value={form.diskon_persen} onChange={handleChange} min="0" max="100" className="w-1/3 p-2 border border-gray-300 rounded-lg text-right" /><span className="w-1/3 text-right text-sm text-red-600 font-bold">- Rp {form.diskon.toLocaleString('id-ID')}</span></div>
+                                    <div className="flex items-center justify-between gap-4"><label className="text-sm font-semibold text-gray-700 w-1/3">Ongkos Kirim</label><input type="number" name="ongkos_kirim" value={form.ongkos_kirim} onChange={handleChange} min="0" className="w-2/3 p-2 border border-gray-300 rounded-lg text-right" /></div>
                                     <div className="flex items-center justify-between gap-4 pt-4 border-t-2 border-gray-300"><label className="text-base font-extrabold text-blue-700 w-1/3">GRAND TOTAL</label><span className="w-2/3 text-right text-xl font-black text-blue-700">Rp {form.grand_total_quo.toLocaleString('id-ID')}</span></div>
                                 </div>
                             </div>
@@ -245,7 +309,24 @@ const QuotationForm = () => {
                                     <label className={labelClass}>Payment Note (Info Rekening)</label>
                                     <textarea name="payment_note" value={form.payment_note} onChange={handleChange} rows={3} className={`${inputClass} resize-none bg-gray-50`}></textarea>
                                 </div>
-                                <div><label className={labelClass}>Nama Marketing (TTD Kiri)</label><input type="text" name="nama_marketing" value={form.nama_marketing} onChange={handleChange} list="marketing-options" className={inputClass} /><datalist id="marketing-options"><option value="Aji Pangestu" /><option value="M Rangga Maulana" /></datalist></div>
+                                <div>
+                                    <label className={labelClass}>Nama Marketing (TTD Kiri)</label>
+                                    <input type="text" name="nama_marketing" value={form.nama_marketing} onChange={handleChange} list="marketing-options" className={inputClass} />
+                                    <datalist id="marketing-options">
+                                        {form.cabang === 'Banua' && (
+                                            <>
+                                                <option value="Banu" />
+                                                <option value="Noa" />
+                                            </>
+                                        )}
+                                        {form.cabang === 'Tanaka' && (
+                                            <>
+                                                <option value="Mega" />
+                                                <option value="Naka" />
+                                            </>
+                                        )}
+                                    </datalist>
+                                </div>
                                 <div><label className={labelClass}>Nama Client (TTD Kanan)</label><input type="text" name="nama_client_ttd" value={form.nama_client_ttd} onChange={handleChange} className={inputClass} /></div>
                             </div>
                         </div>

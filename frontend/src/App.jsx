@@ -6,17 +6,24 @@ import Dashboard from './pages/Dashboard';
 import Marketing from './pages/Marketing';
 import MarketingOnlineBanua from './pages/MarketingOnlineBanua';
 import MarketingOfflineBanua from './pages/MarketingOfflineBanua';
+import MarketingOfflineTanaka from './pages/MarketingOfflineTanaka';
 import CreateOrderOfflineBanua from './pages/CreateOrderOfflineBanua';
+import CreateOrderOfflineTanaka from './pages/CreateOrderOfflineTanaka';
 
 import Promo from './pages/Promo';
 import SalesOnline from './pages/SalesOnline';
 import Finance from './pages/Finance';
 import FinanceDashboard from './pages/FinanceDashboard';
-import CashInBank from './pages/CashInBank';
+import CashBank from './pages/CashBank';
+
+import PettyCash from './pages/PettyCash';
+import AccountsReceivable from './pages/AccountsReceivable';
+import AccountsPayable from './pages/AccountsPayable';
 import Journal from './pages/Journal';
 import ChartOfAccounts from './pages/ChartOfAccounts';
 import ReportCenter from './pages/ReportCenter';
 import Invoice from './pages/Invoice';
+import PengaturanKeuangan from './pages/PengaturanKeuangan';
 import InvoiceForm from './pages/InvoiceForm';
 import InvoicePreview from './pages/InvoicePreview';
 import Quotation from './pages/Quotation';
@@ -59,6 +66,15 @@ import ProduksiSelesai from './pages/ProduksiSelesai';
 import DeadlineProduksi from './pages/DeadlineProduksi';
 import RiwayatProduksi from './pages/RiwayatProduksi';
 
+// Accestret Pages
+import AccestretMarketingDashboard from './pages/AccestretMarketingDashboard';
+import AccestretGudangDashboard from './pages/AccestretGudangDashboard';
+import AccestretProduksiDashboard from './pages/AccestretProduksiDashboard';
+import AccestretQuotation from './pages/AccestretQuotation';
+import AccestretQuotationForm from './pages/AccestretQuotationForm';
+
+import Pricelist from './pages/Pricelist';
+
 // 🔒 Protected Route (Pengaman Halaman dengan Role Middleware)
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const token = localStorage.getItem('token');
@@ -76,16 +92,20 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   }
 
 
-  if (allowedRoles && !allowedRoles.some(r => r.toLowerCase() === userRole)) {
-    console.warn(`Akses ditolak: Role ${user.role} tidak diizinkan masuk.`);
-    if (userRole === 'finance') return <Navigate to='/finance' replace />;
-    if (userRole === 'gudang') return <Navigate to='/gudang' replace />;
-    if (userRole === 'produksi') return <Navigate to='/produksi/dashboard' replace />;
-    if (userRole === 'admin_it') return <Navigate to='/it/dashboard' replace />;
-    if (userRole === 'marketing_online') return <Navigate to='/marketing-online/dashboard' replace />;
-    if (userRole === 'marketing_offline') return <Navigate to='/marketing-offline/dashboard' replace />;
-    return <Navigate to='/dashboard' replace />;
-  }
+    if (allowedRoles && !allowedRoles.some(r => r.toLowerCase() === userRole)) {
+      console.warn(`Akses ditolak: Role ${user.role} tidak diizinkan masuk.`);
+      if (userRole === 'finance') return <Navigate to='/finance' replace />;
+      if (userRole === 'gudang') return <Navigate to='/gudang' replace />;
+      if (userRole === 'produksi') return <Navigate to='/produksi/dashboard' replace />;
+      if (userRole === 'admin_it') return <Navigate to='/it/dashboard' replace />;
+      if (userRole === 'marketing_online') return <Navigate to='/marketing-online/dashboard' replace />;
+      if (userRole === 'marketing_offline') return <Navigate to='/marketing-offline/dashboard' replace />;
+      if (userRole === 'marketing_offline_tanaka') return <Navigate to='/marketing-offline-tanaka/dashboard' replace />;
+      if (userRole === 'marketing_accestret') return <Navigate to='/accestret/marketing/dashboard' replace />;
+      if (userRole === 'gudang_accestret') return <Navigate to='/accestret/gudang/dashboard' replace />;
+      if (userRole === 'produksi_accestret') return <Navigate to='/accestret/produksi/dashboard' replace />;
+      return <Navigate to='/dashboard' replace />;
+    }
 
   return children;
 };
@@ -121,6 +141,22 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'marketing_offline']}>
               <MarketingOfflineBanua />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/marketing-offline-tanaka/create-order" 
+          element={
+            <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'marketing_offline_tanaka']}>
+              <CreateOrderOfflineTanaka />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/marketing-offline-tanaka/*" 
+          element={
+            <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'marketing_offline_tanaka']}>
+              <MarketingOfflineTanaka />
             </ProtectedRoute>
           } 
         />
@@ -181,8 +217,13 @@ function App() {
           </ProtectedRoute>
         } />
         <Route path="/promo" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Marketing', 'marketing_online', 'marketing_offline']}>
+          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Marketing', 'marketing_online', 'marketing_offline', 'marketing_offline_tanaka']}>
             <Promo />
+          </ProtectedRoute>
+        } />
+        <Route path="/pricelist" element={
+          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'owner', 'Finance', 'marketing_offline', 'marketing_offline_tanaka']}>
+            <Pricelist />
           </ProtectedRoute>
         } />
         <Route path="/sales-online" element={
@@ -195,9 +236,24 @@ function App() {
             <FinanceDashboard />
           </ProtectedRoute>
         } />
-        <Route path="/cash-in-bank" element={
+        <Route path="/cash-bank" element={
           <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance']}>
-            <CashInBank />
+            <CashBank />
+          </ProtectedRoute>
+        } />
+        <Route path="/petty-cash" element={
+          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance']}>
+            <PettyCash />
+          </ProtectedRoute>
+        } />
+        <Route path="/piutang" element={
+          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance']}>
+            <AccountsReceivable />
+          </ProtectedRoute>
+        } />
+        <Route path="/hutang" element={
+          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance']}>
+            <AccountsPayable />
           </ProtectedRoute>
         } />
         <Route path="/journal/:type" element={
@@ -211,6 +267,11 @@ function App() {
         <Route path="/chart-of-accounts" element={
           <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance']}>
             <ChartOfAccounts />
+          </ProtectedRoute>
+        } />
+        <Route path="/finance/settings" element={
+          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance']}>
+            <PengaturanKeuangan />
           </ProtectedRoute>
         } />
         <Route path="/invoice" element={
@@ -236,22 +297,22 @@ function App() {
 
         {/* QUOTATION ROUTES */}
         <Route path="/quotation" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance', 'marketing_offline']}>
+          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance', 'marketing_offline', 'marketing_offline_tanaka']}>
             <Quotation />
           </ProtectedRoute>
         } />
         <Route path="/quotation/create" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance', 'marketing_offline']}>
+          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance', 'marketing_offline', 'marketing_offline_tanaka']}>
             <QuotationForm />
           </ProtectedRoute>
         } />
         <Route path="/quotation/edit/:id" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance', 'marketing_offline']}>
+          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance', 'marketing_offline', 'marketing_offline_tanaka']}>
             <QuotationForm />
           </ProtectedRoute>
         } />
         <Route path="/quotation/preview/:id" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance', 'marketing_offline']}>
+          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance', 'marketing_offline', 'marketing_offline_tanaka']}>
             <QuotationPreview />
           </ProtectedRoute>
         } />
@@ -302,7 +363,7 @@ function App() {
         {/* OWNER ROUTES */}
         <Route path="/owner/monitoring" element={<ProtectedRoute allowedRoles={['owner']}><OwnerMonitoring /></ProtectedRoute>} />
         <Route path="/owner/monitoring/:section" element={<ProtectedRoute allowedRoles={['owner']}><OwnerMonitoring /></ProtectedRoute>} />
-        <Route path="/finance/approval" element={<ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance']}><ApprovalCenter /></ProtectedRoute>} />
+        <Route path="/finance/approval" element={<ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Finance']}><ApprovalCenter /></ProtectedRoute>} />
 
         {/* PRODUKSI ROUTES */}
         <Route path="/produksi/dashboard" element={<ProtectedRoute allowedRoles={['produksi', 'owner', 'Manager', 'Admin']}><ProduksiDashboard /></ProtectedRoute>} />
@@ -315,6 +376,18 @@ function App() {
         <Route path="/produksi/selesai" element={<ProtectedRoute allowedRoles={['produksi', 'owner', 'Manager', 'Admin']}><ProduksiSelesai /></ProtectedRoute>} />
         <Route path="/produksi/deadline" element={<ProtectedRoute allowedRoles={['produksi', 'owner', 'Manager', 'Admin']}><DeadlineProduksi /></ProtectedRoute>} />
         <Route path="/produksi/riwayat" element={<ProtectedRoute allowedRoles={['produksi', 'owner', 'Manager', 'Admin']}><RiwayatProduksi /></ProtectedRoute>} />
+
+        {/* ACCESTRET ROUTES */}
+        <Route path="/accestret/marketing/dashboard" element={<ProtectedRoute allowedRoles={['marketing_accestret', 'owner', 'Manager', 'Admin']}><AccestretMarketingDashboard /></ProtectedRoute>} />
+        
+        {/* Accestret Quotation */}
+        <Route path="/accestret/marketing/quotation" element={<ProtectedRoute allowedRoles={['marketing_accestret', 'owner', 'Manager', 'Admin']}><AccestretQuotation /></ProtectedRoute>} />
+        <Route path="/accestret/marketing/quotation/create" element={<ProtectedRoute allowedRoles={['marketing_accestret', 'owner', 'Manager', 'Admin']}><AccestretQuotationForm /></ProtectedRoute>} />
+        <Route path="/accestret/marketing/quotation/edit/:id" element={<ProtectedRoute allowedRoles={['marketing_accestret', 'owner', 'Manager', 'Admin']}><AccestretQuotationForm /></ProtectedRoute>} />
+        
+        <Route path="/accestret/marketing/*" element={<ProtectedRoute allowedRoles={['marketing_accestret', 'owner', 'Manager', 'Admin']}><AccestretMarketingDashboard /></ProtectedRoute>} />
+        <Route path="/accestret/gudang/*" element={<ProtectedRoute allowedRoles={['gudang_accestret', 'owner', 'Manager', 'Admin']}><AccestretGudangDashboard /></ProtectedRoute>} />
+        <Route path="/accestret/produksi/*" element={<ProtectedRoute allowedRoles={['produksi_accestret', 'owner', 'Manager', 'Admin']}><AccestretProduksiDashboard /></ProtectedRoute>} />
 
         {/* DEFAULT */}
         <Route path="*" element={<Navigate to="/" replace />} />

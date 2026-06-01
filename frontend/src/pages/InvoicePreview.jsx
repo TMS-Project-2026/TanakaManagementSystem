@@ -5,7 +5,7 @@ import { ArrowLeft, Printer, Download, Receipt } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import Sidebar from '../components/Sidebar';
-import LogoBanua from '../assets/LOGO BANUA.png';
+import LogoBanua from '../assets/logo  banua.svg';
 import LogoTanaka from '../assets/kop_tanaka.png';
 import LogoAcestreet from '../assets/logoacestreet.png';
 const addresses = {
@@ -81,6 +81,10 @@ const InvoicePreview = () => {
                 const logoData = await loadImageBase64(LogoBanua);
                 if (logoData) {
                     doc.addImage(logoData, 'PNG', 14, 6, 55, 22);
+                    doc.setFontSize(16);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(30, 64, 175);
+                    doc.text("PT BANUA MITRA LESTARI", 72, 18);
                     addressStartY = 30;
                 }
             } else if (invoice.cabang === 'Tanaka') {
@@ -145,7 +149,7 @@ const InvoicePreview = () => {
             if (invoice.cp_penagihan) doc.text(`CP: ${invoice.cp_penagihan}`, 14, 80 + yOffset);
 
             // Table
-            const tableColumn = ["Nama Produk", "Ukuran", "Qty", "Unit", "Harga Satuan", "Total"];
+            const tableColumn = ["Nama Produk", "Ukuran", "Qty", "Unit", "Harga Satuan", "Diskon/Item", "Total"];
             let tableRows = [];
             let items = [];
             if (typeof invoice.items === 'string') {
@@ -156,12 +160,15 @@ const InvoicePreview = () => {
 
             if (items && items.length > 0) {
                 items.forEach((item, index) => {
+                    const diskonItem = Number(item.diskon_item || 0);
+                    const hargaSebelumDiskon = Number(item.harga_satuan || 0) + diskonItem;
                     tableRows.push([
                         item.rincian || '',
                         item.ukuran || '-',
                         item.qty || 0,
                         item.satuan || 'Pcs',
-                        fmtRp(item.harga_satuan),
+                        fmtRp(hargaSebelumDiskon),
+                        diskonItem > 0 ? `- ${fmtRp(diskonItem)}` : '-',
                         fmtRp(Number(item.qty || 0) * Number(item.harga_satuan || 0))
                     ]);
                 });
@@ -173,6 +180,7 @@ const InvoicePreview = () => {
                         invoice.qty || 0,
                         'Pcs',
                         fmtRp(invoice.harga_satuan),
+                        '-',
                         fmtRp(invoice.subtotal)
                     ]
                 ];
@@ -200,24 +208,21 @@ const InvoicePreview = () => {
             doc.text(':', 158, finalY + 16);
             doc.text(fmtRp(invoice.jumlah_ppn), 196, finalY + 16, { align: 'right' });
 
-            if (invoice.diskon > 0) {
-                const diskonText = invoice.diskon_persen > 0 ? `Diskon (${invoice.diskon_persen}%)` : 'Diskon';
-                doc.text(diskonText, 130, finalY + 22);
-                doc.text(':', 158, finalY + 22);
-                doc.setTextColor(153, 0, 0); // Red
-                doc.text(`- ${fmtRp(invoice.diskon)}`, 196, finalY + 22, { align: 'right' });
-                doc.setTextColor(0, 0, 0);
-                
-                doc.setFont('helvetica', 'bold');
-                doc.text('GRAND TOTAL', 130, finalY + 30);
-                doc.text(':', 158, finalY + 30);
-                doc.text(fmtRp(invoice.grand_total), 196, finalY + 30, { align: 'right' });
+            const pdfOngkir = Math.max(0, Number(invoice.grand_total || 0) - Number(invoice.subtotal || 0) - Number(invoice.jumlah_ppn || 0) + Number(invoice.diskon || 0));
+            let currentY = finalY + 22;
+            if (pdfOngkir > 0) {
+                doc.text('Ongkos Kirim', 130, currentY);
+                doc.text(':', 158, currentY);
+                doc.text(fmtRp(pdfOngkir), 196, currentY, { align: 'right' });
+                currentY += 8;
             } else {
-                doc.setFont('helvetica', 'bold');
-                doc.text('GRAND TOTAL', 130, finalY + 24);
-                doc.text(':', 158, finalY + 24);
-                doc.text(fmtRp(invoice.grand_total), 196, finalY + 24, { align: 'right' });
+                currentY += 2;
             }
+
+            doc.setFont('helvetica', 'bold');
+            doc.text('GRAND TOTAL', 130, currentY);
+            doc.text(':', 158, currentY);
+            doc.text(fmtRp(invoice.grand_total), 196, currentY, { align: 'right' });
 
             // Notes - render as aligned key-value pairs
             doc.setFont('helvetica', 'normal');
@@ -287,19 +292,7 @@ const InvoicePreview = () => {
                 
                 const approvedName = invoice.penanggung_jawab || ((isBanua || isTanaka || invoice.cabang === 'Acestreet') ? 'Hanifah Abdillah' : '(..........................)');
                 
-                // Add QR Code
-                const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=Validasi_Invoice_${invoice.no_invoice}`;
-                const qrData = await loadImageBase64(qrUrl);
-                if (qrData) {
-                    doc.addImage(qrData, 'PNG', 138, finalY + 54, 24, 24);
-                }
-                
-                // Add digital signature
-                doc.setFont('times', 'italic');
-                doc.setFontSize(16);
-                doc.setTextColor(20, 50, 150);
-                doc.text(approvedName.replace(/\(.*\)/, ''), 150, finalY + 70, { align: 'center', angle: -5 });
-                doc.setTextColor(0, 0, 0);
+                // TTD scanner / signature intentionally removed
                 
                 doc.setFontSize(10);
                 doc.setFont('helvetica', 'bold');
@@ -374,7 +367,10 @@ const InvoicePreview = () => {
                                     <div className="flex justify-between items-start">
                                         <div className="flex items-center gap-4">
                                             {invoice.cabang === 'Banua' && (
-                                                <img src={LogoBanua} alt="Logo Banua" className="h-24 object-contain" />
+                                                <>
+                                                    <img src={LogoBanua} alt="Logo Banua" className="h-24 object-contain" />
+                                                    <span className="font-bold text-2xl text-blue-900 tracking-wide">PT Banua Mitra Lestari</span>
+                                                </>
                                             )}
                                             {invoice.cabang === 'Acestreet' && (
                                                 <img src={LogoAcestreet} alt="Logo Acestreet" className="h-32 object-contain" />
@@ -431,16 +427,17 @@ const InvoicePreview = () => {
                     )}
 
                     {/* Items Table */}
-                    <div className="mb-8">
-                        <table className="w-full text-left">
+                    <div className="mb-8 overflow-x-auto">
+                        <table className="w-full text-left border-collapse" style={{minWidth: '600px'}}>
                             <thead>
                                 <tr className={`${invoice.cabang === 'Banua' ? 'bg-blue-800' : 'bg-[#990000]'} text-white`}>
-                                    <th className="p-3 font-semibold text-sm">Nama Produk</th>
-                                    <th className="p-3 font-semibold text-sm text-center">Ukuran</th>
-                                    <th className="p-3 font-semibold text-sm text-center">Qty</th>
-                                    <th className="p-3 font-semibold text-sm text-center">Unit</th>
-                                    <th className="p-3 font-semibold text-sm text-right">Harga Satuan</th>
-                                    <th className="p-3 font-semibold text-sm text-right">Total</th>
+                                    <th className="p-3 font-semibold text-sm w-[35%]">Nama Produk</th>
+                                    <th className="p-3 font-semibold text-sm text-center w-[10%]">Ukuran</th>
+                                    <th className="p-3 font-semibold text-sm text-center w-[6%]">Qty</th>
+                                    <th className="p-3 font-semibold text-sm text-center w-[7%]">Unit</th>
+                                    <th className="p-3 font-semibold text-sm text-right w-[16%]">Harga Satuan</th>
+                                    <th className="p-3 font-semibold text-sm text-right w-[12%]">Diskon/Item</th>
+                                    <th className="p-3 font-semibold text-sm text-right w-[14%]">Total</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -453,25 +450,61 @@ const InvoicePreview = () => {
                                     }
 
                                     if (items && items.length > 0) {
-                                        return items.map((item, index) => (
-                                            <tr key={index} className="border-b border-gray-200">
-                                                <td className="p-3 text-gray-800 align-top">{item.rincian}</td>
-                                                <td className="p-3 text-gray-800 align-top text-center font-bold">{item.ukuran || '-'}</td>
-                                                <td className="p-3 text-gray-800 align-top text-center">{item.qty}</td>
-                                                <td className="p-3 text-gray-800 align-top text-center">{item.satuan || 'Pcs'}</td>
-                                                <td className="p-3 text-gray-800 align-top text-right min-w-[120px]"><PriceCell value={item.harga_satuan} /></td>
-                                                <td className="p-3 text-gray-800 align-top text-right font-medium min-w-[120px]"><PriceCell value={item.qty * item.harga_satuan} /></td>
-                                            </tr>
-                                        ));
+                                        return items.map((item, index) => {
+                                            const diskonItem = Number(item.diskon_item || 0);
+                                            const hargaSebelumDiskon = Number(item.harga_satuan || 0) + diskonItem;
+                                            const totalItem = Number(item.qty || 0) * Number(item.harga_satuan || 0);
+                                            return (
+                                                <tr key={index} className={`border-b border-gray-100 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+                                                    <td className="p-3 text-gray-800 align-top text-sm">{item.rincian}</td>
+                                                    <td className="p-3 text-gray-700 align-top text-center text-sm font-semibold">{item.ukuran || '-'}</td>
+                                                    <td className="p-3 text-gray-700 align-top text-center text-sm">{item.qty}</td>
+                                                    <td className="p-3 text-gray-500 align-top text-center text-sm">{item.satuan || 'Pcs'}</td>
+                                                    <td className="p-3 text-gray-800 align-top text-right text-sm">
+                                                        <div className="flex justify-between">
+                                                            <span className="text-gray-400">Rp</span>
+                                                            <span>{Number(hargaSebelumDiskon).toLocaleString('id-ID')}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-3 align-top text-right text-sm">
+                                                        {diskonItem > 0 ? (
+                                                            <div className="flex justify-between text-red-600 font-semibold">
+                                                                <span>-Rp</span>
+                                                                <span>{Number(diskonItem).toLocaleString('id-ID')}</span>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-gray-300 text-center block">-</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="p-3 text-gray-900 align-top text-right text-sm font-semibold">
+                                                        <div className="flex justify-between">
+                                                            <span className="text-gray-400">Rp</span>
+                                                            <span>{Number(totalItem).toLocaleString('id-ID')}</span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        });
                                     } else {
                                         return (
-                                            <tr className="border-b border-gray-200">
-                                                <td className="p-3 text-gray-800 align-top">{invoice.detail_pekerjaan}</td>
-                                                <td className="p-3 text-gray-800 align-top text-center">-</td>
-                                                <td className="p-3 text-gray-800 align-top text-center">{invoice.qty}</td>
-                                                <td className="p-3 text-gray-800 align-top text-center">Pcs</td>
-                                                <td className="p-3 text-gray-800 align-top text-right min-w-[120px]"><PriceCell value={invoice.harga_satuan} /></td>
-                                                <td className="p-3 text-gray-800 align-top text-right font-medium min-w-[120px]"><PriceCell value={invoice.subtotal} /></td>
+                                            <tr className="border-b border-gray-100">
+                                                <td className="p-3 text-gray-800 align-top text-sm">{invoice.detail_pekerjaan}</td>
+                                                <td className="p-3 text-gray-700 align-top text-center text-sm">-</td>
+                                                <td className="p-3 text-gray-700 align-top text-center text-sm">{invoice.qty}</td>
+                                                <td className="p-3 text-gray-500 align-top text-center text-sm">Pcs</td>
+                                                <td className="p-3 text-gray-800 align-top text-right text-sm">
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-400">Rp</span>
+                                                        <span>{Number(invoice.harga_satuan || 0).toLocaleString('id-ID')}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="p-3 text-gray-300 align-top text-center text-sm">-</td>
+                                                <td className="p-3 text-gray-900 align-top text-right text-sm font-semibold">
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-400">Rp</span>
+                                                        <span>{Number(invoice.subtotal || 0).toLocaleString('id-ID')}</span>
+                                                    </div>
+                                                </td>
                                             </tr>
                                         )
                                     }
@@ -549,13 +582,19 @@ const InvoicePreview = () => {
                                         <td className="py-2 text-gray-600">:</td>
                                         <td className="py-2 text-right font-semibold text-gray-800"><PriceCell value={invoice.jumlah_ppn} /></td>
                                     </tr>
-                                    {invoice.diskon > 0 && (
-                                        <tr className="border-b border-gray-100">
-                                            <td className="py-2 text-gray-600 font-medium">Diskon {invoice.diskon_persen > 0 && `(${invoice.diskon_persen}%)`}</td>
-                                            <td className="py-2 text-gray-600">:</td>
-                                            <td className="py-2 text-right font-semibold text-gray-800"><PriceCell value={-invoice.diskon} /></td>
-                                        </tr>
-                                    )}
+                                    {(() => {
+                                        const ongkir = Math.max(0, Number(invoice.grand_total || 0) - Number(invoice.subtotal || 0) - Number(invoice.jumlah_ppn || 0) + Number(invoice.diskon || 0));
+                                        if (ongkir > 0) {
+                                            return (
+                                                <tr className="border-b border-gray-100">
+                                                    <td className="py-2 text-gray-600 font-medium">Ongkos Kirim</td>
+                                                    <td className="py-2 text-gray-600">:</td>
+                                                    <td className="py-2 text-right font-semibold text-gray-800"><PriceCell value={ongkir} /></td>
+                                                </tr>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
                                     <tr>
                                         <td className={`py-3 font-bold ${invoice.cabang === 'Banua' ? 'text-blue-800' : 'text-[#990000]'}`}>GRAND TOTAL</td>
                                         <td className={`py-3 font-bold ${invoice.cabang === 'Banua' ? 'text-blue-800' : 'text-[#990000]'}`}>:</td>
@@ -588,12 +627,7 @@ const InvoicePreview = () => {
                             <div className="text-center w-48 relative">
                                 <p className="text-gray-600 mb-2">Approved by,</p>
 
-                                <div className="h-24 flex flex-col items-center justify-center relative">
-                                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=Validasi_Invoice_${invoice.no_invoice || invoice.id}`} alt="QR Code" className="w-16 h-16 opacity-80" />
-                                    <div className="absolute top-1/2 left-1/2 w-full text-blue-800" style={{ fontFamily: "'Brush Script MT', cursive, serif", fontSize: '1.5rem', transform: 'translate(-50%, -50%) rotate(-5deg)' }}>
-                                        {invoice.penanggung_jawab || ((invoice.cabang === 'Banua' || invoice.cabang === 'Tanaka' || invoice.cabang === 'Acestreet') ? 'Hanifah Abdillah' : '')}
-                                    </div>
-                                </div>
+                                <div className="h-24"></div>
 
                                 <p className="font-bold text-gray-800 underline decoration-gray-300 underline-offset-4">
                                     {invoice.penanggung_jawab || ((invoice.cabang === 'Banua' || invoice.cabang === 'Tanaka' || invoice.cabang === 'Acestreet') ? 'Hanifah Abdillah' : '(.........................)')}

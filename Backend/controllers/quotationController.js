@@ -58,7 +58,7 @@ exports.createQuotation = (req, res) => {
         nama_pt = '', alamat_pt = '', up_penagihan = '', cp_penagihan = '', email_customer = '',
         deskripsi_pesanan = '', items_detail,
         subtotal = 0, ppn_persen = 0, jumlah_ppn = 0,
-        diskon_persen = 0, diskon = 0, grand_total_quo = 0,
+        diskon_persen = 0, diskon = 0, ongkos_kirim = 0, grand_total_quo = 0,
         payment_type = 'DP', jenis_pembayaran = '', term_of_payment = '', payment_note = '',
         nama_marketing = '', nama_client_ttd = '',
         status = 'Draft'
@@ -68,17 +68,17 @@ exports.createQuotation = (req, res) => {
         no_quotation, cabang, order_id, tanggal_quotation, tanggal_berlaku,
         nama_pt, alamat_pt, up_penagihan, cp_penagihan, email_customer,
         deskripsi_pesanan, items_detail,
-        subtotal, ppn_persen, jumlah_ppn, diskon_persen, diskon, grand_total_quo,
+        subtotal, ppn_persen, jumlah_ppn, diskon_persen, diskon, ongkos_kirim, grand_total_quo,
         payment_type, jenis_pembayaran, term_of_payment, payment_note,
         nama_marketing, nama_client_ttd, status
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
     const values = [
         no_quotation, cabang, order_id || null, tanggal_quotation, tanggal_berlaku,
         nama_pt, alamat_pt, up_penagihan, cp_penagihan, email_customer,
         deskripsi_pesanan, items_detail ? JSON.stringify(items_detail) : null,
         subtotal || 0, ppn_persen || 0, jumlah_ppn || 0,
-        diskon_persen || 0, diskon || 0, grand_total_quo || 0,
+        diskon_persen || 0, diskon || 0, ongkos_kirim || 0, grand_total_quo || 0,
         payment_type, jenis_pembayaran, term_of_payment, payment_note,
         nama_marketing, nama_client_ttd, status || 'Draft'
     ];
@@ -178,12 +178,12 @@ exports.submitToFinance = (req, res) => {
         db.query("UPDATE marketing_quotations SET status = 'Submitted' WHERE id = ?", [id], (err2) => {
             if (err2) return res.status(500).json({ status: "error", message: err2.message });
 
-            // Insert into approvals table so it appears in Finance Approval Center
+            const diajukanOleh = q.cabang === 'Acestreet' ? 'Marketing Accestret' : (q.cabang === 'Tanaka' ? 'Marketing Offline Tanaka' : 'Marketing Offline Banua');
             const approvalSql = `INSERT INTO approvals (tipe, keterangan, nominal, diajukan_oleh, status, reference_id)
-                VALUES ('quotation_to_invoice', ?, ?, 'Marketing Offline Banua', 'pending', ?)`;
+                VALUES ('quotation_to_invoice', ?, ?, ?, 'pending', ?)`;
             const keterangan = `Quotation ${q.no_quotation || ''} - ${q.nama_pt || q.customer_name || 'Customer'}`;
             
-            db.query(approvalSql, [keterangan, q.grand_total_quo || q.total || 0, id], (err3) => {
+            db.query(approvalSql, [keterangan, q.grand_total_quo || q.total || 0, diajukanOleh, id], (err3) => {
                 if (err3) return res.status(500).json({ status: "error", message: err3.message });
                 res.status(200).json({ status: "success", message: "Quotation berhasil diajukan ke Finance!" });
             });

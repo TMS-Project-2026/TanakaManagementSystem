@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getReportPiutang } from '../../api/reportApi';
+import { getAllPiutang } from '../../api/piutangApi';
 import ReportFilter from '../../components/ReportFilter';
 import { AlertCircle } from 'lucide-react';
 
@@ -14,9 +14,14 @@ const PiutangReport = () => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const res = await getReportPiutang(filters);
+            const res = await getAllPiutang();
             if (res.data.status === 'success') {
-                setData(res.data.data);
+                let filteredData = res.data.data || [];
+                if (filters.cabang !== 'Semua Cabang') {
+                    filteredData = filteredData.filter(d => d.cabang === filters.cabang);
+                }
+                // Filter by date could also be applied here if needed
+                setData(filteredData);
             }
         } catch (error) {
             console.error("Gagal load Piutang", error);
@@ -30,16 +35,18 @@ const PiutangReport = () => {
     }, []);
 
     const exportColumns = [
-        { header: 'Nama Klien', key: 'customer' },
-        { header: 'Deskripsi Pemasaran', key: 'deskripsi_pemasaran' },
-        { header: 'Jumlah', key: 'nominal_fmt' },
-        { header: 'Status', key: 'status_bayar' },
-        { header: 'Keterangan', key: 'keterangan_due_date' },
+        { header: 'No Ref', key: 'no_ref' },
+        { header: 'Nama Klien', key: 'nama_klien' },
+        { header: 'Total Piutang', key: 'nominal_fmt' },
+        { header: 'Sisa Pembayaran', key: 'sisa_fmt' },
+        { header: 'Status', key: 'status' },
+        { header: 'Jatuh Tempo', key: 'jatuh_tempo_fmt' },
         { header: 'Cabang', key: 'cabang' }
     ];
 
     const isOverdue = (dateStr) => {
-        return new Date(dateStr) < new Date();
+        if (!dateStr) return false;
+        return new Date(dateStr) < new Date() && new Date(dateStr).toDateString() !== new Date().toDateString();
     };
 
     const exportData = data ? data.map(d => {
@@ -47,8 +54,9 @@ const PiutangReport = () => {
         return {
             ...d,
             nominal_fmt: formatRupiah(d.nominal),
-            status_bayar: d.status === 'Lunas' ? 'Paid' : 'Unpaid',
-            keterangan_due_date: d.status === 'Lunas' ? 'Lunas' : (overdue ? 'Overdue' : 'Due Date')
+            sisa_fmt: formatRupiah(d.sisa),
+            jatuh_tempo_fmt: d.jatuh_tempo ? formatDate(d.jatuh_tempo) : '-',
+            status_keterangan: d.status === 'Paid' ? 'Paid' : (overdue ? 'Overdue' : 'Due Date')
         };
     }) : [];
 
@@ -74,10 +82,10 @@ const PiutangReport = () => {
                         <table className="w-full text-left text-sm">
                             <thead>
                                 <tr className="bg-gray-50 text-gray-600 border-b">
-                                    <th className="py-3 px-4">No Invoice</th>
+                                    <th className="py-3 px-4">No Ref</th>
                                     <th className="py-3 px-4">Nama Klien</th>
-                                    <th className="py-3 px-4">Deskripsi Pemasaran</th>
-                                    <th className="py-3 px-4">Jumlah</th>
+                                    <th className="py-3 px-4 text-right">Total Piutang</th>
+                                    <th className="py-3 px-4 text-right">Sisa Pembayaran</th>
                                     <th className="py-3 px-4">Jatuh Tempo</th>
                                     <th className="py-3 px-4">Cabang</th>
                                     <th className="py-3 px-4 text-center">Status</th>
@@ -85,21 +93,21 @@ const PiutangReport = () => {
                             </thead>
                             <tbody>
                                 {data.length > 0 ? data.map((item, idx) => {
-                                    const overdue = isOverdue(item.jatuh_tempo);
+                                    const overdue = isOverdue(item.jatuh_tempo) && item.status !== 'Paid';
                                     return (
                                         <tr key={idx} className={`border-b border-gray-50 hover:bg-gray-50 ${overdue ? 'bg-red-50/50' : ''}`}>
-                                            <td className="py-3 px-4 text-[#990000] font-semibold">{item.no_invoice}</td>
-                                            <td className="py-3 px-4 text-gray-800 font-medium">{item.customer}</td>
-                                            <td className="py-3 px-4 text-gray-600">{item.deskripsi_pemasaran || '-'}</td>
-                                            <td className="py-3 px-4 text-gray-800 font-bold">{formatRupiah(item.nominal)}</td>
+                                            <td className="py-3 px-4 text-[#990000] font-semibold">{item.no_ref}</td>
+                                            <td className="py-3 px-4 text-gray-800 font-medium">{item.nama_klien}</td>
+                                            <td className="py-3 px-4 text-right text-gray-600">{formatRupiah(item.nominal)}</td>
+                                            <td className="py-3 px-4 text-right text-gray-900 font-bold">{formatRupiah(item.sisa)}</td>
                                             <td className="py-3 px-4 text-gray-500">
-                                                {formatDate(item.jatuh_tempo)}
+                                                {item.jatuh_tempo ? formatDate(item.jatuh_tempo) : '-'}
                                                 {overdue && <span className="ml-2 text-xs text-red-600 font-bold inline-flex items-center gap-1"><AlertCircle size={12}/> Overdue</span>}
                                             </td>
                                             <td className="py-3 px-4 text-gray-600">{item.cabang}</td>
                                             <td className="py-3 px-4 text-center">
-                                                <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${item.status === 'Lunas' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                                                    {item.status === 'Lunas' ? 'Paid' : 'Unpaid'}
+                                                <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${item.status === 'Paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                                    {item.status}
                                                 </span>
                                             </td>
                                         </tr>

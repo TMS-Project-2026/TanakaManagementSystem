@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import { LayoutDashboard, Users, Package, Gift, LogOut, ShoppingBag, DollarSign, Menu, X, CreditCard, Receipt, FileText, PieChart, Settings, TrendingUp, TrendingDown, ArrowRightLeft, AlertTriangle, Monitor, Shield, Activity, HardDrive, Sliders, MapPin, Layers, Calendar, Clock, CheckCircle, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, Users, Package, Gift, LogOut, ShoppingBag, DollarSign, Menu, X, CreditCard, Receipt, FileText, PieChart, Settings, TrendingUp, TrendingDown, ArrowRightLeft, AlertTriangle, Monitor, Shield, Activity, HardDrive, Sliders, MapPin, Layers, Calendar, Clock, CheckCircle, ChevronDown, ShoppingCart, Briefcase, Download, Upload, BarChart2, Tag, Bell } from 'lucide-react';
 import LogoTanaka from '../assets/logotanaka.jpeg';
 
 const Sidebar = () => {
@@ -17,7 +17,7 @@ const Sidebar = () => {
   const [pendingApprovals, setPendingApprovals] = useState(0);
 
   useEffect(() => {
-    if (['Finance', 'Admin', 'Manager', 'owner'].includes(userRole)) {
+    if (['finance', 'admin', 'manager', 'owner'].includes(userRole.toLowerCase())) {
       const fetchPendingCount = async () => {
         try {
           const res = await axios.get('http://localhost:3000/api/owner/approval/pending/count', {
@@ -56,6 +56,24 @@ const Sidebar = () => {
         { title: 'Laporan Tahunan', path: '/marketing-offline/reports/tahunan' }
       ]
     },
+    // ===== OFFLINE TANAKA =====
+    { name: 'Dashboard Offline', path: '/marketing-offline-tanaka/dashboard', icon: <TrendingUp size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline_tanaka'], group: 'Offline Tanaka' },
+    { name: 'Order Offline', path: '/marketing-offline-tanaka/orders', icon: <ShoppingBag size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline_tanaka'], group: 'Offline Tanaka' },
+    { name: 'Stok Inventory', path: '/marketing-offline-tanaka/inventory', icon: <Package size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline_tanaka'], group: 'Offline Tanaka' },
+    { name: 'Customer', path: '/marketing-offline-tanaka/customers', icon: <Users size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline_tanaka'], group: 'Offline Tanaka' },
+    { name: 'Promo', path: '/marketing-offline-tanaka/promo', icon: <Gift size={20} />, roles: ['owner', 'Admin', 'Manager', 'marketing_offline_tanaka'], group: 'Offline Tanaka' },
+    {
+      name: 'Report',
+      path: '/marketing-offline-tanaka/reports',
+      icon: <FileText size={20} />,
+      roles: ['owner', 'Admin', 'Manager', 'marketing_offline_tanaka'],
+      group: 'Offline Tanaka',
+      subMenu: [
+        { title: 'Laporan Harian', path: '/marketing-offline-tanaka/reports/harian' },
+        { title: 'Laporan Bulanan', path: '/marketing-offline-tanaka/reports/bulanan' },
+        { title: 'Laporan Tahunan', path: '/marketing-offline-tanaka/reports/tahunan' }
+      ]
+    },
     { name: 'Dashboard Online', path: '/marketing-online/dashboard', icon: <LayoutDashboard size={20} />, roles: ['marketing_online', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE BANUA' },
     { name: 'Order Marketplace', path: '/marketing-online/orders', icon: <ShoppingBag size={20} />, roles: ['marketing_online', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE BANUA' },
     { name: 'Stok Inventori', path: '/marketing-online/inventory', icon: <Package size={20} />, roles: ['marketing_online', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE BANUA' },
@@ -82,23 +100,32 @@ const Sidebar = () => {
     { name: 'Suku Cadang', path: '/sparepart', icon: <Settings size={20} />, roles: ['Admin', 'Manager'], group: 'Warehouse' },
     { name: 'Warning Stok', path: '/warning-stok', icon: <AlertTriangle size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Promo', path: '/promo', icon: <Gift size={20} />, roles: ['Admin', 'Manager', 'Marketing'], group: 'Sales' },
-    { name: 'Finance Dashboard', path: '/finance', icon: <PieChart size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Finance' },
-    { name: 'Cash In Bank', path: '/cash-in-bank', icon: <CreditCard size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Finance' },
-    {
-      name: 'Journal',
-      path: '/journal',
-      icon: <FileText size={20} />,
-      roles: ['Admin', 'Manager', 'Finance'],
-      group: 'Finance',
-      subMenu: [
-        { title: 'Jurnal Penjualan', path: '/journal/sales' },
-        { title: 'Jurnal Pembelian', path: '/journal/purchase' }
-      ]
-    },
-    { name: 'Chart of Accounts', path: '/chart-of-accounts', icon: <Activity size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Finance' },
-    { name: 'Invoice', path: '/invoice', icon: <Receipt size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Finance' },
-    { name: 'Approval Center', path: '/finance/approval', icon: <Shield size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Finance', hasBadge: true },
-    { name: 'Report Center', path: '/report/laba-rugi', icon: <FileText size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Finance' },
+    { name: 'Pricelist Harga', path: '/pricelist', icon: <Tag size={20} />, roles: ['Admin', 'Manager', 'owner', 'Finance', 'marketing_offline', 'marketing_offline_tanaka'], group: 'Sales' },
+    { name: 'Finance Dashboard', path: '/finance', icon: <PieChart size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'FINANCE' },
+
+    // CASH & BANK
+    { name: 'Cash & Bank', path: '/cash-bank', icon: <CreditCard size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'CASH & BANK' },
+
+    { name: 'Petty Cash', path: '/petty-cash', icon: <Briefcase size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'CASH & BANK' },
+
+    // TAGIHAN
+    { name: 'Invoice', path: '/invoice', icon: <Receipt size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'TAGIHAN' },
+    { name: 'Accounts Receivable', path: '/piutang', icon: <Download size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'TAGIHAN' },
+    { name: 'Accounts Payable', path: '/hutang', icon: <Upload size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'TAGIHAN' },
+
+    // JURNAL
+    { name: 'Jurnal Penjualan', path: '/journal/sales', icon: <TrendingUp size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'JURNAL' },
+    { name: 'Jurnal Pembelian', path: '/journal/purchase', icon: <TrendingDown size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'JURNAL' },
+    { name: 'Jurnal Umum', path: '/journal/general', icon: <FileText size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'JURNAL' },
+    { name: 'Jurnal Biaya', path: '/journal/expense', icon: <DollarSign size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'JURNAL' },
+
+    // AKUNTANSI
+    { name: 'Chart of Accounts', path: '/chart-of-accounts', icon: <Activity size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'AKUNTANSI' },
+
+    // MANAJEMEN
+    { name: 'Approval Center', path: '/finance/approval', icon: <Shield size={20} />, roles: ['owner', 'Admin', 'Manager', 'Finance'], group: 'MANAJEMEN', hasBadge: true },
+    { name: 'Report Center', path: '/report/laba-rugi', icon: <BarChart2 size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'MANAJEMEN' },
+    { name: 'Pengaturan Keuangan', path: '/finance/settings', icon: <Settings size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'MANAJEMEN' },
 
     { name: 'Dashboard IT', path: '/it/dashboard', icon: <Monitor size={20} />, roles: ['admin_it', 'Admin'], group: 'System' },
     { name: 'User Management', path: '/it/users', icon: <Users size={20} />, roles: ['admin_it', 'Admin'], group: 'System' },
@@ -125,6 +152,26 @@ const Sidebar = () => {
     { name: 'Produksi Selesai', path: '/produksi/selesai', icon: <CheckCircle size={20} />, roles: ['produksi', 'owner', 'Manager', 'Admin'], group: 'Produksi' },
     { name: 'Deadline', path: '/produksi/deadline', icon: <Clock size={20} />, roles: ['produksi', 'owner', 'Manager', 'Admin'], group: 'Produksi' },
     { name: 'Riwayat Produksi', path: '/produksi/riwayat', icon: <Activity size={20} />, roles: ['produksi', 'owner', 'Manager', 'Admin'], group: 'Produksi' },
+
+    // MENU ACCESTRET - MARKETING CREATIVE
+    { name: 'Dashboard Mkt', path: '/accestret/marketing/dashboard', icon: <TrendingUp size={20} />, roles: ['marketing_accestret', 'owner', 'Manager', 'Admin'], group: 'Marketing Accestret' },
+    { name: 'Klien & Customer', path: '/accestret/marketing/customers', icon: <Users size={20} />, roles: ['marketing_accestret', 'owner', 'Manager', 'Admin'], group: 'Marketing Accestret' },
+    { name: 'Quotation', path: '/accestret/marketing/quotation', icon: <FileText size={20} />, roles: ['marketing_accestret', 'owner', 'Manager', 'Admin'], group: 'Marketing Accestret' },
+    { name: 'Order / SPK', path: '/accestret/marketing/spk', icon: <ShoppingBag size={20} />, roles: ['marketing_accestret', 'owner', 'Manager', 'Admin'], group: 'Marketing Accestret' },
+    { name: 'Katalog Desain', path: '/accestret/marketing/katalog', icon: <Layers size={20} />, roles: ['marketing_accestret', 'owner', 'Manager', 'Admin'], group: 'Marketing Accestret' },
+
+    // MENU ACCESTRET - GUDANG
+    { name: 'Dashboard Gudang', path: '/accestret/gudang/dashboard', icon: <Package size={20} />, roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
+    { name: 'Stok Bahan Baku', path: '/accestret/gudang/bahan-baku', icon: <Layers size={20} />, roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
+    { name: 'Stok Kaos Polos', path: '/accestret/gudang/kaos-polos', icon: <Package size={20} />, roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
+    { name: 'Barang Masuk/Keluar', path: '/accestret/gudang/mutasi', icon: <ArrowRightLeft size={20} />, roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
+
+    // MENU ACCESTRET - PRODUKSI
+    { name: 'Dashboard Produksi', path: '/accestret/produksi/dashboard', icon: <LayoutDashboard size={20} />, roles: ['produksi_accestret', 'owner', 'Manager', 'Admin'], group: 'Produksi Accestret' },
+    { name: 'Antrean SPK', path: '/accestret/produksi/spk', icon: <Layers size={20} />, roles: ['produksi_accestret', 'owner', 'Manager', 'Admin'], group: 'Produksi Accestret' },
+    { name: 'Jadwal Produksi', path: '/accestret/produksi/jadwal', icon: <Calendar size={20} />, roles: ['produksi_accestret', 'owner', 'Manager', 'Admin'], group: 'Produksi Accestret' },
+    { name: 'Request Bahan', path: '/accestret/produksi/request', icon: <ShoppingCart size={20} />, roles: ['produksi_accestret', 'owner', 'Manager', 'Admin'], group: 'Produksi Accestret' },
+    { name: 'QC & Reject', path: '/accestret/produksi/qc', icon: <Shield size={20} />, roles: ['produksi_accestret', 'owner', 'Manager', 'Admin'], group: 'Produksi Accestret' },
   ];
 
   // Saring menu berdasarkan role (Pastikan item memiliki properti name)
@@ -142,10 +189,8 @@ const Sidebar = () => {
   }
 
   const handleLogout = () => {
-    if (window.confirm("Apakah Anda yakin ingin keluar?")) {
-      localStorage.clear();
-      window.location.href = '/';
-    }
+    localStorage.clear();
+    window.location.href = '/';
   };
 
   return (
@@ -166,7 +211,7 @@ const Sidebar = () => {
         />
       )}
 
-      <aside className={`w-64 bg-white h-screen flex flex-col border-r border-gray-200 shadow-sm fixed md:sticky top-0 z-50 transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+      <aside className={`w-64 bg-white h-screen flex flex-col border-r border-gray-200 shadow-sm fixed md:sticky top-0 z-50 transition-transform duration-300 ease-in-out overflow-hidden ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
 
         {/* Tombol Tutup (X) di Mobile */}
         <button
@@ -176,21 +221,39 @@ const Sidebar = () => {
           <X size={18} />
         </button>
 
-        {/* --- LOGO SECTION --- */}
-        <div className="p-6 flex items-center gap-3 mb-4 cursor-pointer" onClick={() => navigate('/dashboard')}>
-          <img
-            src={LogoTanaka}
-            alt="Logo Tanaka"
-            className="w-10 h-10 object-contain drop-shadow-sm"
-          />
-          <div>
-            <h1 className="font-bold text-red-800 leading-none tracking-tighter text-xl">T M S</h1>
-            <p className="text-[10px] text-gray-400 font-medium uppercase">Tanaka Management System</p>
+        {/* --- LOGO & NOTIFICATION SECTION --- */}
+        <div className="p-5 flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/dashboard')}>
+            <img
+              src={LogoTanaka}
+              alt="Logo Tanaka"
+              className="w-10 h-10 object-contain drop-shadow-sm"
+            />
+            <div>
+              <h1 className="font-bold text-red-800 leading-none tracking-tighter text-xl">T M S</h1>
+              <p className="text-[10px] text-gray-400 font-medium uppercase">Tanaka System</p>
+            </div>
           </div>
+
+          {/* NOTIFICATION BELL FOR APPROVALS */}
+          {['finance', 'owner', 'admin', 'manager'].includes(userRole.toLowerCase()) && (
+            <div 
+              className="relative cursor-pointer p-2 hover:bg-red-50 rounded-full transition-colors"
+              onClick={() => navigate('/finance/approval')}
+              title="Cek Approval Center"
+            >
+              <Bell size={22} className={pendingApprovals > 0 ? "text-red-600 drop-shadow-md" : "text-gray-400"} />
+              {pendingApprovals > 0 && (
+                <span className="absolute top-1 right-1 flex items-center justify-center w-4 h-4 bg-red-600 text-white text-[9px] font-black rounded-full border-2 border-white animate-pulse">
+                  {pendingApprovals}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Menu Navigasi */}
-        <nav className="flex-1 px-4 space-y-1">
+        <nav className="flex-1 px-4 space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent pb-4">
           {(() => {
             let currentGroup = '';
             return menuItems.map((item) => {

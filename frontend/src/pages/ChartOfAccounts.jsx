@@ -20,6 +20,24 @@ const ChartOfAccounts = () => {
   });
 
   const categories = ['Current Assets', 'Fixed Assets', 'Liabilities', 'Equity', 'Revenue', 'Cost of Goods Sold', 'Expenses'];
+  const categoryLabels = {
+    'Current Assets': '1 — ASET LANCAR',
+    'Fixed Assets': '1 — ASET TETAP',
+    'Liabilities': '2 — KEWAJIBAN',
+    'Equity': '3 — MODAL (EKUITAS)',
+    'Revenue': '4 — PENDAPATAN / PENJUALAN',
+    'Cost of Goods Sold': '5 — HARGA POKOK PENJUALAN',
+    'Expenses': '6 — BIAYA-BIAYA'
+  };
+  const categoryColors = {
+    'Current Assets': 'bg-blue-50 text-blue-800 border-blue-200',
+    'Fixed Assets': 'bg-indigo-50 text-indigo-800 border-indigo-200',
+    'Liabilities': 'bg-orange-50 text-orange-800 border-orange-200',
+    'Equity': 'bg-purple-50 text-purple-800 border-purple-200',
+    'Revenue': 'bg-green-50 text-green-800 border-green-200',
+    'Cost of Goods Sold': 'bg-yellow-50 text-yellow-800 border-yellow-200',
+    'Expenses': 'bg-red-50 text-red-800 border-red-200'
+  };
   const branches = ['All Branches', 'Banua', 'Tanaka', 'Acestreet'];
 
   useEffect(() => {
@@ -97,11 +115,20 @@ const ChartOfAccounts = () => {
     );
   });
 
+  // Group filtered accounts by category (after filteredAccounts is defined)
+  const groupedAccounts = categories.reduce((grp, cat) => {
+    const items = filteredAccounts.filter(a => a.category === cat);
+    if (items.length > 0) grp[cat] = items;
+    return grp;
+  }, {});
+
   const stats = {
     total: accounts.length,
     assets: accounts.filter(a => a.category.includes('Assets')).length,
+    liabilities: accounts.filter(a => a.category === 'Liabilities').length,
     revenue: accounts.filter(a => a.category === 'Revenue').length,
-    expenses: accounts.filter(a => a.category === 'Expenses').length
+    expenses: accounts.filter(a => a.category === 'Expenses').length,
+    hpp: accounts.filter(a => a.category === 'Cost of Goods Sold').length,
   };
 
   return (
@@ -158,87 +185,118 @@ const ChartOfAccounts = () => {
             </button>
           </div>
 
-      {/* Header Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-red-50 p-6 rounded-3xl shadow-md border border-red-100 flex items-center justify-between hover:shadow-lg transition-all duration-300">
-          <div>
-            <p className="text-sm font-bold text-red-800">Total Accounts</p>
-            <h3 className="text-lg md:text-xl font-black text-red-900 mt-2 break-words">{stats.total}</h3>
-          </div>
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-8">
+        <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 text-center">
+          <p className="text-xs font-bold text-blue-600 uppercase tracking-wide">Total Akun</p>
+          <h3 className="text-2xl font-black text-blue-900 mt-1">{stats.total}</h3>
         </div>
-        <div className="bg-red-100 p-6 rounded-3xl shadow-md border border-red-200 flex items-center justify-between hover:shadow-lg transition-all duration-300">
-          <div>
-            <p className="text-sm font-bold text-red-800">Assets</p>
-            <h3 className="text-lg md:text-xl font-black text-red-900 mt-2 break-words">{stats.assets}</h3>
-          </div>
+        <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 text-center">
+          <p className="text-xs font-bold text-indigo-600 uppercase tracking-wide">Aset</p>
+          <h3 className="text-2xl font-black text-indigo-900 mt-1">{stats.assets}</h3>
         </div>
-        <div className="bg-red-500 p-6 rounded-3xl shadow-md flex items-center justify-between hover:shadow-lg transition-all duration-300">
-          <div>
-            <p className="text-sm font-bold text-white">Revenue</p>
-            <h3 className="text-lg md:text-xl font-black text-white mt-2 break-words">{stats.revenue}</h3>
-          </div>
+        <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100 text-center">
+          <p className="text-xs font-bold text-orange-600 uppercase tracking-wide">Kewajiban</p>
+          <h3 className="text-2xl font-black text-orange-900 mt-1">{stats.liabilities}</h3>
         </div>
-        <div className="bg-red-200 p-6 rounded-3xl shadow-md border border-red-300 flex items-center justify-between hover:shadow-lg transition-all duration-300">
-          <div>
-            <p className="text-sm font-bold text-red-900">Expenses</p>
-            <h3 className="text-lg md:text-xl font-black text-red-900 mt-2 break-words">{stats.expenses}</h3>
-          </div>
+        <div className="bg-green-50 p-4 rounded-2xl border border-green-100 text-center">
+          <p className="text-xs font-bold text-green-600 uppercase tracking-wide">Pendapatan</p>
+          <h3 className="text-2xl font-black text-green-900 mt-1">{stats.revenue}</h3>
+        </div>
+        <div className="bg-yellow-50 p-4 rounded-2xl border border-yellow-100 text-center">
+          <p className="text-xs font-bold text-yellow-600 uppercase tracking-wide">HPP</p>
+          <h3 className="text-2xl font-black text-yellow-900 mt-1">{stats.hpp}</h3>
+        </div>
+        <div className="bg-red-50 p-4 rounded-2xl border border-red-100 text-center">
+          <p className="text-xs font-bold text-red-600 uppercase tracking-wide">Biaya</p>
+          <h3 className="text-2xl font-black text-red-900 mt-1">{stats.expenses}</h3>
         </div>
       </div>
 
       {/* Table Section */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-          <h2 className="text-lg font-bold text-gray-800">Account List</h2>
+        <div className="p-5 border-b border-gray-100 flex justify-between items-center">
+          <h2 className="text-lg font-bold text-gray-800">Daftar Akun</h2>
+          <span className="text-xs text-gray-400 font-medium">{filteredAccounts.length} akun ditemukan</span>
         </div>
         
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-gray-900 text-xs text-white uppercase tracking-wider font-semibold">
-                <th className="px-6 py-4">Account Code</th>
-                <th className="px-6 py-4">Account Name</th>
-                <th className="px-6 py-4">Category</th>
-                <th className="px-6 py-4">Normal Balance</th>
-                <th className="px-6 py-4">Branch</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-center">Action</th>
+                <th className="px-5 py-3.5">Nomor Akun</th>
+                <th className="px-5 py-3.5">Nama Akun</th>
+                <th className="px-5 py-3.5">Kategori</th>
+                <th className="px-5 py-3.5">Normal Balance</th>
+                <th className="px-5 py-3.5">Cabang</th>
+                <th className="px-5 py-3.5">Status</th>
+                <th className="px-5 py-3.5 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading ? (
-                <tr><td colSpan="7" className="text-center py-8 text-gray-500">Loading data...</td></tr>
-              ) : filteredAccounts.length === 0 ? (
-                <tr><td colSpan="7" className="text-center py-8 text-gray-500 flex justify-center items-center gap-2"><AlertTriangle size={18}/> No accounts found.</td></tr>
+                <tr><td colSpan="7" className="text-center py-8 text-gray-500">Memuat data...</td></tr>
+              ) : Object.keys(groupedAccounts).length === 0 ? (
+                <tr><td colSpan="7" className="text-center py-8 text-gray-400"><AlertTriangle size={18} className="inline mr-2"/>Tidak ada akun ditemukan.</td></tr>
               ) : (
-                filteredAccounts.map((acc) => (
-                  <tr key={acc.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-gray-900">{acc.account_code}</td>
-                    <td className="px-6 py-4 text-gray-700">{acc.account_name}</td>
-                    <td className="px-6 py-4 text-gray-600">{acc.category}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${acc.normal_balance === 'Debit' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'}`}>
-                        {acc.normal_balance}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">{acc.branch}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${acc.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                        {acc.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 flex justify-center gap-2">
-                      <button onClick={() => handleEdit(acc)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
-                        <Edit2 size={16} />
-                      </button>
-                      <button onClick={() => handleToggleStatus(acc)} className={`p-2 rounded-lg transition-colors ${acc.status === 'Active' ? 'text-orange-600 hover:bg-orange-50' : 'text-green-600 hover:bg-green-50'}`} title={acc.status === 'Active' ? 'Disable' : 'Enable'}>
-                        <Power size={16} />
-                      </button>
-                      <button onClick={() => handleDelete(acc.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
-                        <Trash2 size={16} />
-                      </button>
-                    </td>
-                  </tr>
+                Object.entries(groupedAccounts).map(([cat, items]) => (
+                  <React.Fragment key={cat}>
+                    {/* Category Header Row */}
+                    <tr className={`border-l-4 ${categoryColors[cat]}`}>
+                      <td colSpan="7" className="px-5 py-2.5 font-black text-sm uppercase tracking-wider">
+                        {categoryLabels[cat] || cat}
+                        <span className="ml-2 text-xs font-medium opacity-60">({items.length} akun)</span>
+                      </td>
+                    </tr>
+                    {/* Account Rows */}
+                    {items.map((acc) => {
+                      // Detect if this is a group header account (e.g. 1-1000, 2-1000)
+                      const isGroupHeader = /^\d-\d000$/.test(acc.account_code);
+                      return (
+                        <tr key={acc.id} className={`hover:bg-gray-50 transition-colors ${isGroupHeader ? 'font-semibold bg-gray-50/50' : ''}`}>
+                          <td className="px-5 py-3">
+                            <span className={`font-mono text-sm ${isGroupHeader ? 'text-gray-900 font-bold' : 'text-[#990000]'}`}>
+                              {isGroupHeader ? '' : <span className="text-gray-300 mr-1">└</span>}
+                              {acc.account_code}
+                            </span>
+                          </td>
+                          <td className={`px-5 py-3 ${isGroupHeader ? 'text-gray-700 font-bold' : 'text-gray-700'}`}>
+                            {isGroupHeader ? (
+                              <span className="text-xs uppercase tracking-wide text-gray-500">{acc.account_name}</span>
+                            ) : acc.account_name}
+                          </td>
+                          <td className="px-5 py-3">
+                            <span className={`px-2.5 py-1 rounded-md text-xs font-semibold border ${categoryColors[acc.category] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                              {acc.category}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3">
+                            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${acc.normal_balance === 'Debit' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}`}>
+                              {acc.normal_balance}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3 text-gray-500 text-sm">{acc.branch}</td>
+                          <td className="px-5 py-3">
+                            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${acc.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                              {acc.status}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3">
+                            <div className="flex justify-center gap-1">
+                              <button onClick={() => handleEdit(acc)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit">
+                                <Edit2 size={15} />
+                              </button>
+                              <button onClick={() => handleToggleStatus(acc)} className={`p-1.5 rounded-lg transition-colors ${acc.status === 'Active' ? 'text-orange-500 hover:bg-orange-50' : 'text-green-600 hover:bg-green-50'}`} title={acc.status === 'Active' ? 'Nonaktifkan' : 'Aktifkan'}>
+                                <Power size={15} />
+                              </button>
+                              <button onClick={() => handleDelete(acc.id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Hapus">
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </React.Fragment>
                 ))
               )}
             </tbody>

@@ -1,8 +1,11 @@
 exports.checkRole = (allowedRoles) => {
     return (req, res, next) => {
-        if (!req.user || !allowedRoles.includes(req.user.role)) {
+        const userRole = req.user?.role?.toLowerCase();
+        const normalizedRoles = allowedRoles.map(r => r.toLowerCase());
+        
+        if (!userRole || !normalizedRoles.includes(userRole)) {
             return res.status(403).json({ 
-                message: `Akses Ditolak! Jabatan ${req.user.role} tidak berhak masuk ke menu ini.` 
+                message: `Akses Ditolak! Jabatan ${req.user?.role || 'Tidak Diketahui'} tidak berhak masuk ke menu ini.` 
             });
         }
         next();

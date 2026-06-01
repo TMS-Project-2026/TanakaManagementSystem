@@ -1,51 +1,47 @@
 const db = require('../config/db');
 
+const q = (query, params = []) => new Promise((resolve, reject) =>
+    db.query(query, params, (err, r) => err ? reject(err) : resolve(r))
+);
+
 exports.getNeraca = async (req, res) => {
     const { cabang } = req.query;
     try {
-        let cabangFilter = cabang && cabang !== 'Semua Cabang' ? `AND branch = '${cabang}'` : '';
-        
-        // As a simplified Neraca based on Journals:
-        // We will sum up Assets (from cash_in_bank for real cash + receivables from invoices)
-        // Liabilities (from hutang/cash_in_bank)
-        // Equity = Assets - Liabilities
+        const cabF = cabang && cabang !== 'Semua Cabang' ? `AND cabang = '${cabang}'` : '';
 
-        // 1. Kas (Aset)
-        const [[kasRow]] = await db.promise().query(`SELECT SUM(total) as total FROM cash_in_bank WHERE status = 'Paid' ${cabangFilter.replace('branch', 'cabang')}`);
-        const kas = Number(kasRow.total || 0);
+        const [kasRow, piutangRow, hutangRow, cobRow] = await Promise.all([
+            q(`SELECT COALESCE(SUM(total),0) as total FROM cash_in_bank WHERE status='Paid' ${cabF}`),
+            q(`SELECT COALESCE(SUM(grand_total),0) as total FROM invoice WHERE status NOT IN ('Lunas','Draft','Void') ${cabF}`),
+            q(`SELECT COALESCE(SUM(total),0) as total FROM cash_in_bank WHERE status IN ('Pending','Overdue') ${cabF}`),
+            q(`SELECT COALESCE(SUM(nominal),0) as total FROM cash_out_bank WHERE status IN ('Pending','Void') ${cabF}`),
+        ]);
 
-        // 2. Piutang (Aset)
-        const [[piutangRow]] = await db.promise().query(`SELECT SUM(grand_total) as total FROM invoice WHERE status != 'Lunas' AND status != 'Draft' ${cabangFilter.replace('branch', 'cabang')}`);
-        const piutang = Number(piutangRow.total || 0);
-
-        // 3. Hutang (Kewajiban)
-        const [[hutangRow]] = await db.promise().query(`SELECT SUM(total) as total FROM cash_in_bank WHERE status != 'Paid' ${cabangFilter.replace('branch', 'cabang')}`);
-        const hutang = Number(hutangRow.total || 0);
+        const kas = Number(kasRow[0].total || 0);
+        const piutang = Number(piutangRow[0].total || 0);
+        const hutangCIB = Number(hutangRow[0].total || 0);
+        const hutangCOB = Number(cobRow[0].total || 0);
+        const hutang = hutangCIB + hutangCOB;
 
         const totalAktiva = kas + piutang;
-        const totalPasiva = totalAktiva; // Basic accounting equation: Assets = Liabilities + Equity
-        const modal = totalAktiva - hutang; // Equity
-
-        const aktivaList = [
-            { nama_akun: 'Kas & Bank', saldo: kas },
-            { nama_akun: 'Piutang Usaha', saldo: piutang }
-        ];
-
-        const pasivaList = [
-            { nama_akun: 'Hutang Usaha', saldo: hutang },
-            { nama_akun: 'Modal / Ekuitas', saldo: modal }
-        ];
+        const modal = totalAktiva - hutang;
+        const totalPasiva = hutang + modal;
 
         res.json({
             status: 'success',
             data: {
                 totalAktiva,
                 totalPasiva,
-                aktiva: aktivaList,
-                pasiva: pasivaList
+                aktiva: [
+                    { nama_akun: 'Kas & Bank (Paid)', saldo: kas },
+                    { nama_akun: 'Piutang Usaha (Invoice Belum Lunas)', saldo: piutang }
+                ],
+                pasiva: [
+                    { nama_akun: 'Hutang Usaha (Cash Out Pending)', saldo: hutangCOB },
+                    { nama_akun: 'Kewajiban Cash In Pending', saldo: hutangCIB },
+                    { nama_akun: 'Modal / Ekuitas', saldo: modal }
+                ]
             }
         });
-
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message });
     }
@@ -54,23 +50,23 @@ exports.getNeraca = async (req, res) => {
 exports.getPerubahanModal = async (req, res) => {
     try {
         const modalAwal = 150000000;
-        const tambahanModal = 0;
-        
-        // Laba bersih from Journals
-        const [[revRow]] = await db.promise().query(`SELECT SUM(amount) as total FROM journals WHERE category = 'Income'`);
-        const [[expRow]] = await db.promise().query(`SELECT SUM(amount) as total FROM journals WHERE category = 'Expense'`);
-        
-        const labaDitahan = Number(revRow.total || 0) - Number(expRow.total || 0);
-        const modalAkhir = modalAwal + tambahanModal + labaDitahan;
+
+        const [revJ, expJ, cashInPaid, invPaid, cobPaid] = await Promise.all([
+            q(`SELECT COALESCE(SUM(amount),0) as total FROM journals WHERE category IN ('Income','Revenue')`),
+            q(`SELECT COALESCE(SUM(amount),0) as total FROM journals WHERE category IN ('Expense','Purchase')`),
+            q(`SELECT COALESCE(SUM(total),0) as total FROM cash_in_bank WHERE status='Paid'`),
+            q(`SELECT COALESCE(SUM(grand_total),0) as total FROM invoice WHERE status NOT IN ('Draft','Void')`),
+            q(`SELECT COALESCE(SUM(nominal),0) as total FROM cash_out_bank WHERE status='Paid'`),
+        ]);
+
+        const totalRevenue = Number(revJ[0].total) + Number(cashInPaid[0].total) + Number(invPaid[0].total);
+        const totalExpense = Number(expJ[0].total) + Number(cobPaid[0].total);
+        const labaDitahan = totalRevenue - totalExpense;
+        const modalAkhir = modalAwal + labaDitahan;
 
         res.json({
             status: 'success',
-            data: {
-                modalAwal,
-                tambahanModal,
-                labaDitahan,
-                modalAkhir
-            }
+            data: { modalAwal, tambahanModal: 0, labaDitahan, modalAkhir, totalRevenue, totalExpense }
         });
     } catch (err) {
         res.status(500).json({ status: 'error', message: err.message });

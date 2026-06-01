@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getReportSemuaTransaksi } from '../../api/reportApi';
+import { journalApi } from '../../api/journalApi';
 import ReportFilter from '../../components/ReportFilter';
 
 const formatRupiah = (number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number || 0);
@@ -7,18 +7,36 @@ const formatDate = (dateString) => new Date(dateString).toLocaleDateString('id-I
 
 const SemuaTransaksi = () => {
     const [filters, setFilters] = useState({ startDate: '', endDate: '', cabang: 'Semua Cabang' });
-    const [data, setData] = useState(null);
+    const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const res = await getReportSemuaTransaksi(filters);
-            if (res.data.status === 'success') {
-                setData(res.data.data);
+            const res = await journalApi.getAllJournals();
+            if (res.status === 'success' || Array.isArray(res.data)) {
+                let journals = res.data || [];
+                // Filter hanya Jurnal Penjualan
+                journals = journals.filter(j => 
+                    j.category === 'Jurnal Penjualan' || 
+                    (j.credit_account && j.credit_account.startsWith('4-'))
+                );
+
+                if (filters.cabang !== 'Semua Cabang') {
+                    journals = journals.filter(j => j.cabang === filters.cabang);
+                }
+                if (filters.startDate && filters.endDate) {
+                    const start = new Date(filters.startDate);
+                    const end = new Date(filters.endDate);
+                    journals = journals.filter(j => {
+                        const d = new Date(j.tanggal);
+                        return d >= start && d <= end;
+                    });
+                }
+                setData(journals);
             }
         } catch (error) {
-            console.error("Gagal load Semua Transaksi", error);
+            console.error("Gagal load Jurnal Penjualan", error);
         } finally {
             setLoading(false);
         }
@@ -30,23 +48,23 @@ const SemuaTransaksi = () => {
 
     const exportColumns = [
         { header: 'Tanggal', key: 'tanggal_fmt' },
-        { header: 'Nama Klien', key: 'klien' },
-        { header: 'Deskripsi Pemesanan', key: 'deskripsi_pemesanan' },
-        { header: 'Jumlah', key: 'jumlah_fmt' },
-        { header: 'Status', key: 'status_bayar' },
-        { header: 'Keterangan', key: 'keterangan' },
+        { header: 'No Ref', key: 'invoice_ref' },
+        { header: 'Keterangan', key: 'description' },
+        { header: 'Akun Debit', key: 'debit_account' },
+        { header: 'Akun Kredit', key: 'credit_account' },
+        { header: 'Nominal', key: 'amount_fmt' },
         { header: 'Cabang', key: 'cabang' }
     ];
 
-    const exportData = data ? data.map(d => ({
+    const exportData = data.map(d => ({
         ...d,
         tanggal_fmt: formatDate(d.tanggal),
-        jumlah_fmt: formatRupiah(d.jumlah)
-    })) : [];
+        amount_fmt: formatRupiah(d.amount)
+    }));
 
     return (
         <div className="p-6">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">Laporan Semua Transaksi</h2>
+            <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">Semua Transaksi Penjualan (Jurnal)</h2>
             
             <ReportFilter 
                 filters={filters} 
@@ -54,24 +72,24 @@ const SemuaTransaksi = () => {
                 onFilter={fetchData} 
                 onPrint={() => window.print()}
                 dataForExport={exportData}
-                exportFileName="Data_Transaksi"
+                exportFileName="Data_Transaksi_Penjualan"
                 columns={exportColumns}
             />
 
             {loading ? (
                 <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#990000]"></div></div>
-            ) : data && (
+            ) : (
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-sm">
                             <thead>
                                 <tr className="bg-gray-50 text-gray-600 border-b">
                                     <th className="py-3 px-3">Tanggal</th>
-                                    <th className="py-3 px-3">Nama Klien</th>
-                                    <th className="py-3 px-3">Deskripsi Pemesanan</th>
-                                    <th className="py-3 px-3 text-right">Jumlah</th>
-                                    <th className="py-3 px-3 text-center">Status</th>
-                                    <th className="py-3 px-3">Keterangan</th>
+                                    <th className="py-3 px-3">No Ref</th>
+                                    <th className="py-3 px-3">Deskripsi / Keterangan</th>
+                                    <th className="py-3 px-3">Akun Debit</th>
+                                    <th className="py-3 px-3">Akun Kredit</th>
+                                    <th className="py-3 px-3 text-right">Nominal</th>
                                     <th className="py-3 px-3">Cabang</th>
                                 </tr>
                             </thead>
@@ -79,23 +97,15 @@ const SemuaTransaksi = () => {
                                 {data.length > 0 ? data.map((item, idx) => (
                                     <tr key={idx} className="border-b border-gray-50 hover:bg-gray-50">
                                         <td className="py-3 px-3 text-gray-600 whitespace-nowrap">{formatDate(item.tanggal)}</td>
-                                        <td className="py-3 px-3 text-gray-800 font-semibold">{item.klien}</td>
-                                        <td className="py-3 px-3 text-gray-600">{item.deskripsi_pemesanan}</td>
-                                        <td className="py-3 px-3 text-right text-gray-800 font-bold">{formatRupiah(item.jumlah)}</td>
-                                        <td className="py-3 px-3 text-center">
-                                            <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${item.status_bayar === 'paid' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                                {item.status_bayar}
-                                            </span>
-                                        </td>
-                                        <td className="py-3 px-3">
-                                            <span className={`px-2 py-1 rounded text-xs uppercase font-medium ${item.keterangan === 'Income' ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}`}>
-                                                {item.keterangan}
-                                            </span>
-                                        </td>
+                                        <td className="py-3 px-3 font-mono text-xs text-[#990000]">{item.invoice_ref || item.id}</td>
+                                        <td className="py-3 px-3 text-gray-800 font-semibold">{item.description}</td>
+                                        <td className="py-3 px-3 text-gray-600 text-xs">{item.debit_account}</td>
+                                        <td className="py-3 px-3 text-gray-600 text-xs">{item.credit_account}</td>
+                                        <td className="py-3 px-3 text-right text-green-700 font-bold">{formatRupiah(item.amount)}</td>
                                         <td className="py-3 px-3 text-gray-500">{item.cabang}</td>
                                     </tr>
                                 )) : (
-                                    <tr><td colSpan="7" className="text-center py-6 text-gray-400">Belum ada transaksi.</td></tr>
+                                    <tr><td colSpan="7" className="text-center py-6 text-gray-400">Belum ada transaksi penjualan di Jurnal.</td></tr>
                                 )}
                             </tbody>
                         </table>

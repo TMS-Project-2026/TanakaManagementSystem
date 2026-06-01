@@ -17,6 +17,7 @@ const marketingRoutes = require('./routes/marketingRoutes');
 const salesOnlineRoutes = require('./routes/salesOnlineRoutes'); // Khusus Excel
 const marketingOnlineBanuaRoutes = require('./routes/marketingOnlineBanuaRoutes'); // Khusus Marketing Online Banua
 const marketingOfflineBanuaRoutes = require('./routes/marketingOfflineBanuaRoutes');
+const marketingOfflineTanakaRoutes = require('./routes/marketingOfflineTanakaRoutes'); // Khusus Marketing Offline Tanaka
 const salesRoutes = require('./routes/salesRoutes'); // Untuk Order B2B
 const promoRoutes = require('./routes/promoRoutes'); // Menambahkan rute promo
 const financeRoutes = require('./routes/financeRoutes');
@@ -26,6 +27,11 @@ const invoiceRoutes = require('./routes/invoiceRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const accountRoutes = require('./routes/accountRoutes');
 const journalRoutes = require('./routes/journalRoutes');
+const cashOutBankRoutes = require('./routes/cashOutBankRoutes');
+
+const pettyCashRoutes = require('./routes/pettyCashRoutes');
+const piutangRoutes = require('./routes/piutangRoutes');
+const hutangRoutes = require('./routes/hutangRoutes');
 
 const gudangRoutes = require('./routes/gudangRoutes');
 const stokRoutes = require('./routes/stokRoutes');
@@ -38,6 +44,7 @@ const ownerRoutes = require('./routes/ownerRoutes');
 const produksiRoutes = require('./routes/produksiRoutes');
 const quotationRoutes = require('./routes/quotationRoutes');
 const stokJalanRoutes = require('./routes/stokJalanRoutes');
+const pengaturanKeuanganRoutes = require('./routes/pengaturanKeuanganRoutes');
 
 // 4. Daftarkan Route ke API
 app.use('/api/auth', authRoutes);
@@ -46,6 +53,7 @@ app.use('/api/marketing', marketingRoutes);
 app.use('/api/sales-online', salesOnlineRoutes); 
 app.use('/api/marketing-online-banua', marketingOnlineBanuaRoutes);
 app.use('/api/marketing-offline', marketingOfflineBanuaRoutes);
+app.use('/api/marketing-offline-tanaka', marketingOfflineTanakaRoutes);
 app.use('/api/sales', salesRoutes);
 app.use('/api/promo', promoRoutes); // Mendaftarkan API Promo
 app.use('/api/finance', financeRoutes);
@@ -55,6 +63,11 @@ app.use('/api/invoice', invoiceRoutes);
 app.use('/api/report', reportRoutes);
 app.use('/api/accounts', accountRoutes);
 app.use('/api/journal', journalRoutes);
+app.use('/api/cash-out-bank', cashOutBankRoutes);
+
+app.use('/api/petty-cash', pettyCashRoutes);
+app.use('/api/piutang', piutangRoutes);
+app.use('/api/hutang', hutangRoutes);
 
 app.use('/api/gudang', gudangRoutes);
 app.use('/api/stok', stokRoutes);
@@ -67,6 +80,7 @@ app.use('/api/owner', ownerRoutes);
 app.use('/api/produksi', produksiRoutes);
 app.use('/api/quotation', quotationRoutes);
 app.use('/api/stok-jalan', stokJalanRoutes);
+app.use('/api/pengaturan-keuangan', pengaturanKeuanganRoutes);
 
 // Serve uploaded files
 const path = require('path');

@@ -42,7 +42,7 @@ exports.getApprovalDetail = async (req, res) => {
             if (approval.diajukan_oleh === 'Marketing Online') {
                 const [refRows] = await db.promise().query("SELECT * FROM marketing_orders_online WHERE id = ?", [approval.reference_id]);
                 detailData = refRows.length > 0 ? refRows[0] : null;
-            } else if (approval.diajukan_oleh === 'Marketing Offline Banua') {
+            } else if (approval.diajukan_oleh === 'Marketing Offline Banua' || approval.diajukan_oleh === 'Marketing Offline Tanaka' || approval.diajukan_oleh === 'Marketing Accestret') {
                 const [refRows] = await db.promise().query("SELECT * FROM marketing_quotations WHERE id = ?", [approval.reference_id]);
                 detailData = refRows.length > 0 ? refRows[0] : null;
             } else {
@@ -78,7 +78,7 @@ exports.updateApproval = async (req, res) => {
             const diajukanOleh = appData[0].diajukan_oleh;
             
             if (status === 'rejected') {
-                if (diajukanOleh === 'Marketing Offline Banua') {
+                if (diajukanOleh === 'Marketing Offline Banua' || diajukanOleh === 'Marketing Offline Tanaka' || diajukanOleh === 'Marketing Accestret') {
                     await db.promise().query("UPDATE marketing_quotations SET status='Rejected', alasan_penolakan=? WHERE id=?", [alasan_penolakan || null, leadId]);
                     await db.promise().query("UPDATE marketing_orders_offline SET status='Rejected' WHERE id=(SELECT order_id FROM marketing_quotations WHERE id=?)", [leadId]);
                 }
@@ -110,7 +110,7 @@ exports.updateApproval = async (req, res) => {
                             
                             await db.promise().query("UPDATE marketing_orders_online SET status='Invoice Created' WHERE id=?", [leadId]);
                         }
-                    } else if (diajukanOleh === 'Marketing Offline Banua') {
+                    } else if (diajukanOleh === 'Marketing Offline Banua' || diajukanOleh === 'Marketing Offline Tanaka' || diajukanOleh === 'Marketing Accestret') {
                         // Ambil data quotation offline (new schema)
                         const [leadData] = await db.promise().query("SELECT * FROM marketing_quotations WHERE id=?", [leadId]);
                         if (leadData.length > 0) {

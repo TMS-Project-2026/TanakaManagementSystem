@@ -25,6 +25,8 @@ const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } }); // 1
 
 router.get('/', journalController.getAllJournals);
 router.get('/stats/summary', journalController.getJournalStats);
+router.get('/stats/finance-summary', journalController.getFinanceSummary);
+router.get('/stats/purchase-summary', journalController.getPurchaseFinanceSummary);
 router.get('/:id', journalController.getJournalById);
 router.post('/', journalController.createJournal);
 router.put('/:id', journalController.updateJournal);

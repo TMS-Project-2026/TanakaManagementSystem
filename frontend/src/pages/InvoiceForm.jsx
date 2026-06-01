@@ -137,7 +137,7 @@ Atas Nama                 : PT TANAKA RIZQI BAROKAH`;
 Bank                      : BANK RAKYAT INDONESIA (BRI)
 Cabang                    : Yogyakarta
 No. Rekening              : 2099 0100 0545 304
-Atas Nama                 : ACESTREET`;
+Atas Nama                 : ACCESTREAT`;
         }
 
         setForm(prev => ({
@@ -288,7 +288,7 @@ Atas Nama                 : ACESTREET`;
                                     <select name="cabang" value={form.cabang} onChange={handleChange} required className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 focus:border-[#990000] outline-none bg-white">
                                         <option value="Banua">PT Banua Mitra Lestari</option>
                                         <option value="Tanaka">PT Tanaka Rizqi Barokah</option>
-                                        <option value="Acestreet">Accestreet</option>
+                                        <option value="Acestreet">Accestreat</option>
                                     </select>
                                 </div>
                                 <div>
@@ -508,7 +508,18 @@ Atas Nama                 : ACESTREET`;
                                         <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Pembuat (Prepared by - Kiri)</label>
                                         <input type="text" name="nama_accounting" value={form.nama_accounting} onChange={handleChange} list="accounting-options" placeholder="Nama Staf Marketing" className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none" />
                                         <datalist id="accounting-options">
-                                            <option value="Hanifah Abdillah" />
+                                            {form.cabang === 'Banua' && (
+                                                <>
+                                                    <option value="Banu" />
+                                                    <option value="Noa" />
+                                                </>
+                                            )}
+                                            {form.cabang === 'Tanaka' && (
+                                                <>
+                                                    <option value="Mega" />
+                                                    <option value="Naka" />
+                                                </>
+                                            )}
                                         </datalist>
                                     </div>
                                     <div>

@@ -1,0 +1,11 @@
+const express = require('express');
+const router = express.Router();
+const c = require('../controllers/pettyCashController');
+router.get('/', c.getAll);
+router.get('/summary', c.getSummary);
+router.get('/saldo', c.getSaldoPerCabang);
+router.post('/', c.create);
+router.post('/replenishment', c.replenishment);
+router.put('/:id', c.update);
+router.delete('/:id', c.remove);
+module.exports = router;

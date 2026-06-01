@@ -5,7 +5,7 @@ import { ArrowLeft, Printer, Download } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import Sidebar from '../components/Sidebar';
-import LogoBanua from '../assets/LOGO BANUA.png';
+import LogoBanua from '../assets/logo  banua.svg';
 import LogoTanaka from '../assets/kop_tanaka.png';
 import LogoAcestreet from '../assets/logoacestreet.png';
 
@@ -54,7 +54,14 @@ const QuotationPreview = () => {
             let addressStartY = 24; let yOffset = 0;
             if (quotation.cabang === 'Banua') {
                 const logoData = await loadImageBase64(LogoBanua);
-                if (logoData) { doc.addImage(logoData, 'PNG', 14, 6, 55, 22); addressStartY = 30; }
+                if (logoData) { 
+                    doc.addImage(logoData, 'PNG', 14, 6, 55, 22); 
+                    doc.setFontSize(16);
+                    doc.setFont('helvetica', 'bold');
+                    doc.setTextColor(30, 64, 175);
+                    doc.text("PT BANUA MITRA LESTARI", 72, 18);
+                    addressStartY = 30; 
+                }
             } else if (quotation.cabang === 'Tanaka') {
                 const logoData = await loadImageBase64(LogoTanaka);
                 if (logoData) { const kopHeight = 210 / 4.58; doc.addImage(logoData, 'PNG', 0, 0, 210, kopHeight); yOffset = kopHeight - 10; addressStartY = kopHeight + 4; }
@@ -90,16 +97,27 @@ const QuotationPreview = () => {
             }
 
             const items = quotation.items_detail || [];
-            const tableColumn = ["Nama Produk", "Detail", "Qty", "Unit", "Harga Satuan", "Total"];
-            const tableRows = items.map(item => [
-                item.rincian || '', item.ukuran || '-', item.qty || 0, item.satuan || 'Pcs',
-                fmtRp(item.harga_satuan), fmtRp(Number(item.qty || 0) * Number(item.harga_satuan || 0))
-            ]);
+            const tableColumn = ["Nama Produk", "Detail", "Qty", "Unit", "Harga Satuan", "Diskon/Item", "Total"];
+            const tableRows = items.map(item => {
+                const hargaSatuanGabung = Number(item.harga_satuan || 0) + Number(item.harga_bordir || 0);
+                const totalBaris = Number(item.qty || 0) * hargaSatuanGabung;
+                const diskonItem = Number(item.diskon_item || 0);
+                const namaProduk = item.bordir
+                    ? `${item.rincian || ''}\nBordir: ${item.bordir}`
+                    : (item.rincian || '');
+                return [
+                    namaProduk, item.ukuran || '-', item.qty || 0, item.satuan || 'Pcs',
+                    fmtRp(hargaSatuanGabung + diskonItem),
+                    diskonItem > 0 ? `- ${fmtRp(diskonItem)}` : '-',
+                    fmtRp(totalBaris)
+                ];
+            });
 
             const headerColor = isBanua ? [30, 64, 175] : [153, 0, 0];
             autoTable(doc, { head: [tableColumn], body: tableRows, startY: (quotation.deskripsi_pesanan ? 103 : 92) + yOffset, theme: 'grid',
                 headStyles: { fillColor: headerColor, textColor: '#fff', fontStyle: 'bold', fontSize: 9 },
-                styles: { fontSize: 9, cellPadding: 3 }
+                styles: { fontSize: 9, cellPadding: 3 },
+                columnStyles: { 0: { cellWidth: 60 } }
             });
 
             let finalY = doc.lastAutoTable.finalY + 10;
@@ -119,15 +137,20 @@ const QuotationPreview = () => {
 
             // Totals (right)
             doc.setFontSize(10); doc.setTextColor(0);
-            doc.text('Subtotal:', 130, finalY); doc.text(fmtRp(quotation.subtotal), 195, finalY, { align: 'right' });
-            doc.text(`PPN (${quotation.ppn_persen || 0}%):`, 130, finalY + 6); doc.text(fmtRp(quotation.jumlah_ppn), 195, finalY + 6, { align: 'right' });
-            if (quotation.diskon > 0) { doc.text(`Diskon (${quotation.diskon_persen || 0}%):`, 130, finalY + 12); doc.text(`- ${fmtRp(quotation.diskon)}`, 195, finalY + 12, { align: 'right' }); }
-            const gtY = quotation.diskon > 0 ? finalY + 22 : finalY + 16;
+            let ty = finalY;
+            const pdfOngkir = Number(quotation.ongkos_kirim) > 0
+                ? Number(quotation.ongkos_kirim)
+                : Math.max(0, Number(quotation.grand_total_quo || 0) - Number(quotation.subtotal || 0) - Number(quotation.jumlah_ppn || 0) + Number(quotation.diskon || 0));
+            doc.text('Subtotal:', 130, ty); doc.text(fmtRp(quotation.subtotal), 195, ty, { align: 'right' }); ty += 6;
+            doc.text(`PPN (${quotation.ppn_persen || 0}%):`, 130, ty); doc.text(fmtRp(quotation.jumlah_ppn), 195, ty, { align: 'right' }); ty += 6;
+
+            doc.text('Ongkos Kirim:', 130, ty); doc.text(fmtRp(pdfOngkir), 195, ty, { align: 'right' }); ty += 6;
+            ty += 4;
             doc.setFontSize(12); doc.setTextColor(...headerColor); doc.setFont(undefined, 'bold');
-            doc.text('GRAND TOTAL:', 130, gtY); doc.text(fmtRp(quotation.grand_total_quo), 195, gtY, { align: 'right' });
+            doc.text('GRAND TOTAL:', 130, ty); doc.text(fmtRp(quotation.grand_total_quo), 195, ty, { align: 'right' });
 
             // Signatures
-            const sigY = Math.max(gtY + 30, doc.internal.pageSize.height - 50);
+            const sigY = Math.max(ty + 30, doc.internal.pageSize.height - 50);
             doc.setFontSize(10); doc.setTextColor(0); doc.setFont(undefined, 'normal');
             doc.text('Marketing,', 40, sigY, { align: 'center' }); doc.text('Client,', 150, sigY, { align: 'center' });
             doc.setFont('helvetica', 'bold');
@@ -145,6 +168,10 @@ const QuotationPreview = () => {
     const items = quotation.items_detail || [];
     const isBanua = quotation.cabang === 'Banua';
     const textColor = isBanua ? 'text-blue-800' : 'text-[#990000]';
+    // Hitung ongkos_kirim: pakai dari DB, atau hitung dari selisih grand_total
+    const ongkosKirim = Number(quotation.ongkos_kirim) > 0
+        ? Number(quotation.ongkos_kirim)
+        : Math.max(0, Number(quotation.grand_total_quo || 0) - Number(quotation.subtotal || 0) - Number(quotation.jumlah_ppn || 0) + Number(quotation.diskon || 0));
 
     return (
         <div className="flex bg-gray-100 min-h-screen font-sans">
@@ -176,7 +203,12 @@ const QuotationPreview = () => {
                                 {quotation.cabang !== 'Tanaka' && (
                                     <div className="flex justify-between items-start">
                                         <div className="flex items-center gap-4">
-                                            {quotation.cabang === 'Banua' && <img src={LogoBanua} alt="Logo Banua" className="h-24 object-contain" />}
+                                            {quotation.cabang === 'Banua' && (
+                                                <>
+                                                    <img src={LogoBanua} alt="Logo Banua" className="h-24 object-contain" />
+                                                    <span className="font-bold text-2xl text-blue-900 tracking-wide">PT Banua Mitra Lestari</span>
+                                                </>
+                                            )}
                                             {quotation.cabang === 'Acestreet' && <img src={LogoAcestreet} alt="Logo Acestreet" className="h-32 object-contain" />}
                                         </div>
                                         <div className="text-right shrink-0 ml-8">
@@ -228,32 +260,64 @@ const QuotationPreview = () => {
                     )}
 
                     {/* Items Table */}
-                    <div className="mb-8">
-                        <table className="w-full text-left">
+                    <div className="mb-8 overflow-x-auto">
+                        <table className="w-full text-left border-collapse" style={{minWidth: '600px'}}>
                             <thead>
                                 <tr className={`${isBanua ? 'bg-blue-800' : 'bg-[#990000]'} text-white`}>
-                                    <th className="p-3 font-semibold text-sm">Nama Produk</th>
-                                    <th className="p-3 font-semibold text-sm text-center">Detail</th>
-                                    <th className="p-3 font-semibold text-sm text-center">Qty</th>
-                                    <th className="p-3 font-semibold text-sm text-center">Unit</th>
-                                    <th className="p-3 font-semibold text-sm text-right">Harga Satuan</th>
-                                    <th className="p-3 font-semibold text-sm text-right">Total</th>
+                                    <th className="p-3 font-semibold text-sm w-[35%]">Nama Produk</th>
+                                    <th className="p-3 font-semibold text-sm text-center w-[10%]">Detail</th>
+                                    <th className="p-3 font-semibold text-sm text-center w-[6%]">Qty</th>
+                                    <th className="p-3 font-semibold text-sm text-center w-[7%]">Unit</th>
+                                    <th className="p-3 font-semibold text-sm text-right w-[16%]">Harga Satuan</th>
+                                    <th className="p-3 font-semibold text-sm text-right w-[12%]">Diskon/Item</th>
+                                    <th className="p-3 font-semibold text-sm text-right w-[14%]">Total</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {items.map((item, index) => (
-                                    <tr key={index} className="border-b border-gray-200">
-                                        <td className="p-3 text-gray-800 align-top">{item.rincian}</td>
-                                        <td className="p-3 text-gray-800 align-top text-center font-bold">{item.ukuran || '-'}</td>
-                                        <td className="p-3 text-gray-800 align-top text-center">{item.qty}</td>
-                                        <td className="p-3 text-gray-800 align-top text-center">{item.satuan || 'Pcs'}</td>
-                                        <td className="p-3 text-gray-800 align-top text-right min-w-[120px]"><PriceCell value={item.harga_satuan} /></td>
-                                        <td className="p-3 text-gray-800 align-top text-right font-medium min-w-[120px]"><PriceCell value={item.qty * item.harga_satuan} /></td>
-                                    </tr>
-                                ))}
+                                {items.map((item, index) => {
+                                    const diskonItem = Number(item.diskon_item || 0);
+                                    const hargaSebelumDiskon = Number(item.harga_satuan || 0) + diskonItem;
+                                    const itemTotal = Number(item.qty || 0) * Number(item.harga_satuan || 0);
+                                    return (
+                                        <tr key={index} className={`border-b border-gray-100 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+                                            <td className="p-3 text-gray-800 align-top text-sm">
+                                                <p className="font-medium">{item.rincian}</p>
+                                                {item.bordir && (
+                                                    <p className="text-xs text-gray-500 mt-0.5">Bordir: {item.bordir}</p>
+                                                )}
+                                            </td>
+                                            <td className="p-3 text-gray-700 align-top text-center text-sm font-semibold">{item.ukuran || '-'}</td>
+                                            <td className="p-3 text-gray-700 align-top text-center text-sm">{item.qty}</td>
+                                            <td className="p-3 text-gray-500 align-top text-center text-sm">{item.satuan || 'Pcs'}</td>
+                                            <td className="p-3 text-gray-800 align-top text-right text-sm">
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-400">Rp</span>
+                                                    <span>{Number(hargaSebelumDiskon).toLocaleString('id-ID')}</span>
+                                                </div>
+                                            </td>
+                                            <td className="p-3 align-top text-right text-sm">
+                                                {diskonItem > 0 ? (
+                                                    <div className="flex justify-between text-red-600 font-semibold">
+                                                        <span>-Rp</span>
+                                                        <span>{Number(diskonItem).toLocaleString('id-ID')}</span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-gray-300 text-center block">-</span>
+                                                )}
+                                            </td>
+                                            <td className="p-3 text-gray-900 align-top text-right text-sm font-semibold">
+                                                <div className="flex justify-between">
+                                                    <span className="text-gray-400">Rp</span>
+                                                    <span>{Number(itemTotal).toLocaleString('id-ID')}</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
+
 
                     {/* Totals & Notes */}
                     <div className="flex flex-col md:flex-row justify-between items-start gap-8">
@@ -301,12 +365,11 @@ const QuotationPreview = () => {
                                         <td className="py-2 text-gray-600">PPN ({quotation.ppn_persen || 0}%)</td><td className="py-2 text-gray-600">:</td>
                                         <td className="py-2 text-right font-semibold text-gray-800"><PriceCell value={quotation.jumlah_ppn} /></td>
                                     </tr>
-                                    {quotation.diskon > 0 && (
-                                        <tr className="border-b border-gray-100">
-                                            <td className="py-2 text-gray-600 font-medium">Diskon {quotation.diskon_persen > 0 && `(${quotation.diskon_persen}%)`}</td><td className="py-2 text-gray-600">:</td>
-                                            <td className="py-2 text-right font-semibold text-gray-800"><PriceCell value={-quotation.diskon} /></td>
-                                        </tr>
-                                    )}
+
+                                    <tr className="border-b border-gray-100">
+                                        <td className="py-2 text-gray-600 font-medium">Ongkos Kirim</td><td className="py-2 text-gray-600">:</td>
+                                        <td className="py-2 text-right font-semibold text-gray-800"><PriceCell value={ongkosKirim} /></td>
+                                    </tr>
                                     <tr>
                                         <td className={`py-3 font-bold ${textColor}`}>GRAND TOTAL</td><td className={`py-3 font-bold ${textColor}`}>:</td>
                                         <td className={`py-3 text-right font-black text-xl ${textColor}`}>
