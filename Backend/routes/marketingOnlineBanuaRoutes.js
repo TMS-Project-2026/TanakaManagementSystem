@@ -11,5 +11,7 @@ router.get('/inventory', verifyToken, controller.getInventory);
 router.get('/reports', verifyToken, controller.getReports);
 router.get('/promo', verifyToken, controller.getPromoStock);
 router.put('/orders/:id', verifyToken, controller.updateOrder);
+router.get('/targets', verifyToken, controller.getTargets);
+router.put('/targets', verifyToken, controller.updateTarget);
 
 module.exports = router;

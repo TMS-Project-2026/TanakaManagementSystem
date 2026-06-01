@@ -91,17 +91,35 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   });
 
-  const [reportComparisonData, setReportComparisonData] = useState([]);
-  const [dailyTargets, setDailyTargets] = useState({
-    'Shopee': 10000000,
-    'Tokopedia': 5000000,
-    'Tiktok': 8000000,
-    'Lazada': 2000000,
-    'Bukalapak': 1000000,
-    'Unknown': 1000000
+  // Filter untuk Laporan Bulanan (bulanan-monthly): pilih dari bulan s.d. bulan
+  const [monthlyFrom, setMonthlyFrom] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-01`;
   });
-  const [globalMonthlyTarget, setGlobalMonthlyTarget] = useState(150000000);
-  const [globalYearlyTarget, setGlobalYearlyTarget] = useState(1500000000);
+  const [monthlyTo, setMonthlyTo] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
+
+  // Filter untuk Laporan Bulan Berjalan (berjalan-monthly): 2 bulan pembanding
+  const [berjalanMonthMain, setBerjalanMonthMain] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const [berjalanMonthCmp, setBerjalanMonthCmp] = useState(() => {
+    const d = new Date();
+    const m = d.getMonth() === 0 ? 12 : d.getMonth();
+    const y = d.getMonth() === 0 ? d.getFullYear() - 1 : d.getFullYear();
+    return `${y}-${String(m).padStart(2, '0')}`;
+  });
+
+  const [reportComparisonData, setReportComparisonData] = useState([]);
+  const [monthsRange, setMonthsRange] = useState([]);
+  const [dailyTargets, setDailyTargets] = useState({});
+  const [bulananTargets, setBulananTargets] = useState({});
+  const [tahunanTargets, setTahunanTargets] = useState({});
+  const [globalMonthlyTarget, setGlobalMonthlyTarget] = useState(0);
+  const [globalYearlyTarget, setGlobalYearlyTarget] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [tooltipProduk, setTooltipProduk] = useState(null);
   const [expandedProduct, setExpandedProduct] = useState(null);
@@ -159,6 +177,30 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
     (item.account || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const derivedMonthlyTarget = filteredReportComparisonData.reduce((acc, curr) => acc + (bulananTargets[curr.account] || 0), 0);
+  const derivedYearlyTarget = filteredReportComparisonData.reduce((acc, curr) => acc + (tahunanTargets[curr.account] || 0), 0);
+
+  const getDaysDiff = (d1, d2) => {
+    const start = new Date(d1);
+    const end = new Date(d2);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
+    const diffTime = end.getTime() - start.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 ? diffDays : 1;
+  };
+
+  const getMonthsDiff = (d1, d2) => {
+    const start = new Date(d1);
+    const end = new Date(d2);
+    let months = (end.getFullYear() - start.getFullYear()) * 12;
+    months -= start.getMonth();
+    months += end.getMonth();
+    return months <= 0 ? 1 : months + 1;
+  };
+
+  const derivedHarianBerjalanTarget = getDaysDiff(filterDate1, filterDateEnd) * 8500000;
+
   const fetchDashboard = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -169,12 +211,22 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
     }
   };
 
+  const normalizeAkun = (akun) => {
+    let val = (akun || 'Unknown').trim().toUpperCase();
+    if (val.includes('MITAR')) val = val.replace('MITAR', 'MITRA');
+    return val;
+  };
+
   const fetchOrders = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
       const res = await axios.get('http://localhost:3000/api/marketing-online-banua/orders', { headers: { Authorization: `Bearer ${token}` } });
-      setOrders(res.data);
+      const normalizedData = res.data.map(o => ({
+        ...o,
+        akun_toko: normalizeAkun(o.akun_toko)
+      }));
+      setOrders(normalizedData);
     } catch (err) {
       console.error(err);
     } finally {
@@ -196,6 +248,12 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
     }
   };
 
+  useEffect(() => {
+    if (showManualModal && inventory.length === 0) {
+      fetchInventory();
+    }
+  }, [showManualModal]);
+
   const fetchReports = async () => {
     setLoading(true);
     try {
@@ -206,14 +264,18 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      const allOrders = res.data;
+      const allOrders = res.data.map(o => ({
+        ...o,
+        akun_toko: normalizeAkun(o.akun_toko)
+      }));
+      const globalAccounts = [...new Set(allOrders.map(o => o.akun_toko))];
 
       // Process Data based on reportSubTab
       const groupedByAccount = {};
 
       if (reportSubTab === 'harian') {
         const dailyData = [];
-        const accounts = [...new Set(allOrders.map(o => o.akun_toko || 'Unknown'))];
+        const accounts = globalAccounts;
 
         const getDailyRevenue = (orders, account, targetDateStr) => {
           if (!targetDateStr) return 0;
@@ -258,7 +320,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
         setReportComparisonData(dailyData);
       } else if (reportSubTab === 'berjalan') {
         const dailyData = [];
-        const accounts = [...new Set(allOrders.map(o => o.akun_toko || 'Unknown'))];
+        const accounts = globalAccounts;
 
         // Helper to sum revenue within arbitrary date range
         const getRangeRevenue = (orders, account, startDateStr, endDateStr) => {
@@ -285,76 +347,209 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
 
         accounts.forEach(acc => {
           const mtd1Revenue = getRangeRevenue(allOrders, acc, filterDate1, filterDateEnd);
-          const mtd2Revenue = getRangeRevenue(allOrders, acc, filterDate2, filterDateEnd2);
-          const achievement = mtd2Revenue > 0 ? (mtd1Revenue / mtd2Revenue) * 100 : (mtd1Revenue > 0 ? 100 : 0);
-          if (mtd1Revenue > 0 || mtd2Revenue > 0) {
+          const target = (bulananTargets[acc] || 0) * getMonthsDiff(filterDate1, filterDateEnd);
+          const achievement = target > 0 ? (mtd1Revenue / target) * 100 : 0;
+          if (mtd1Revenue > 0) {
             dailyData.push({
               account: acc,
               date1: filterDate1,
               date1End: filterDateEnd,
-              date2: filterDate2,
-              date2End: filterDateEnd2,
-              revenue: mtd1Revenue,       // Primary Periode
-              prevRevenue: mtd2Revenue,   // Pembanding Periode
+              revenue: mtd1Revenue,
+              target: target,
               achievement: achievement
             });
           }
         });
 
-        dailyData.sort((a, b) => b.revenue - a.revenue);
-        setReportComparisonData(dailyData);
-      } else if (reportSubTab === 'tahunan') {
-        const today = new Date();
-        const limitMonth = today.getMonth(); // 0-11
-        const limitDay = today.getDate();
+      } else if (reportSubTab === 'berjalan-monthly') {
+        // Laporan Bulan Berjalan: rentang bulan
+        const [startYear, startMonth] = berjalanMonthMain.split('-').map(Number);
+        const [endYear, endMonth] = berjalanMonthCmp.split('-').map(Number);
+        
+        const startCurrent = new Date(startYear, startMonth - 1, 1);
+        const endCurrent = new Date(endYear, endMonth, 0, 23, 59, 59, 999);
 
-        // Extract year from filterDate1 and filterDate2
-        const y1 = new Date(filterDate1).getFullYear();
-        const y2 = new Date(filterDate2).getFullYear();
+        // Untuk rentang yang sama pada tahun lalu
+        const startPrevYear = new Date(startYear - 1, startMonth - 1, 1);
+        const endPrevYear = new Date(endYear - 1, endMonth, 0, 23, 59, 59, 999);
 
-        const getYearlyYtdOnlineRevenue = (orders, account, yearNum) => {
-          return orders
-            .filter(o => {
-              const orderAcc = o.akun_toko || 'Unknown';
-              if (orderAcc !== account) return false;
-              
-              const od = new Date(o.order_date);
-              if (od.getFullYear() !== yearNum) return false;
-
-              // YTD: up to current month & day of that year
-              return od.getMonth() < limitMonth || (od.getMonth() === limitMonth && od.getDate() <= limitDay);
-            })
-            .reduce((sum, o) => {
-              const total_price = parseFloat(o.total_price) || 0;
-              const potongan_shopee = parseFloat(o.potongan_shopee) || 0;
-              return sum + (total_price - potongan_shopee);
-            }, 0);
-        };
-
-        const accounts = [...new Set(allOrders.map(o => o.akun_toko || 'Unknown'))];
-        const yearlyData = [];
+        const accounts = globalAccounts;
+        const finalReport = [];
 
         accounts.forEach(acc => {
-          const v1 = getYearlyYtdOnlineRevenue(allOrders, acc, y1);
-          const v2 = getYearlyYtdOnlineRevenue(allOrders, acc, y2);
-          const achievement = v2 > 0 ? (v1 / v2) * 100 : (v1 > 0 ? 100 : 0);
+          let currentRev = 0;
+          let prevYearRev = 0;
 
-          if (v1 > 0 || v2 > 0) {
-            yearlyData.push({
+          allOrders.forEach(order => {
+            if ((order.akun_toko || 'Unknown') !== acc) return;
+            const orderDate = new Date(order.order_date);
+            const revenue = parseFloat(order.total_price || 0) - parseFloat(order.potongan_shopee || 0);
+
+            if (orderDate >= startCurrent && orderDate <= endCurrent) currentRev += revenue;
+            if (orderDate >= startPrevYear && orderDate <= endPrevYear) prevYearRev += revenue;
+          });
+
+          if (currentRev > 0 || prevYearRev > 0) {
+            finalReport.push({
               account: acc,
-              date1: `${y1}`,
-              date2: `${y2}`,
-              val1: v1,
-              val2: v2,
-              revenue: v1,
-              prevRevenue: v2,
-              growth: achievement
+              currentRevenue: currentRev,
+              dateCurrent: startCurrent.toISOString(),
+              dateCurrentEnd: endCurrent.toISOString(),
+              comparisons: [
+                { id: 'target', title: 'Target', compareValue: 0 }, 
+                { 
+                  id: 'prev_year', title: 'Tahun Lalu', compareValue: prevYearRev, 
+                  dateCompare: startPrevYear.toISOString(), 
+                  dateCompareEnd: endPrevYear.toISOString() 
+                }
+              ]
             });
           }
         });
 
-        yearlyData.sort((a, b) => b.val1 - a.val1);
+        finalReport.sort((a, b) => b.currentRevenue - a.currentRevenue);
+        setReportComparisonData(finalReport);
+      } else if (reportSubTab === 'tahunan' || reportSubTab === 'berjalan-tahunan') {
+        const today = new Date();
+        const limitMonth = today.getMonth(); // 0-11
+        const limitDay = today.getDate();
+
+        const accounts = globalAccounts;
+        const yearlyData = [];
+
+        if (reportSubTab === 'berjalan-tahunan') {
+          let startYear = new Date(filterDate1).getFullYear();
+          let endYear = new Date(filterDate2).getFullYear();
+          if (startYear > endYear) {
+            const temp = startYear;
+            startYear = endYear;
+            endYear = temp;
+          }
+
+          const rangeLength = endYear - startYear + 1;
+          const startPrevYear = startYear - rangeLength;
+          const endPrevYear = endYear - rangeLength;
+
+          const getRangeYtdOnlineRevenue = (orders, account, sY, eY) => {
+            return orders
+              .filter(o => {
+                const orderAcc = o.akun_toko || 'Unknown';
+                if (orderAcc !== account) return false;
+                
+                const od = new Date(o.order_date);
+                const orderYear = od.getFullYear();
+                if (orderYear < sY || orderYear > eY) return false;
+
+                return od.getMonth() < limitMonth || (od.getMonth() === limitMonth && od.getDate() <= limitDay);
+              })
+              .reduce((sum, o) => {
+                const total_price = parseFloat(o.total_price) || 0;
+                const potongan_shopee = parseFloat(o.potongan_shopee) || 0;
+                return sum + (total_price - potongan_shopee);
+              }, 0);
+          };
+
+          accounts.forEach(acc => {
+            const v1 = getRangeYtdOnlineRevenue(allOrders, acc, startYear, endYear);
+            const v2 = getRangeYtdOnlineRevenue(allOrders, acc, startPrevYear, endPrevYear);
+
+            if (v1 > 0 || v2 > 0) {
+              yearlyData.push({
+                account: acc,
+                currentRevenue: v1,
+                dateCurrent: `${startYear}`,
+                dateCurrentEnd: `${endYear}`,
+                comparisons: [
+                  { id: 'target', title: 'Target', compareValue: 0 },
+                  { 
+                    id: 'prev_year', title: 'Tahun Lalu', compareValue: v2, 
+                    dateCompare: `${startPrevYear}`,
+                    dateCompareEnd: `${endPrevYear}`
+                  }
+                ]
+              });
+            }
+          });
+        } else {
+          // Laporan Tahunan
+          const y1 = new Date(filterDate1).getFullYear();
+          const y2 = y1 - 1; // Always previous year for comparison
+
+          const getYearlyYtdOnlineRevenue = (orders, account, yearNum) => {
+            return orders
+              .filter(o => {
+                const orderAcc = o.akun_toko || 'Unknown';
+                if (orderAcc !== account) return false;
+                
+                const od = new Date(o.order_date);
+                if (od.getFullYear() !== yearNum) return false;
+
+                // YTD: up to current month & day of that year
+                return od.getMonth() < limitMonth || (od.getMonth() === limitMonth && od.getDate() <= limitDay);
+              })
+              .reduce((sum, o) => {
+                const total_price = parseFloat(o.total_price) || 0;
+                const potongan_shopee = parseFloat(o.potongan_shopee) || 0;
+                return sum + (total_price - potongan_shopee);
+              }, 0);
+          };
+
+          accounts.forEach(acc => {
+            const v1 = getYearlyYtdOnlineRevenue(allOrders, acc, y1);
+            const v2 = getYearlyYtdOnlineRevenue(allOrders, acc, y2);
+
+            if (v1 > 0 || v2 > 0) {
+              yearlyData.push({
+                account: acc,
+                currentRevenue: v1,
+                dateCurrent: `${y1}`,
+                comparisons: [
+                  { id: 'target', title: 'Target', compareValue: 0 },
+                  { 
+                    id: 'prev_year', title: 'Tahun Sebelumnya', compareValue: v2, 
+                    dateCompare: `${y2}`
+                  }
+                ]
+              });
+            }
+          });
+        }
+
+        yearlyData.sort((a, b) => b.currentRevenue - a.currentRevenue);
         setReportComparisonData(yearlyData);
+      } else if (reportSubTab === 'bulanan-monthly') {
+        // Laporan Bulanan: 1 bulan saja
+        const [mainYear, mainMonth] = monthlyTo.split('-').map(Number);
+
+        const getMonthRev = (orders, acc, year, month) =>
+          orders
+            .filter(o => {
+              if ((o.akun_toko || 'Unknown') !== acc) return false;
+              const od = new Date(o.order_date);
+              return od.getFullYear() === year && (od.getMonth() + 1) === month;
+            })
+            .reduce((sum, o) => sum + (parseFloat(o.total_price) || 0) - (parseFloat(o.potongan_shopee) || 0), 0);
+
+        const accounts = [...new Set([
+          ...globalAccounts,
+          ...Object.keys(bulananTargets)
+        ])];
+        const monthlyResult = [];
+
+        accounts.forEach(acc => {
+          const v1 = getMonthRev(allOrders, acc, mainYear, mainMonth);
+          if (v1 > 0 || (bulananTargets[acc] && bulananTargets[acc] > 0)) {
+            monthlyResult.push({
+              account: acc,
+              date1: monthlyTo,
+              val1: v1,
+              revenue: v1
+            });
+          }
+        });
+
+        monthlyResult.sort((a, b) => b.val1 - a.val1);
+        setReportComparisonData(monthlyResult);
       } else {
         // Laporan Bulanan: rentang tanggal (filterDate1 s.d. filterDateEnd)
         // Pembanding: Target, Bulan Sebelumnya, dan Tahun Sebelumnya
@@ -381,7 +576,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
         endPrevYear.setFullYear(endPrevYear.getFullYear() - 1);
         if (endPrevYear.getDate() !== endCurrent.getDate()) endPrevYear.setDate(0);
 
-        const accounts = [...new Set(allOrders.map(o => o.akun_toko || 'Unknown'))];
+        const accounts = globalAccounts;
         const finalReport = [];
 
         accounts.forEach(acc => {
@@ -509,8 +704,46 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
     }
   };
 
+  // Fetch marketing targets dari database
+  const fetchTargets = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get('http://localhost:3000/api/marketing-online-banua/targets', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const targets = res.data;
+
+      const normalizeTargetKeys = (obj) => {
+        if (!obj) return {};
+        return Object.keys(obj).reduce((acc, key) => {
+          acc[normalizeAkun(key)] = obj[key];
+          return acc;
+        }, {});
+      };
+
+      if (targets.harian && Object.keys(targets.harian).length > 0) {
+        setDailyTargets(normalizeTargetKeys(targets.harian));
+      }
+      if (targets.bulanan && Object.keys(targets.bulanan).length > 0) {
+        const normalized = normalizeTargetKeys(targets.bulanan);
+        setBulananTargets(normalized);
+        const totalBulanan = Object.values(normalized).reduce((sum, v) => sum + v, 0);
+        setGlobalMonthlyTarget(totalBulanan);
+      }
+      if (targets.tahunan && Object.keys(targets.tahunan).length > 0) {
+        const normalized = normalizeTargetKeys(targets.tahunan);
+        setTahunanTargets(normalized);
+        const totalTahunan = Object.values(normalized).reduce((sum, v) => sum + v, 0);
+        setGlobalYearlyTarget(totalTahunan);
+      }
+    } catch (err) {
+      console.error('Gagal memuat target:', err);
+    }
+  };
+
   useEffect(() => {
     fetchDbProducts();
+    fetchTargets();
   }, []);
 
   useEffect(() => {
@@ -531,7 +764,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
     }
     else if (activeTab === 'reports') fetchReports();
     else if (activeTab === 'promo') fetchPromo();
-  }, [activeTab, reportSubTab, filterDate1, filterDate2, filterDateEnd, filterDateEnd2]);
+  }, [activeTab, reportSubTab, filterDate1, filterDate2, filterDateEnd, filterDateEnd2, monthlyFrom, monthlyTo, berjalanMonthMain, berjalanMonthCmp]);
 
 
   // Handle Excel Import
@@ -880,6 +1113,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
       customer_name: manualOrder.customer_name || '-',
       akun_toko: manualOrder.akun_toko || '-',
       product_name: manualOrder.product_name || '-',
+      stok_id: manualOrder.stok_id || null,
       address: manualOrder.address || '-',
       order_date: manualOrder.order_date || new Date().toISOString().split('T')[0],
       status: manualOrder.status || 'Pesanan Selesai',
@@ -907,7 +1141,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
       setManualOrder({
         customer_name: '', akun_toko: '', product_name: '', qty: '', price_unit: '',
         potongan_shopee: '', hpp_aktual: '', order_date: new Date().toISOString().split('T')[0],
-        address: '', status: 'Pesanan Selesai'
+        address: '', status: 'Pesanan Selesai', stok_id: null
       });
       if (activeTab === 'dashboard') fetchDashboard();
       else if (activeTab === 'orders') fetchOrders();
@@ -1004,7 +1238,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                       <div className="bg-violet-50 border border-violet-100 p-2 rounded-lg shadow-sm">
                         <TrendingUp className="text-violet-600" size={20} />
                       </div>
-                      {reportSubTab === 'tahunan' ? 'Laporan Tahunan Online' : reportSubTab === 'bulanan' ? 'Laporan Bulanan Online' : reportSubTab === 'berjalan' ? 'Laporan Bulan Berjalan Online' : 'Laporan Harian Online'}
+                      {reportSubTab === 'tahunan' ? 'Laporan Tahunan Online' : reportSubTab === 'berjalan-tahunan' ? 'Laporan Tahun Berjalan Online' : reportSubTab === 'bulanan-monthly' ? 'Laporan Bulanan Online' : reportSubTab === 'berjalan-monthly' ? 'Laporan Bulan Berjalan Online' : reportSubTab === 'bulanan' ? 'Laporan Harian Berjalan Online' : reportSubTab === 'berjalan' ? 'Laporan Bulan Berjalan Online' : 'Laporan Harian Online'}
                     </>
                   )}
                   {activeTab === 'promo' && (
@@ -1097,8 +1331,10 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                             tickFormatter={formatDate}
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fontSize: 12, fill: '#64748b' }}
-                            dy={10}
+                            tick={{ fontSize: 11, fill: '#64748b' }}
+                            angle={-45}
+                            textAnchor="end"
+                            height={60}
                           />
                           <YAxis
                             axisLine={false}
@@ -1591,7 +1827,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                 {reportSubTab === 'tahunan' ? (
                   <>
                     <div className="flex-1 min-w-[250px] p-3 bg-gray-50 border border-gray-200 rounded-xl">
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Periode Tahun (Utama)</label>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Periode Tahun (YTD)</label>
                       <select
                         className="w-full p-2 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-100 text-sm font-medium"
                         value={new Date(filterDate1).getFullYear()}
@@ -1609,14 +1845,43 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                         })()}
                       </select>
                     </div>
-                    <div className="flex-1 min-w-[250px] p-3 bg-violet-50 border border-violet-200 rounded-xl">
-                      <label className="block text-xs font-bold text-violet-600 uppercase mb-2">Tahun Pembanding</label>
+                    <div className="flex-1 min-w-[200px] p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+                      <label className="block text-xs font-bold text-emerald-600 uppercase mb-2">Target Pendapatan</label>
+                      <div className="w-full py-1 text-emerald-700 font-bold text-lg">
+                        {formatRupiah(3067000000)}
+                      </div>
+                    </div>
+                  </>
+                ) : reportSubTab === 'berjalan-tahunan' ? (
+                  <>
+                    <div className="flex-1 min-w-[250px] p-3 bg-gray-50 border border-gray-200 rounded-xl">
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Dari Tahun (YTD)</label>
                       <select
-                        className="w-full p-2 bg-white border border-violet-300 rounded-lg outline-none focus:ring-2 focus:ring-violet-300 text-sm font-medium text-violet-700"
+                        className="w-full p-2 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-100 text-sm font-medium"
+                        value={new Date(filterDate1).getFullYear()}
+                        onChange={e => {
+                          const year = e.target.value;
+                          const currentMonthDay = new Date(filterDate1).toISOString().substring(4, 10);
+                          setFilterDate1(`${year}${currentMonthDay}`);
+                        }}
+                      >
+                        {(() => {
+                          const currentYear = new Date().getFullYear();
+                          const years = [];
+                          for (let y = currentYear + 1; y >= 2020; y--) years.push(y);
+                          return years.map(y => <option key={y} value={y}>{y}</option>);
+                        })()}
+                      </select>
+                    </div>
+                    <div className="flex items-end pb-3 text-gray-400 font-black text-lg select-none">—</div>
+                    <div className="flex-1 min-w-[250px] p-3 bg-gray-50 border border-gray-200 rounded-xl">
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Sampai Tahun (YTD)</label>
+                      <select
+                        className="w-full p-2 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-100 text-sm font-medium"
                         value={new Date(filterDate2).getFullYear()}
                         onChange={e => {
                           const year = e.target.value;
-                          const currentMonthDay = new Date().toISOString().substring(4, 10);
+                          const currentMonthDay = new Date(filterDate2).toISOString().substring(4, 10);
                           setFilterDate2(`${year}${currentMonthDay}`);
                         }}
                       >
@@ -1628,17 +1893,31 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                         })()}
                       </select>
                     </div>
+                    <div className="flex-1 min-w-[200px] p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+                      <label className="block text-xs font-bold text-emerald-600 uppercase mb-2">Target Pendapatan</label>
+                      <div className="w-full py-1 text-emerald-700 font-bold text-lg">
+                        {formatRupiah(3067000000 * (Math.abs(new Date(filterDate2).getFullYear() - new Date(filterDate1).getFullYear()) + 1))}
+                      </div>
+                    </div>
                   </>
                 ) : reportSubTab === 'harian' ? (
-                  <div className="flex-1 min-w-[200px]">
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Pilih Tanggal</label>
-                    <input
-                      type="date"
-                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100"
-                      value={filterDate1}
-                      onChange={e => setFilterDate1(e.target.value)}
-                    />
-                  </div>
+                  <>
+                    <div className="flex-1 min-w-[200px] p-3 bg-gray-50 border border-gray-200 rounded-xl">
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Pilih Tanggal</label>
+                      <input
+                        type="date"
+                        className="w-full p-2 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-100 text-sm font-medium"
+                        value={filterDate1}
+                        onChange={e => setFilterDate1(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex-1 min-w-[200px] p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+                      <label className="block text-xs font-bold text-emerald-600 uppercase mb-2">Target Pendapatan</label>
+                      <div className="w-full py-1 text-emerald-700 font-bold text-lg">
+                        {formatRupiah(8500000)}
+                      </div>
+                    </div>
+                  </>
                 ) : reportSubTab === 'berjalan' ? (
                   <>
                     <div className="flex-1 min-w-[250px] p-3 bg-gray-50 border border-gray-200 rounded-xl">
@@ -1649,18 +1928,63 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                         <input type="date" className="w-full p-2 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-100 text-sm font-medium" value={filterDateEnd} onChange={e => setFilterDateEnd(e.target.value)} />
                       </div>
                     </div>
-                    
-                    <div className="flex-1 min-w-[250px] p-3 bg-violet-50 border border-violet-200 rounded-xl">
-                      <label className="block text-xs font-bold text-violet-600 uppercase mb-2">Periode Pembanding</label>
-                      <div className="flex items-center space-x-2">
-                        <input type="date" className="w-full p-2 bg-white border border-violet-300 rounded-lg outline-none focus:ring-2 focus:ring-violet-300 text-sm font-medium text-violet-700" value={filterDate2} onChange={e => setFilterDate2(e.target.value)} />
-                        <span className="text-violet-400 font-black">—</span>
-                        <input type="date" className="w-full p-2 bg-white border border-violet-300 rounded-lg outline-none focus:ring-2 focus:ring-violet-300 text-sm font-medium text-violet-700" value={filterDateEnd2} onChange={e => setFilterDateEnd2(e.target.value)} />
+                    <div className="flex-1 min-w-[200px] p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+                      <label className="block text-xs font-bold text-emerald-600 uppercase mb-2">Target Pendapatan</label>
+                      <div className="w-full py-1 text-emerald-700 font-bold text-lg">
+                        {formatRupiah(250000000 * getMonthsDiff(filterDate1, filterDateEnd))}
+                      </div>
+                    </div>
+                  </>
+                ) : reportSubTab === 'bulanan-monthly' ? (
+                  // Laporan Bulanan: pilih 1 bulan saja
+                  <>
+                    <div className="flex-1 min-w-[250px] p-3 bg-gray-50 border border-gray-200 rounded-xl">
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Periode Bulan</label>
+                      <input
+                        type="month"
+                        className="w-full p-2 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-100 text-sm font-medium"
+                        value={monthlyTo}
+                        onChange={e => setMonthlyTo(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex-1 min-w-[200px] p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+                      <label className="block text-xs font-bold text-emerald-600 uppercase mb-2">Target Pendapatan</label>
+                      <div className="w-full py-1 text-emerald-700 font-bold text-lg">
+                        {formatRupiah(255000000)}
+                      </div>
+                    </div>
+                  </>
+                ) : reportSubTab === 'berjalan-monthly' ? (
+                  // Laporan Bulan Berjalan: rentang bulan
+                  <>
+                    <div className="flex-1 min-w-[250px] p-3 bg-gray-50 border border-gray-200 rounded-xl">
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Dari Bulan</label>
+                      <input
+                        type="month"
+                        className="w-full p-2 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-100 text-sm font-medium"
+                        value={berjalanMonthMain}
+                        onChange={e => setBerjalanMonthMain(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex items-end pb-3 text-gray-400 font-black text-lg select-none">—</div>
+                    <div className="flex-1 min-w-[250px] p-3 bg-gray-50 border border-gray-200 rounded-xl">
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Sampai Bulan</label>
+                      <input
+                        type="month"
+                        className="w-full p-2 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-100 text-sm font-medium"
+                        value={berjalanMonthCmp}
+                        onChange={e => setBerjalanMonthCmp(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex-1 min-w-[200px] p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+                      <label className="block text-xs font-bold text-emerald-600 uppercase mb-2">Target Pendapatan</label>
+                      <div className="w-full py-1 text-emerald-700 font-bold text-lg">
+                        {formatRupiah(255000000 * getMonthsDiff(`${berjalanMonthMain}-01`, `${berjalanMonthCmp}-01`))}
                       </div>
                     </div>
                   </>
                 ) : (
-                  // Laporan Bulanan: rentang tanggal + target
+                  // Laporan Harian Berjalan: rentang tanggal + target
                   <>
                     <div className="flex-1 min-w-[200px]">
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Dari Tanggal</label>
@@ -1683,12 +2007,9 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                     </div>
                     <div className="flex-1 min-w-[200px]">
                       <label className="block text-xs font-bold text-emerald-600 uppercase mb-2">Target Pendapatan</label>
-                      <input
-                        type="number"
-                        className="w-full p-3 bg-emerald-50 border border-emerald-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-300 text-emerald-700 font-bold"
-                        value={globalMonthlyTarget}
-                        onChange={e => setGlobalMonthlyTarget(parseFloat(e.target.value) || 0)}
-                      />
+                      <div className="w-full p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 font-bold">
+                        {formatRupiah(derivedHarianBerjalanTarget)}
+                      </div>
                     </div>
                   </>
                 )}
@@ -1709,133 +2030,165 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                             <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800">Achievement</th>
                           </>
                         )}
-                        {reportSubTab === 'bulanan' && (
+                        {(reportSubTab === 'bulanan' || reportSubTab === 'berjalan-monthly' || reportSubTab === 'berjalan-tahunan') && (
                           <>
-                            <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800 bg-gray-800/50 min-w-[220px]">Periode</th>
+                            <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800 bg-gray-800/50 min-w-[220px]">{reportSubTab === 'berjalan-tahunan' ? 'Periode Tahun (YTD)' : 'Periode'}</th>
                             <th className="py-4 px-6 text-right text-xs font-black uppercase tracking-widest border border-gray-800">Pendapatan</th>
-                            <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800">Pencapaian</th>
+                            <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800">Achievement</th>
                           </>
                         )}
-                        {(reportSubTab === 'berjalan' || reportSubTab === 'tahunan') && (
+                        {reportSubTab === 'tahunan' && (
+                          <>
+                            <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800 bg-gray-800/50 min-w-[220px]">Periode Tahun (YTD)</th>
+                            <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800">Target</th>
+                            <th className="py-4 px-6 text-right text-xs font-black uppercase tracking-widest border border-gray-800">Pendapatan</th>
+                            <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800">Achievement</th>
+                          </>
+                        )}
+                        {reportSubTab === 'bulanan-monthly' && (
+                          <>
+                            <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800 bg-gray-800/50 min-w-[200px]">Periode Bulan</th>
+                            <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800">Target</th>
+                            <th className="py-4 px-6 text-right text-xs font-black uppercase tracking-widest border border-gray-800">Pendapatan</th>
+                            <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800">Achievement</th>
+                          </>
+                        )}
+                        {reportSubTab === 'berjalan' && (
                           <>
                             <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800 bg-gray-800/50 min-w-[220px]">
-                              {reportSubTab === 'berjalan' ? 'Rentang Tanggal (Berjalan)' : 'Periode Tahun (YTD)'}
+                              Rentang Tanggal (Berjalan)
                             </th>
+                            <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800">Target</th>
                             <th className="py-4 px-6 text-right text-xs font-black uppercase tracking-widest border border-gray-800">Pendapatan</th>
-                            <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800">Pertumbuhan</th>
+                            <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800">Achievement</th>
                           </>
                         )}
                       </tr>
                     </thead>
                     <tbody className="text-sm">
                       {filteredReportComparisonData.length > 0 ? (
-                        reportSubTab === 'harian' ? (
+                        reportSubTab === 'bulanan-monthly' ? (
+                          filteredReportComparisonData.map((row, idx) => {
+                            const t = bulananTargets[row.account] || 0;
+                            const ach = t > 0 ? (row.val1 / t) * 100 : 0;
+                            return (
+                              <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
+                                <td className="py-4 px-6 text-center font-bold text-gray-400 border-x border-b border-gray-100">{idx + 1}</td>
+                                <td className="py-4 px-6 font-black text-gray-900 border-x border-b border-gray-100">{row.account}</td>
+                                <td className="py-4 px-6 text-center font-bold bg-cyan-50 text-cyan-800 border-b border-gray-100">
+                                  {new Date(row.date1 + '-01').toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+                                </td>
+                                <td className="py-4 px-6 text-center font-bold text-gray-700 border-b border-gray-100">
+                                  {formatRupiah(t)}
+                                </td>
+                                <td className="py-4 px-6 text-right font-black text-blue-700 border-b border-gray-100">{formatRupiah(row.val1)}</td>
+                                <td className="py-4 px-6 text-center border-x border-b border-gray-100">
+                                  <span className={`text-xl font-black ${ach >= 100 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {ach.toFixed(2)}%
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        ) : reportSubTab === 'harian' ? (
                           filteredReportComparisonData.map((row, idx) => (
                             <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
                               <td className="py-4 px-6 text-center font-bold text-gray-400 border-x border-b border-gray-100">{idx + 1}</td>
                               <td className="py-4 px-6 font-black text-gray-900 border-x border-b border-gray-100">{row.account}</td>
                               <td className="py-4 px-6 text-right font-black text-blue-700 border-b border-gray-100">{formatRupiah(row.revenue)}</td>
                               <td className="py-4 px-6 text-center border-b border-gray-100">
-                                <input
-                                  type="number"
-                                  className="p-2 border border-gray-200 rounded-lg text-center font-bold w-36 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300"
-                                  value={row.target}
-                                  onChange={e => {
-                                    const newVal = parseFloat(e.target.value) || 0;
-                                    setDailyTargets(prev => ({
-                                      ...prev,
-                                      [row.account]: newVal
-                                    }));
-                                    setReportComparisonData(prev => prev.map((item, i) => {
-                                      if (i === idx) {
-                                        return {
-                                          ...item,
-                                          target: newVal,
-                                          achievement: newVal > 0 ? (item.revenue / newVal) * 100 : 0
-                                        };
-                                      }
-                                      return item;
-                                    }));
-                                  }}
-                                />
+                                <span className="font-bold text-gray-700">{formatRupiah(row.target)}</span>
                               </td>
                               <td className="py-4 px-6 text-center border-x border-b border-gray-100">
-                                <span className={`text-xl font-black ${row.achievement >= 100 ? 'text-green-600' : 'text-red-600'}`}>
-                                  {row.achievement.toFixed(2)}%
+                                <span className={`text-xl font-black ${(row.achievement || 0) >= 100 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {(row.achievement || 0).toFixed(2)}%
                                 </span>
                               </td>
                             </tr>
                           ))
                         ) : reportSubTab === 'berjalan' ? (
                           filteredReportComparisonData.map((row, idx) => (
-                            <React.Fragment key={idx}>
-                              <tr className="hover:bg-blue-50/30 transition-colors">
-                                <td rowSpan={2} className="py-6 px-6 text-center font-bold text-gray-400 border-x border-b border-gray-100">{idx + 1}</td>
-                                <td rowSpan={2} className="py-6 px-6 font-black text-gray-900 border-x border-b border-gray-100">{row.account}</td>
-                                <td className="py-3 px-6 text-center font-bold bg-cyan-50 text-cyan-800 border-b border-gray-100">
-                                  {new Date(row.date1).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} – {new Date(row.date1End).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                </td>
-                                <td className="py-3 px-6 text-right font-black text-blue-700 border-b border-gray-100">{formatRupiah(row.revenue)}</td>
-                                <td rowSpan={2} className="py-6 px-6 text-center border-x border-b border-gray-100">
-                                  <span className={`text-xl font-black ${row.achievement >= 100 ? 'text-green-600' : 'text-red-600'}`}>
-                                    {row.achievement?.toFixed(2)}%
-                                  </span>
-                                </td>
-                              </tr>
-                              <tr className="hover:bg-blue-50/30 transition-colors">
-                                <td className="py-3 px-6 text-center font-bold bg-violet-50 text-violet-700 border-b border-gray-100">
-                                  ↩ {new Date(row.date2).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} – {new Date(row.date2End).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                </td>
-                                <td className="py-3 px-6 text-right font-bold text-gray-400 border-b border-gray-100">{formatRupiah(row.prevRevenue)}</td>
-                              </tr>
-                            </React.Fragment>
+                            <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
+                              <td className="py-4 px-6 text-center font-bold text-gray-400 border-x border-b border-gray-100">{idx + 1}</td>
+                              <td className="py-4 px-6 font-black text-gray-900 border-x border-b border-gray-100">{row.account}</td>
+                              <td className="py-4 px-6 text-center font-bold bg-cyan-50 text-cyan-800 border-b border-gray-100">
+                                {new Date(row.date1).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} – {new Date(row.date1End).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              </td>
+                              <td className="py-4 px-6 text-center font-bold text-gray-700 border-b border-gray-100">{formatRupiah(row.target)}</td>
+                              <td className="py-4 px-6 text-right font-black text-blue-700 border-b border-gray-100">{formatRupiah(row.revenue)}</td>
+                              <td className="py-4 px-6 text-center border-x border-b border-gray-100">
+                                <span className={`text-xl font-black ${row.achievement >= 100 ? 'text-green-600' : 'text-red-600'}`}>
+                                  {row.achievement?.toFixed(2)}%
+                                </span>
+                              </td>
+                            </tr>
                           ))
                         ) : reportSubTab === 'tahunan' ? (
-                          filteredReportComparisonData.map((row, idx) => (
-                            <React.Fragment key={idx}>
-                              <tr className="hover:bg-blue-50/30 transition-colors">
-                                <td rowSpan={2} className="py-6 px-6 text-center font-bold text-gray-400 border-x border-b border-gray-100">{idx + 1}</td>
-                                <td rowSpan={2} className="py-6 px-6 font-black text-gray-900 border-x border-b border-gray-100">{row.account}</td>
-                                <td className="py-3 px-6 text-center font-bold bg-cyan-50 text-cyan-800 border-b border-gray-100">
-                                  Tahun {row.date1} (YTD)
+                          filteredReportComparisonData.map((row, idx) => {
+                            const t = tahunanTargets[row.account] || 0;
+                            const ach = t > 0 ? (row.currentRevenue / t) * 100 : 0;
+                            return (
+                              <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
+                                <td className="py-4 px-6 text-center font-bold text-gray-400 border-x border-b border-gray-100">{idx + 1}</td>
+                                <td className="py-4 px-6 font-black text-gray-900 border-x border-b border-gray-100">{row.account}</td>
+                                <td className="py-4 px-6 text-center font-bold bg-cyan-50 text-cyan-800 border-b border-gray-100">
+                                  {row.dateCurrent ? `Tahun ${row.dateCurrent}` : 'Tahun Ini'}
                                 </td>
-                                <td className="py-3 px-6 text-right font-black text-blue-700 border-b border-gray-100">{formatRupiah(row.val1)}</td>
-                                <td rowSpan={2} className="py-6 px-6 text-center border-x border-b border-gray-100">
-                                  <span className={`text-xl font-black ${row.growth >= 100 ? 'text-green-600' : 'text-red-600'}`}>
-                                    {row.growth?.toFixed(2)}%
+                                <td className="py-4 px-6 text-center font-bold text-gray-700 border-b border-gray-100">
+                                  {formatRupiah(t)}
+                                </td>
+                                <td className="py-4 px-6 text-right font-black text-blue-700 border-b border-gray-100">
+                                  {formatRupiah(row.currentRevenue)}
+                                </td>
+                                <td className="py-4 px-6 text-center border-x border-b border-gray-100">
+                                  <span className={`text-xl font-black ${ach >= 100 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {ach.toFixed(2)}%
                                   </span>
                                 </td>
                               </tr>
-                              <tr className="hover:bg-blue-50/30 transition-colors">
-                                <td className="py-3 px-6 text-center font-bold bg-violet-50 text-violet-700 border-b border-gray-100">
-                                  ↩ Tahun {row.date2} (YTD)
-                                </td>
-                                <td className="py-3 px-6 text-right font-bold text-gray-400 border-b border-gray-100">{formatRupiah(row.val2)}</td>
-                              </tr>
-                            </React.Fragment>
-                          ))
-                        ) : reportSubTab === 'bulanan' ? (
+                            );
+                          })
+                        ) : (reportSubTab === 'bulanan' || reportSubTab === 'berjalan-monthly' || reportSubTab === 'berjalan-tahunan') ? (
                           filteredReportComparisonData.map((accRow, idx) => {
-                            const comparisons = [
+                            let comparisons = [
                               { 
                                 titleCompare: 'Target',
-                                valueCompare: globalMonthlyTarget,
+                                valueCompare: reportSubTab === 'berjalan-tahunan' 
+                                  ? (tahunanTargets[accRow.account] || 0) * (Math.abs(new Date(filterDate2).getFullYear() - new Date(filterDate1).getFullYear()) + 1)
+                                  : (reportSubTab === 'bulanan' 
+                                    ? (dailyTargets[accRow.account] || 2000000) * getDaysDiff(filterDate1, filterDateEnd) 
+                                    : (reportSubTab === 'berjalan-monthly' 
+                                      ? (bulananTargets[accRow.account] || 0) * getMonthsDiff(`${berjalanMonthMain}-01`, `${berjalanMonthCmp}-01`) 
+                                      : (bulananTargets[accRow.account] || 0))),
                                 dateCompare1: null,
                                 dateCompare2: null
-                              },
-                              { 
-                                titleCompare: 'Bulan Sebelumnya',
-                                valueCompare: accRow.comparisons.find(c => c.id === 'prev_month')?.compareValue || 0,
-                                dateCompare1: accRow.comparisons.find(c => c.id === 'prev_month')?.dateCompare,
-                                dateCompare2: accRow.comparisons.find(c => c.id === 'prev_month')?.dateCompareEnd
-                              },
-                              { 
-                                titleCompare: 'Tahun Lalu',
-                                valueCompare: accRow.comparisons.find(c => c.id === 'prev_year')?.compareValue || 0,
-                                dateCompare1: accRow.comparisons.find(c => c.id === 'prev_year')?.dateCompare,
-                                dateCompare2: accRow.comparisons.find(c => c.id === 'prev_year')?.dateCompareEnd
                               }
                             ];
+
+                            if (reportSubTab === 'berjalan-tahunan' || reportSubTab === 'berjalan-monthly') {
+                              comparisons.push({ 
+                                titleCompare: 'Tahun Lalu',
+                                valueCompare: accRow.comparisons?.find(c => c.id === 'prev_year')?.compareValue || 0,
+                                dateCompare1: accRow.comparisons?.find(c => c.id === 'prev_year')?.dateCompare,
+                                dateCompare2: accRow.comparisons?.find(c => c.id === 'prev_year')?.dateCompareEnd
+                              });
+                            } else {
+                              comparisons.push({ 
+                                titleCompare: 'Bulan Sebelumnya',
+                                valueCompare: accRow.comparisons?.find(c => c.id === 'prev_month')?.compareValue || 0,
+                                dateCompare1: accRow.comparisons?.find(c => c.id === 'prev_month')?.dateCompare,
+                                dateCompare2: accRow.comparisons?.find(c => c.id === 'prev_month')?.dateCompareEnd
+                              });
+                            }
+
+                            if (reportSubTab !== 'berjalan-tahunan' && reportSubTab !== 'berjalan-monthly') {
+                              comparisons.push({ 
+                                titleCompare: reportSubTab === 'tahunan' ? 'Tahun Sebelumnya' : 'Tahun Lalu',
+                                valueCompare: accRow.comparisons?.find(c => c.id === 'prev_year')?.compareValue || 0,
+                                dateCompare1: accRow.comparisons?.find(c => c.id === 'prev_year')?.dateCompare,
+                                dateCompare2: accRow.comparisons?.find(c => c.id === 'prev_year')?.dateCompareEnd
+                              });
+                            }
                             return (
                               <React.Fragment key={idx}>
                                 {comparisons.map((comp, compIdx) => {
@@ -1845,12 +2198,20 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                                       <tr className="hover:bg-blue-50/30 transition-colors border-t border-gray-100">
                                         {compIdx === 0 && (
                                           <>
-                                            <td rowSpan={6} className="py-6 px-6 text-center font-bold text-gray-400 border-x border-b border-gray-100">{idx + 1}</td>
-                                            <td rowSpan={6} className="py-6 px-6 font-black text-gray-900 border-x border-b border-gray-100">{accRow.account}</td>
+                                            <td rowSpan={comparisons.length * 2} className="py-6 px-6 text-center font-bold text-gray-400 border-x border-b border-gray-100">{idx + 1}</td>
+                                            <td rowSpan={comparisons.length * 2} className="py-6 px-6 font-black text-gray-900 border-x border-b border-gray-100">{accRow.account}</td>
                                           </>
                                         )}
                                         <td className="py-3 px-6 text-center font-bold bg-cyan-50 text-cyan-800 border-b border-gray-100">
-                                          {accRow.dateCurrent && accRow.dateCurrentEnd ? `${new Date(accRow.dateCurrent).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} – ${new Date(accRow.dateCurrentEnd).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}` : 'Bulan Ini'}
+                                          {accRow.dateCurrent ? (
+                                            reportSubTab === 'berjalan-tahunan'
+                                              ? `Tahun ${accRow.dateCurrent} – ${accRow.dateCurrentEnd} (YTD)`
+                                              : (reportSubTab === 'tahunan'
+                                                ? `Tahun ${accRow.dateCurrent} (YTD)`
+                                                : (reportSubTab === 'berjalan-monthly' 
+                                                    ? `${new Date(accRow.dateCurrent).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })} – ${new Date(accRow.dateCurrentEnd).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`
+                                                    : (accRow.dateCurrentEnd ? `${new Date(accRow.dateCurrent).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} – ${new Date(accRow.dateCurrentEnd).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}` : 'Bulan Ini')))
+                                          ) : (reportSubTab === 'berjalan-tahunan' ? 'Tahun Ini' : 'Bulan Ini')}
                                         </td>
                                         <td className="py-3 px-6 text-right font-black text-blue-700 border-b border-gray-100">{formatRupiah(accRow.currentRevenue)}</td>
                                         <td rowSpan={2} className="py-6 px-6 text-center border-x border-b border-gray-100">
@@ -1861,11 +2222,17 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                                       </tr>
                                       <tr className="hover:bg-blue-50/30 transition-colors">
                                         <td className="py-3 px-6 text-center font-bold bg-violet-50 text-violet-700 border-b border-gray-100">
-                                          {comp.dateCompare1 && comp.dateCompare2 ? (
-                                            <>
-                                              <span className="text-[10px] uppercase tracking-wider opacity-60 block mb-0.5">{comp.titleCompare}</span>
-                                              ↩ {new Date(comp.dateCompare1).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} – {new Date(comp.dateCompare2).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                            </>
+                                            {comp.dateCompare1 ? (
+                                              <>
+                                                <span className="text-[10px] uppercase tracking-wider opacity-60 block mb-0.5">{comp.titleCompare}</span>
+                                                {reportSubTab === 'berjalan-tahunan'
+                                                  ? `↩ Tahun ${comp.dateCompare1} – ${comp.dateCompare2} (YTD)`
+                                                  : (reportSubTab === 'tahunan'
+                                                    ? `↩ Tahun ${comp.dateCompare1} (YTD)`
+                                                    : (reportSubTab === 'berjalan-monthly'
+                                                        ? `↩ ${new Date(comp.dateCompare1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`
+                                                        : (comp.dateCompare2 ? `↩ ${new Date(comp.dateCompare1).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} – ${new Date(comp.dateCompare2).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}` : `↩ ${comp.titleCompare}`)))}
+                                              </>
                                           ) : (
                                             `↩ ${comp.titleCompare}`
                                           )}
@@ -1886,16 +2253,23 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                       )}
                     </tbody>
                     <tfoot>
-                      {reportSubTab === 'bulanan' ? (
+                      {(reportSubTab === 'bulanan' || reportSubTab === 'berjalan-monthly' || reportSubTab === 'berjalan-tahunan') ? (
                         <tr className="bg-gray-900 text-white font-black uppercase text-xs">
-                          <td colSpan={3} className="py-5 px-6 text-right tracking-widest text-gray-300">Total Keseluruhan (Bulan Ini)</td>
+                          <td colSpan={3} className="py-5 px-6 text-right tracking-widest text-gray-300">Total Keseluruhan ({reportSubTab === 'berjalan-tahunan' ? 'Tahun Ini' : 'Bulan Ini'})</td>
                           <td className="py-5 px-6 text-right text-emerald-400 text-lg">
                             {formatRupiah(filteredReportComparisonData.reduce((acc, curr) => acc + curr.currentRevenue, 0))}
                           </td>
                           <td className="py-5 px-6 text-center">
                             {(() => {
                               const totalRev = filteredReportComparisonData.reduce((acc, curr) => acc + curr.currentRevenue, 0);
-                              const totalTarget = filteredReportComparisonData.reduce((acc, curr) => acc + globalMonthlyTarget, 0);
+                              const totalTarget = reportSubTab === 'berjalan-tahunan' 
+                                ? 3067000000 * (Math.abs(new Date(filterDate2).getFullYear() - new Date(filterDate1).getFullYear()) + 1) 
+                                : (reportSubTab === 'berjalan-monthly' 
+                                  ? 255000000 * getMonthsDiff(`${berjalanMonthMain}-01`, `${berjalanMonthCmp}-01`) 
+                                  : (reportSubTab === 'bulanan' ? derivedHarianBerjalanTarget : filteredReportComparisonData.reduce((acc, curr) => {
+                                      const t = reportSubTab === 'tahunan' ? (tahunanTargets[curr.account] || 0) : (bulananTargets[curr.account] || 0);
+                                      return acc + t;
+                                    }, 0)));
                               const pct = totalTarget > 0 ? (totalRev / totalTarget) * 100 : (totalRev > 0 ? 100 : 0);
                               return (
                                 <div>
@@ -1910,20 +2284,26 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                         </tr>
                       ) : (
                         <tr className="bg-gray-900 text-white font-black uppercase text-xs">
-                          <td colSpan={reportSubTab === 'harian' ? 2 : 3} className="py-5 px-6 text-right">Total Pendapatan (Periode Berjalan)</td>
+                          <td colSpan={reportSubTab === 'harian' ? 2 : 3} className="py-5 px-6 text-right">{reportSubTab === 'bulanan-monthly' || reportSubTab === 'tahunan' ? 'Total Keseluruhan' : 'Total Pendapatan (Periode Berjalan)'}</td>
+                          
+                          {(reportSubTab === 'bulanan-monthly' || reportSubTab === 'tahunan') && (
+                            <td className="py-5 px-6 text-center text-emerald-400 text-lg font-black">
+                              {formatRupiah(reportSubTab === 'tahunan' ? 3067000000 : 255000000)}
+                            </td>
+                          )}
+
                           <td className="py-5 px-6 text-right text-emerald-400 text-lg">
-                            {formatRupiah(filteredReportComparisonData.reduce((acc, curr) => acc + (reportSubTab === 'harian' ? curr.revenue : curr.val1 || curr.revenue), 0))}
+                            {formatRupiah(filteredReportComparisonData.reduce((acc, curr) => acc + (reportSubTab === 'harian' ? curr.revenue : curr.val1 || curr.currentRevenue || curr.revenue), 0))}
                           </td>
                           {reportSubTab === 'harian' ? (
                             <>
                               <td className="py-5 px-6 text-center text-emerald-400 text-lg font-black">
-                                {formatRupiah(filteredReportComparisonData.reduce((acc, curr) => acc + curr.target, 0))}
+                                {formatRupiah(8500000)}
                               </td>
                               <td className="py-5 px-6 text-center text-emerald-400 text-lg font-black">
                                 {(() => {
-                                  const totalRev = filteredReportComparisonData.reduce((acc, curr) => acc + curr.revenue, 0);
-                                  const totalTarget = filteredReportComparisonData.reduce((acc, curr) => acc + curr.target, 0);
-                                  const pct = totalTarget > 0 ? (totalRev / totalTarget) * 100 : 0;
+                                  const totalRev = filteredReportComparisonData.reduce((acc, curr) => acc + (curr.revenue || 0), 0);
+                                  const pct = (totalRev / 8500000) * 100;
                                   return `${pct.toFixed(2)}%`;
                                 })()}
                               </td>
@@ -1931,39 +2311,39 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                           ) : (
                             <td className="py-5 px-6 text-center text-emerald-400 text-lg font-black">
                               {(() => {
-                                const totalRev = filteredReportComparisonData.reduce((acc, curr) => acc + (curr.val1 || curr.revenue), 0);
-                                const totalPrev = filteredReportComparisonData.reduce((acc, curr) => acc + (curr.val2 || curr.prevRevenue), 0);
-                                const pct = totalPrev > 0 ? (totalRev / totalPrev) * 100 : (totalRev > 0 ? 100 : 0);
-                                return `${pct.toFixed(2)}%`;
-                              })()}
+                                  const totalRev = filteredReportComparisonData.reduce((acc, curr) => acc + (curr.val1 || curr.currentRevenue || curr.revenue), 0);
+                                  if (reportSubTab === 'bulanan-monthly') {
+                                    const pct = (totalRev / 255000000) * 100;
+                                    return `${pct.toFixed(2)}%`;
+                                  } else if (reportSubTab === 'tahunan') {
+                                    const pct = (totalRev / 3067000000) * 100;
+                                    return `${pct.toFixed(2)}%`;
+                                  } else {
+                                    const totalPrev = filteredReportComparisonData.reduce((acc, curr) => acc + (curr.val2 || curr.prevRevenue), 0);
+                                    const pct = totalPrev > 0 ? (totalRev / totalPrev) * 100 : (totalRev > 0 ? 100 : 0);
+                                    return `${pct.toFixed(2)}%`;
+                                  }
+                                })()}
                             </td>
                           )}
                         </tr>
                       )}
-                      {(reportSubTab === 'berjalan' || reportSubTab === 'tahunan') && (
+                      {reportSubTab === 'berjalan' && (
                         <tr className="bg-gray-800 text-white font-black uppercase text-xs">
-                          <td colSpan={3} className="py-4 px-6 text-right text-gray-300">Target Keseluruhan ({reportSubTab === 'berjalan' ? 'MTD' : 'YTD'})</td>
+                          <td colSpan={3} className="py-4 px-6 text-right text-gray-300">Target Keseluruhan (MTD)</td>
                           <td className="py-4 px-6 text-right border-l border-gray-700">
-                            <div className="flex justify-end">
-                              <input
-                                type="number"
-                                className="p-2 bg-gray-700 border border-gray-600 rounded-lg text-right font-bold w-40 outline-none focus:ring-2 focus:ring-blue-400 text-emerald-400"
-                                value={reportSubTab === 'tahunan' ? globalYearlyTarget : globalMonthlyTarget}
-                                onChange={e => {
-                                  const val = parseFloat(e.target.value) || 0;
-                                  if (reportSubTab === 'tahunan') setGlobalYearlyTarget(val);
-                                  else setGlobalMonthlyTarget(val);
-                                }}
-                              />
-                            </div>
+                            <span className="text-emerald-400 font-bold text-lg">
+                              {(() => {
+                                const totalTarget = 250000000 * getMonthsDiff(filterDate1, filterDateEnd);
+                                return formatRupiah(totalTarget);
+                              })()}
+                            </span>
                           </td>
                           <td className="py-4 px-6 text-center text-blue-400 text-lg font-black border-l border-gray-700">
                             {(() => {
-                                const isTahunan = reportSubTab === 'tahunan';
-                                const isBulanan = reportSubTab === 'bulanan';
-                                const totalRev = isBulanan ? (filteredReportComparisonData[0]?.revenue || 0) : filteredReportComparisonData.reduce((acc, curr) => acc + (isTahunan ? curr.val1 : curr.revenue), 0);
-                                const targetToUse = isTahunan ? globalYearlyTarget : globalMonthlyTarget;
-                                const pct = targetToUse > 0 ? (totalRev / targetToUse) * 100 : 0;
+                                const totalRev = filteredReportComparisonData.reduce((acc, curr) => acc + curr.revenue, 0);
+                                const totalTarget = 250000000 * getMonthsDiff(filterDate1, filterDateEnd);
+                                const pct = totalTarget > 0 ? (totalRev / totalTarget) * 100 : 0;
                                 return `${pct.toFixed(2)}%`;
                             })()} <span className="text-xs text-gray-400 block mt-1">(Ach. Target)</span>
                           </td>
@@ -1985,7 +2365,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                       {reportSubTab === 'harian' ? 'Visualisasi pendapatan harian terhadap target' : 'Visualisasi pendapatan antara dua periode terpilih'}
                     </p>
                   </div>
-                  {reportSubTab !== 'bulanan' && (
+                  {(reportSubTab !== 'bulanan' && reportSubTab !== 'bulanan-monthly') && (
                     <div className="flex gap-4">
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
@@ -2006,13 +2386,18 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                 <div className="h-96 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={
-                      reportSubTab === 'bulanan' ? filteredReportComparisonData.map(acc => ({
+                      (reportSubTab === 'bulanan' || reportSubTab === 'berjalan-monthly' || reportSubTab === 'tahunan') ? filteredReportComparisonData.map(acc => ({
                         account: acc.account,
                         revenue: acc.currentRevenue,
-                        target: globalMonthlyTarget,
-                        prevMonth: acc.comparisons.find(c => c.id === 'prev_month')?.compareValue || 0,
-                        prevYear: acc.comparisons.find(c => c.id === 'prev_year')?.compareValue || 0
-                      })) : 
+                        target: reportSubTab === 'tahunan' ? (tahunanTargets[acc.account] || 0) : (bulananTargets[acc.account] || 0),
+                        prevMonth: reportSubTab === 'tahunan' ? 0 : (acc.comparisons?.find(c => c.id === 'prev_month')?.compareValue || 0),
+                        prevYear: acc.comparisons?.find(c => c.id === 'prev_year')?.compareValue || 0
+                      })) :
+                      reportSubTab === 'berjalan' ? filteredReportComparisonData.map(row => ({
+                        account: row.account,
+                        revenue: row.revenue,
+                        target: row.target
+                      })) :
                       filteredReportComparisonData
                     }>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
@@ -2022,8 +2407,9 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                         tickLine={false}
                         tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
                         interval={0}
-                        angle={reportSubTab === 'bulanan' ? 0 : -20}
-                        textAnchor={reportSubTab === 'bulanan' ? 'center' : 'end'}
+                        angle={-45}
+                        textAnchor="end"
+                        height={80}
                       />
                       <YAxis
                         axisLine={false}
@@ -2036,17 +2422,25 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                         formatter={(val) => formatRupiah(val)}
                       />
                       <Legend />
-                      <Bar dataKey={reportSubTab === 'harian' ? 'revenue' : (reportSubTab === 'berjalan' ? 'revenue' : (reportSubTab === 'bulanan' ? 'revenue' : 'val1'))} fill="#3b82f6" radius={[6, 6, 0, 0]} name="Periode Utama" barSize={20} />
+                      <Bar dataKey={reportSubTab === 'harian' ? 'revenue' : (reportSubTab === 'berjalan' ? 'revenue' : ((reportSubTab === 'bulanan' || reportSubTab === 'berjalan-monthly' || reportSubTab === 'tahunan') ? 'revenue' : 'revenue'))} fill="#3b82f6" radius={[6, 6, 0, 0]} name={reportSubTab === 'bulanan-monthly' ? 'Pendapatan Bulan' : 'Periode Utama'} barSize={20} />
                       
-                      {reportSubTab === 'bulanan' ? (
+                      {(reportSubTab === 'bulanan' || reportSubTab === 'berjalan-monthly' || reportSubTab === 'tahunan') ? (
                         <>
                           <Bar dataKey="target" fill="#94a3b8" radius={[6, 6, 0, 0]} name="Target" barSize={20} />
-                          <Bar dataKey="prevMonth" fill="#10b981" radius={[6, 6, 0, 0]} name="Bulan Sebelumnya" barSize={20} />
-                          <Bar dataKey="prevYear" fill="#f59e0b" radius={[6, 6, 0, 0]} name="Tahun Lalu" barSize={20} />
+                          {reportSubTab !== 'tahunan' && <Bar dataKey="prevMonth" fill="#10b981" radius={[6, 6, 0, 0]} name="Bulan Sebelumnya" barSize={20} />}
+                          <Bar dataKey="prevYear" fill="#f59e0b" radius={[6, 6, 0, 0]} name={reportSubTab === 'tahunan' ? 'Tahun Sebelumnya' : 'Tahun Lalu'} barSize={20} />
                         </>
-                      ) : (
-                        <Bar dataKey={reportSubTab === 'harian' ? 'target' : (reportSubTab === 'berjalan' ? 'prevRevenue' : 'val2')} fill={reportSubTab === 'harian' ? '#10b981' : '#e2e8f0'} radius={[6, 6, 0, 0]} name="Pembanding" barSize={20} />
-                      )}
+                      ) : reportSubTab === 'bulanan-monthly' ? (
+                        <>
+                          <Bar dataKey="target" fill="#94a3b8" radius={[6, 6, 0, 0]} name="Target" barSize={20} />
+                        </>
+                      ) : reportSubTab === 'berjalan' ? (
+                        <>
+                          <Bar dataKey="target" fill="#10b981" radius={[6, 6, 0, 0]} name="Target (MTD)" barSize={20} />
+                        </>
+                      ) : reportSubTab !== 'bulanan-monthly' ? (
+                        <Bar dataKey={reportSubTab === 'harian' ? 'target' : 'val2'} fill={reportSubTab === 'harian' ? '#10b981' : '#e2e8f0'} radius={[6, 6, 0, 0]} name="Pembanding" barSize={20} />
+                      ) : null}
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -2243,6 +2637,8 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
         setOrder={setManualOrder}
         loading={loading}
         formatRupiah={formatRupiah}
+        inventory={inventory}
+        availableAccounts={[...new Set([...Object.keys(dailyTargets), ...Object.keys(bulananTargets), ...Object.keys(tahunanTargets)])].sort()}
       />
 
       {/* EDIT ORDER MODAL */}
@@ -2380,7 +2776,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
 };
 
 // Sub-component for Manual Order Modal
-const ManualOrderModal = ({ show, onClose, onSave, order, setOrder, loading, formatRupiah }) => {
+const ManualOrderModal = ({ show, onClose, onSave, order, setOrder, loading, formatRupiah, inventory, availableAccounts }) => {
   if (!show) return null;
   return (
     <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -2403,13 +2799,44 @@ const ManualOrderModal = ({ show, onClose, onSave, order, setOrder, loading, for
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Akun Toko</label>
-              <input type="text" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-100 outline-none font-medium" value={order.akun_toko} onChange={e => setOrder({ ...order, akun_toko: e.target.value })} placeholder="Contoh: Shopee_Tanaka" />
+              <select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-100 outline-none font-medium text-gray-800" value={order.akun_toko} onChange={e => setOrder({ ...order, akun_toko: e.target.value })}>
+                <option value="">-- Pilih Akun Toko --</option>
+                {availableAccounts && availableAccounts.map((acc, idx) => (
+                  <option key={idx} value={acc}>{acc}</option>
+                ))}
+              </select>
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Nama Produk</label>
-            <input type="text" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-100 outline-none font-medium" value={order.product_name} onChange={e => setOrder({ ...order, product_name: e.target.value })} placeholder="Masukkan nama barang lengkap" />
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Nama Produk (Sesuai Stok Gudang)</label>
+            <select 
+              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-100 outline-none font-medium text-gray-800" 
+              value={order.stok_id || ''} 
+              onChange={e => {
+                const selectedId = e.target.value;
+                if (!selectedId) {
+                  setOrder({ ...order, stok_id: null, product_name: '' });
+                  return;
+                }
+                const selectedItem = inventory.find(item => item.id.toString() === selectedId);
+                if (selectedItem) {
+                  const sizeText = selectedItem.ukuran && selectedItem.ukuran !== '-' ? ` - ${selectedItem.ukuran}` : '';
+                  const fullName = `${selectedItem.nama_barang}${sizeText}`;
+                  setOrder({ ...order, stok_id: selectedItem.id, product_name: fullName });
+                }
+              }}
+            >
+              <option value="">-- Pilih Produk & Ukuran --</option>
+              {inventory && inventory.map(item => {
+                const sizeText = item.ukuran && item.ukuran !== '-' ? ` (Ukuran: ${item.ukuran})` : '';
+                return (
+                  <option key={item.id} value={item.id} disabled={item.jumlah <= 0}>
+                    {item.nama_barang}{sizeText} - Stok: {item.jumlah}
+                  </option>
+                );
+              })}
+            </select>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

@@ -50,7 +50,8 @@ const Login = () => {
             } else if (userRole === 'admin_it') {
                 navigate('/it/dashboard');
             } else if (userRole === 'owner') {
-                navigate('/owner/monitoring');
+                // Owner is now redirected to the main dashboard of their first menu group
+                navigate('/marketing-online/dashboard');
             } else if (userRole === 'marketing_online') {
                 navigate('/marketing-online/dashboard');
             } else if (userRole === 'marketing_offline') {
