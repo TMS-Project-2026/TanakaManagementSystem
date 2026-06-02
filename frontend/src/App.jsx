@@ -167,52 +167,52 @@ function App() {
           </ProtectedRoute>
         } />
         <Route path="/gudang" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Gudang']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Gudang']}>
             <GudangDashboard />
           </ProtectedRoute>
         } />
         <Route path="/gudang/order-marketplace" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Gudang']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Gudang']}>
             <MarketingOnlineBanua forcedTab="orders" />
           </ProtectedRoute>
         } />
         <Route path="/stok" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Gudang']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Gudang']}>
             <Stok />
           </ProtectedRoute>
         } />
         <Route path="/stok/detail" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Gudang']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Gudang']}>
             <StokDetail />
           </ProtectedRoute>
         } />
         <Route path="/stok-jalan" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Gudang']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Gudang']}>
             <StokJalan />
           </ProtectedRoute>
         } />
         <Route path="/sparepart" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Gudang']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Gudang']}>
             <Sparepart />
           </ProtectedRoute>
         } />
         <Route path="/barang-masuk" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Gudang']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Gudang']}>
             <BarangMasuk />
           </ProtectedRoute>
         } />
         <Route path="/barang-keluar" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Gudang']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Gudang']}>
             <BarangKeluar />
           </ProtectedRoute>
         } />
         <Route path="/mutasi" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Gudang']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Gudang']}>
             <Mutasi />
           </ProtectedRoute>
         } />
         <Route path="/warning-stok" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Gudang']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Gudang']}>
             <WarningStok />
           </ProtectedRoute>
         } />
@@ -232,7 +232,7 @@ function App() {
           </ProtectedRoute>
         } />
         <Route path="/finance" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Finance']}>
             <FinanceDashboard />
           </ProtectedRoute>
         } />
@@ -257,7 +257,7 @@ function App() {
           </ProtectedRoute>
         } />
         <Route path="/journal/:type" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Finance']}>
             <Journal />
           </ProtectedRoute>
         } />
@@ -265,7 +265,7 @@ function App() {
           <Navigate to="/journal/sales" replace />
         } />
         <Route path="/chart-of-accounts" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Finance']}>
             <ChartOfAccounts />
           </ProtectedRoute>
         } />
@@ -275,50 +275,50 @@ function App() {
           </ProtectedRoute>
         } />
         <Route path="/invoice" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Finance']}>
             <Invoice />
           </ProtectedRoute>
         } />
         <Route path="/invoice/create" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Finance']}>
             <InvoiceForm />
           </ProtectedRoute>
         } />
         <Route path="/invoice/edit/:id" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Finance']}>
             <InvoiceForm />
           </ProtectedRoute>
         } />
         <Route path="/invoice/preview/:id" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Finance']}>
             <InvoicePreview />
           </ProtectedRoute>
         } />
 
         {/* QUOTATION ROUTES */}
         <Route path="/quotation" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance', 'marketing_offline', 'marketing_offline_tanaka']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Finance', 'marketing_offline', 'marketing_offline_tanaka']}>
             <Quotation />
           </ProtectedRoute>
         } />
         <Route path="/quotation/create" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance', 'marketing_offline', 'marketing_offline_tanaka']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Finance', 'marketing_offline', 'marketing_offline_tanaka']}>
             <QuotationForm />
           </ProtectedRoute>
         } />
         <Route path="/quotation/edit/:id" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance', 'marketing_offline', 'marketing_offline_tanaka']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Finance', 'marketing_offline', 'marketing_offline_tanaka']}>
             <QuotationForm />
           </ProtectedRoute>
         } />
         <Route path="/quotation/preview/:id" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance', 'marketing_offline', 'marketing_offline_tanaka']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Finance', 'marketing_offline', 'marketing_offline_tanaka']}>
             <QuotationPreview />
           </ProtectedRoute>
         } />
 
         <Route path="/report/*" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'Finance']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Finance']}>
             <ReportCenter />
           </ProtectedRoute>
         } />

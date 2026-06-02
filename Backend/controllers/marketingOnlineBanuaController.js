@@ -125,59 +125,112 @@ exports.updateOrder = (req, res) => {
 };
 
 // IMPORT SHOPEE
-exports.importShopee = (req, res) => {
+exports.importShopee = async (req, res) => {
     const orders = req.body; // Expecting an array of objects
 
     if (!Array.isArray(orders) || orders.length === 0) {
         return res.status(400).json({ message: "Data import kosong atau tidak valid." });
     }
 
-    const sql = `INSERT INTO marketing_orders_online 
-                 (branch, type, customer_name, akun_toko, product_name, qty, price_unit, address, total_price, potongan_shopee, hpp_aktual, hpp, total_hpp_aktual, actual_satuan, actual, profit, order_date, status, catatan) 
-                 VALUES ?`;
-                 
-    const values = orders.map(order => {
-        const qty = parseInt(order.qty) || 1;
-        const price_unit = parseFloat(order.price_unit) || 0;
-        const total_price = parseFloat(order.total_price) || (qty * price_unit);
-        const potongan_shopee = parseFloat(order.potongan_shopee) || 0;
-        const hpp_aktual = parseFloat(order.hpp_aktual) || 0;
-        const hpp = parseFloat(order.hpp) || (qty * hpp_aktual);
-        const total_hpp_aktual = parseFloat(order.total_hpp_aktual) || (hpp + potongan_shopee);
-        const actual = parseFloat(order.actual) || (total_price - potongan_shopee);
-        const actual_satuan = parseFloat(order.actual_satuan) || (qty > 0 ? actual / qty : 0);
-        const profit = parseFloat(order.profit) || (actual - hpp);
+    const promiseDb = db.promise();
+    try {
+        await promiseDb.query("START TRANSACTION");
 
-        return [
-            'Banua',
-            'online',
-            order.customer_name || '-',
-            order.akun_toko || '-',
-            order.product_name || '-',
-            qty,
-            price_unit,
-            order.address || '-',
-            total_price,
-            potongan_shopee,
-            hpp_aktual,
-            hpp,
-            total_hpp_aktual,
-            actual_satuan,
-            actual,
-            profit,
-            order.order_date || new Date().toISOString().split('T')[0],
-            order.status || 'draft',
-            order.catatan || '-'
-        ];
-    });
+        const values = [];
+        const barangKeluarValues = [];
 
-    db.query(sql, [values], (err, result) => {
-        if (err) {
-            console.error("Error import Shopee:", err);
-            return res.status(500).json({ message: "Gagal menyimpan data import: " + err.message });
+        for (const order of orders) {
+            const productName = order.product_name || '-';
+            const qty = parseInt(order.qty) || 1;
+            
+            // Check stock in inventory for branch 'Banua'
+            let stokResult = [];
+            if (order.stok_id) {
+                [stokResult] = await promiseDb.query(
+                    "SELECT id, jumlah FROM stok WHERE id = ? AND cabang_id = 'Banua'",
+                    [order.stok_id]
+                );
+            } else {
+                [stokResult] = await promiseDb.query(
+                    "SELECT id, jumlah FROM stok WHERE nama_barang = ? AND cabang_id = 'Banua'",
+                    [productName]
+                );
+            }
+
+            if (stokResult.length === 0) {
+                await promiseDb.query("ROLLBACK");
+                return res.status(404).json({ message: `Barang tidak ditemukan di gudang Banua: ${productName}. Tidak dapat membuat pesanan.` });
+            }
+
+            const stok = stokResult[0];
+            if (stok.jumlah < qty) {
+                await promiseDb.query("ROLLBACK");
+                return res.status(400).json({ message: `Stok tidak mencukupi untuk barang: ${productName}. Stok saat ini: ${stok.jumlah}, Dibutuhkan: ${qty}` });
+            }
+
+            // Deduct stock
+            await promiseDb.query("UPDATE stok SET jumlah = jumlah - ? WHERE id = ?", [qty, stok.id]);
+
+            // Add to barang_keluar log
+            const orderDate = order.order_date || new Date().toISOString().split('T')[0];
+            barangKeluarValues.push([
+                null, // transaksi_id
+                stok.id, // barang_id
+                qty,
+                orderDate,
+                'Marketing Online' // tujuan
+            ]);
+
+            const price_unit = parseFloat(order.price_unit) || 0;
+            const total_price = parseFloat(order.total_price) || (qty * price_unit);
+            const potongan_shopee = parseFloat(order.potongan_shopee) || 0;
+            const hpp_aktual = parseFloat(order.hpp_aktual) || 0;
+            const hpp = parseFloat(order.hpp) || (qty * hpp_aktual);
+            const total_hpp_aktual = parseFloat(order.total_hpp_aktual) || (hpp + potongan_shopee);
+            const actual = parseFloat(order.actual) || (total_price - potongan_shopee);
+            const actual_satuan = parseFloat(order.actual_satuan) || (qty > 0 ? actual / qty : 0);
+            const profit = parseFloat(order.profit) || (actual - hpp);
+
+            values.push([
+                'Banua',
+                'online',
+                order.customer_name || '-',
+                order.akun_toko || '-',
+                productName,
+                qty,
+                price_unit,
+                order.address || '-',
+                total_price,
+                potongan_shopee,
+                hpp_aktual,
+                hpp,
+                total_hpp_aktual,
+                actual_satuan,
+                actual,
+                profit,
+                orderDate,
+                order.status || 'draft',
+                order.catatan || '-'
+            ]);
         }
-        res.status(201).json({ message: `Berhasil mengimport ${result.affectedRows} data.` });
-    });
+
+        const sqlOrders = `INSERT INTO marketing_orders_online 
+                     (branch, type, customer_name, akun_toko, product_name, qty, price_unit, address, total_price, potongan_shopee, hpp_aktual, hpp, total_hpp_aktual, actual_satuan, actual, profit, order_date, status, catatan) 
+                     VALUES ?`;
+        const [resultOrders] = await promiseDb.query(sqlOrders, [values]);
+
+        if (barangKeluarValues.length > 0) {
+            const sqlBarangKeluar = `INSERT INTO barang_keluar (transaksi_id, barang_id, jumlah, tanggal, tujuan) VALUES ?`;
+            await promiseDb.query(sqlBarangKeluar, [barangKeluarValues]);
+        }
+
+        await promiseDb.query("COMMIT");
+        res.status(201).json({ message: `Berhasil menambahkan ${resultOrders.affectedRows} pesanan. Stok gudang otomatis dikurangi.` });
+    } catch (error) {
+        await promiseDb.query("ROLLBACK");
+        console.error("Error import Shopee:", error);
+        res.status(500).json({ message: "Gagal menyimpan pesanan: " + error.message });
+    }
 };
 
 // GET INVENTORY (Integrated with Warehouse Stock)
@@ -245,6 +298,42 @@ exports.ajukanKeFinance = (req, res) => {
                 res.json({ message: "Pesanan berhasil diajukan ke Finance untuk pembuatan Invoice." });
             });
         });
+    });
+};
+
+// GET MARKETING TARGETS (Harian, Bulanan, Tahunan) dari database
+exports.getTargets = (req, res) => {
+    const sql = `SELECT account_name, target_type, target_value FROM marketing_targets WHERE branch = 'Banua' ORDER BY target_type, account_name`;
+    db.query(sql, [], (err, results) => {
+        if (err) return res.status(500).json({ error: err.message });
+
+        // Group by type
+        const targets = { harian: {}, bulanan: {}, tahunan: {} };
+        results.forEach(row => {
+            if (targets[row.target_type]) {
+                targets[row.target_type][row.account_name] = parseFloat(row.target_value);
+            }
+        });
+        res.json(targets);
+    });
+};
+
+// UPDATE / INSERT MARKETING TARGET (single)
+exports.updateTarget = (req, res) => {
+    const { account_name, target_type, target_value } = req.body;
+    if (!account_name || !target_type) {
+        return res.status(400).json({ message: 'account_name dan target_type wajib diisi' });
+    }
+    // Bulatkan ke jutaan terdekat (misal 4.569.982 → 5.000.000)
+    const rawValue = parseFloat(target_value) || 0;
+    const roundedValue = Math.ceil(rawValue / 1000000) * 1000000;
+
+    const sql = `INSERT INTO marketing_targets (account_name, target_type, target_value, branch) 
+                 VALUES (?, ?, ?, 'Banua')
+                 ON DUPLICATE KEY UPDATE target_value = VALUES(target_value), updated_at = CURRENT_TIMESTAMP`;
+    db.query(sql, [account_name, target_type, roundedValue], (err, result) => {
+        if (err) return res.status(500).json({ message: 'Gagal update target: ' + err.message });
+        res.json({ message: 'Target berhasil diperbarui', rounded: roundedValue });
     });
 };
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { getBarangMasuk, createBarangMasuk, getStok } from '../api/gudangApi';
-import { CheckCircle, Plus, X, Search, UserCircle, Download, Upload } from 'lucide-react';
+import { getBarangMasuk, createBarangMasuk, updateBarangMasuk, deleteBarangMasuk, getStok } from '../api/gudangApi';
+import { CheckCircle, Plus, X, Search, UserCircle, Download, Upload, Edit, Trash2 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import * as XLSX from 'xlsx';
 
@@ -12,11 +12,14 @@ const BarangMasuk = () => {
     const [showProfile, setShowProfile] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [editForm, setEditForm] = useState(null);
+
     // Form state
     const [namaBrand, setNamaBrand] = useState('');
     const [namaBarang, setNamaBarang] = useState('');
     const [kategori, setKategori] = useState('Reguler'); // Reguler / Utama
-    const [cabangId, setCabangId] = useState('Tanaka'); // Tanaka / Banua / Acestreet
+    const [cabangId, setCabangId] = useState('Banua'); // Banua / Tanaka / Acestreet
     const [kodeRak, setKodeRak] = useState('');
     const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
     const [minimumStok, setMinimumStok] = useState('5'); // Default minimal stok untuk transaksi ini
@@ -89,13 +92,75 @@ const BarangMasuk = () => {
             setNamaBrand('');
             setNamaBarang('');
             setKategori('Reguler');
-            setCabangId('Tanaka');
+            setCabangId('Banua');
             setKodeRak('');
             setMinimumStok('5');
             setSizeItems(initialSizes);
         } catch (error) {
             console.error("Gagal catat barang masuk", error);
             alert("Terjadi kesalahan saat mencatat barang masuk!");
+        }
+    };
+
+    const handleEdit = (item) => {
+        setEditForm(JSON.parse(JSON.stringify(item)));
+        setShowEditModal(true);
+    };
+
+    const handleDelete = async (transaksi_id) => {
+        if (!transaksi_id) {
+            alert("Tidak bisa menghapus data lama yang tidak memiliki ID Transaksi. Hubungi admin.");
+            return;
+        }
+        if (window.confirm("Yakin ingin menghapus transaksi ini? Stok barang akan dikurangi sesuai dengan jumlah yang dihapus.")) {
+            try {
+                await deleteBarangMasuk(transaksi_id);
+                setSuccessMsg("Transaksi berhasil dihapus!");
+                setTimeout(() => setSuccessMsg(''), 3000);
+                fetchData();
+            } catch (error) {
+                console.error("Gagal hapus", error);
+                alert("Gagal menghapus transaksi.");
+            }
+        }
+    };
+
+    const saveEdit = async (e) => {
+        e.preventDefault();
+        try {
+            const items = sizesArray.map(size => ({
+                ukuran: size,
+                jumlah: Number(editForm.sizes[size]?.jumlah) || 0,
+                minimum_stok: Number(editForm.sizes[size]?.min) || 5
+            })).filter(item => item.jumlah > 0);
+
+            if (items.length === 0) {
+                alert("Harap masukkan setidaknya satu ukuran dengan kuantitas lebih dari 0.");
+                return;
+            }
+
+            if (!editForm.transaksi_id) {
+                alert("Data lama tidak dapat diedit karena tidak memiliki ID transaksi.");
+                return;
+            }
+
+            await updateBarangMasuk(editForm.transaksi_id, {
+                tanggal: editForm.tanggal,
+                cabang_id: editForm.cabang_id,
+                nama_brand: editForm.nama_brand,
+                nama_barang: editForm.nama_barang,
+                kategori: editForm.kategori,
+                items
+            });
+            
+            setSuccessMsg("Transaksi berhasil diubah!");
+            setTimeout(() => setSuccessMsg(''), 3000);
+            fetchData();
+            setShowEditModal(false);
+            setEditForm(null);
+        } catch (error) {
+            console.error("Gagal update", error);
+            alert("Gagal menyimpan perubahan transaksi.");
         }
     };
 
@@ -111,10 +176,55 @@ const BarangMasuk = () => {
                 const workbook = XLSX.read(data, { type: 'binary' });
                 const firstSheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[firstSheetName];
-                const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+                let mainHeaderIdx = -1;
+                for (let i = 0; i < Math.min(rawRows.length, 15); i++) {
+                    const strRow = rawRows[i].join('').toLowerCase();
+                    if (strRow.includes('nama barang') || strRow.includes('brand') || strRow.includes('kategori')) {
+                        mainHeaderIdx = i;
+                        break;
+                    }
+                }
+
+                if (mainHeaderIdx === -1) {
+                    alert("Format Excel tidak dikenali! Pastikan ada kolom 'Nama Barang' atau 'Brand'.");
+                    return;
+                }
+
+                const mainHeaders = rawRows[mainHeaderIdx];
+                const subHeaders = rawRows[mainHeaderIdx + 1] || [];
+                
+                // Normalize headers by combining main and sub headers (for merged SIZE cells)
+                const finalHeaders = mainHeaders.map((h, i) => {
+                    const sub = String(subHeaders[i] || '').trim();
+                    const main = String(h || '').trim();
+                    // If subheader is a recognized size, prioritize it
+                    if (sub && ['xs','s','m','l','xl','xxl','xxxl','xxxxl','xxxxxl','all size'].includes(sub.toLowerCase())) {
+                        return sub;
+                    }
+                    if (main) return main;
+                    if (sub) return sub;
+                    return `__EMPTY_${i}`;
+                });
+
+                const isSubHeaderSizes = finalHeaders.some(h => ['xs','s','m','l','xl'].includes(h.toLowerCase()));
+                const dataStartIdx = isSubHeaderSizes ? mainHeaderIdx + 2 : mainHeaderIdx + 1;
+
+                const jsonData = [];
+                for (let i = dataStartIdx; i < rawRows.length; i++) {
+                    const row = rawRows[i];
+                    // Skip completely empty rows
+                    if (row.every(c => c === '')) continue;
+                    
+                    const obj = {};
+                    finalHeaders.forEach((h, idx) => {
+                        obj[h] = row[idx];
+                    });
+                    jsonData.push(obj);
+                }
 
                 if (jsonData.length === 0) {
-                    alert("File Excel kosong atau tidak terbaca!");
+                    alert("File Excel kosong atau tidak ada data baris yang valid!");
                     return;
                 }
 
@@ -134,9 +244,9 @@ const BarangMasuk = () => {
                     let kategoriRaw = String(getVal(['kategori', 'category'], 'Reguler')).trim();
                     const kategori = (kategoriRaw.toLowerCase() === 'utama') ? 'Utama' : 'Reguler';
 
-                    let cabangRaw = String(getVal(['cabang', 'cabang_id', 'branch'], 'Tanaka')).trim();
-                    let cabang_id = 'Tanaka';
-                    if (cabangRaw.toLowerCase().includes('banua')) cabang_id = 'Banua';
+                    let cabangRaw = String(getVal(['cabang', 'cabang_id', 'branch'], 'Banua')).trim();
+                    let cabang_id = 'Banua';
+                    if (cabangRaw.toLowerCase().includes('tanaka')) cabang_id = 'Tanaka';
                     else if (cabangRaw.toLowerCase().includes('acestreet') || cabangRaw.toLowerCase().includes('ace')) cabang_id = 'Acestreet';
 
                     const tanggalRaw = getVal(['tanggal', 'date', 'tgl'], new Date().toISOString().split('T')[0]);
@@ -326,7 +436,7 @@ const BarangMasuk = () => {
                                     setNamaBrand('');
                                     setNamaBarang('');
                                     setKategori('Reguler');
-                                    setCabangId('Tanaka');
+                                    setCabangId('Banua');
                                     setKodeRak('');
                                     setMinimumStok('5');
                                     setSizeItems(initialSizes);
@@ -409,8 +519,8 @@ const BarangMasuk = () => {
                                                 onChange={e => setCabangId(e.target.value)} 
                                                 className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-green-100 focus:border-green-600 outline-none bg-white transition-all"
                                             >
-                                                <option value="Tanaka">Tanaka</option>
                                                 <option value="Banua">Banua</option>
+                                                <option value="Tanaka">Tanaka</option>
                                                 <option value="Acestreet">Acestreet</option>
                                             </select>
                                         </div>
@@ -524,6 +634,7 @@ const BarangMasuk = () => {
                                         ))}
                                         <th className="p-4 font-semibold text-center w-28">Total Masuk</th>
                                         <th className="p-4 font-semibold text-center w-32">Minimal Stok</th>
+                                        <th className="p-4 font-semibold text-center">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -560,11 +671,29 @@ const BarangMasuk = () => {
                                                         {activeMin} Pcs
                                                     </span>
                                                 </td>
+                                                <td className="p-4 text-center">
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <button 
+                                                            onClick={() => handleEdit(item)}
+                                                            className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-colors"
+                                                            title="Edit Transaksi"
+                                                        >
+                                                            <Edit size={14} />
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleDelete(item.transaksi_id)}
+                                                            className="w-8 h-8 rounded-xl bg-red-50 text-red-600 hover:bg-red-600 hover:text-white flex items-center justify-center transition-colors"
+                                                            title="Hapus Transaksi"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    </div>
+                                                </td>
                                             </tr>
                                         );
                                     })}
                                     {filteredHistory.length === 0 && (
-                                        <tr><td colSpan={7 + sizesArray.length} className="p-6 text-center text-gray-500">Barang masuk tidak ditemukan</td></tr>
+                                        <tr><td colSpan={8 + sizesArray.length} className="p-6 text-center text-gray-500">Barang masuk tidak ditemukan</td></tr>
                                     )}
                                 </tbody>
                             </table>
@@ -572,6 +701,69 @@ const BarangMasuk = () => {
                     </div>
                     </div>
                 </div>
+
+                {/* MODAL EDIT BARANG MASUK */}
+                {showEditModal && editForm && (
+                    <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                        <div className="bg-white w-full max-w-xl rounded-2xl p-6 sm:p-8 shadow-xl overflow-y-auto max-h-[90vh] animate-in zoom-in-95 duration-200 border border-gray-100">
+                            <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
+                                <div>
+                                    <h2 className="text-xl font-bold text-gray-900">Edit Transaksi Barang Masuk</h2>
+                                    <p className="text-xs text-gray-500 mt-1">{editForm.nama_barang} - {editForm.cabang_id}</p>
+                                </div>
+                                <button type="button" onClick={() => setShowEditModal(false)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"><X size={20} /></button>
+                            </div>
+                            <form onSubmit={saveEdit}>
+                                <div className="mb-4">
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Cabang Tujuan</label>
+                                    <select 
+                                        required 
+                                        value={editForm.cabang_id} 
+                                        onChange={e => setEditForm({...editForm, cabang_id: e.target.value})} 
+                                        className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-100 focus:border-blue-600 outline-none bg-white transition-all"
+                                    >
+                                        <option value="Banua">Banua</option>
+                                        <option value="Tanaka">Tanaka</option>
+                                        <option value="Acestreet">Acestreet</option>
+                                    </select>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    {sizesArray.map(size => (
+                                        <div key={size} className="flex items-center gap-3 bg-gray-50 p-2 rounded-lg border border-gray-200">
+                                            <label className="w-16 font-bold text-gray-700 text-sm">Ukuran {size}</label>
+                                            <input 
+                                                type="number" 
+                                                min="0"
+                                                className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all"
+                                                value={editForm.sizes[size]?.jumlah || 0}
+                                                onChange={e => {
+                                                    const newForm = { ...editForm };
+                                                    if (!newForm.sizes[size]) newForm.sizes[size] = { jumlah: 0, min: 5 };
+                                                    newForm.sizes[size].jumlah = Number(e.target.value) || 0;
+                                                    setEditForm(newForm);
+                                                }}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="mt-6 p-4 bg-blue-50 border border-blue-100 rounded-xl flex justify-between items-center">
+                                    <span className="font-bold text-blue-800 text-sm">Total Masuk Baru:</span>
+                                    <span className="font-black text-blue-600 text-xl">
+                                        {sizesArray.reduce((acc, size) => acc + (Number(editForm.sizes[size]?.jumlah) || 0), 0)} Pcs
+                                    </span>
+                                </div>
+                                <div className="pt-6 mt-2 border-t border-gray-100 flex justify-end gap-3">
+                                    <button type="button" onClick={() => setShowEditModal(false)} className="px-6 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold transition-colors">
+                                        Batal
+                                    </button>
+                                    <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-8 rounded-xl shadow-sm transition-all active:scale-95">
+                                        Simpan Perubahan
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
             </main>
         </div>
     );

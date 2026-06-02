@@ -13,7 +13,7 @@ const Stok = () => {
         nama_barang: '', 
         jumlah: '', 
         kategori: 'Reguler', 
-        cabang_id: 'Tanaka', 
+        cabang_id: 'Banua', 
         kode_rak: '', 
         ukuran: 'S', 
         minimum_stok: '5',
@@ -83,7 +83,7 @@ const Stok = () => {
             nama_barang: '', 
             jumlah: '', 
             kategori: 'Reguler', 
-            cabang_id: 'Tanaka', 
+            cabang_id: 'Banua', 
             kode_rak: '', 
             ukuran: 'S', 
             minimum_stok: '5',
@@ -114,23 +114,18 @@ const Stok = () => {
                 kode_rak: curr.kode_rak || '-',
                 total_stok: 0,
                 minimum_stok: curr.minimum_stok || 5,
-                sizes: {
-                    XS: 0,
-                    S: 0,
-                    M: 0,
-                    L: 0,
-                    XL: 0,
-                    XXL: 0,
-                    XXXL: 0,
-                    XXXXL: 0,
-                    XXXXXL: 0,
-                    'All Size': 0
-                }
+                sizes: sizesArray.reduce((obj, sz) => {
+                    obj[sz] = { qty: 0, id: null };
+                    return obj;
+                }, {})
             };
         }
         acc[key].total_stok += Number(curr.jumlah) || 0;
         if (curr.ukuran && acc[key].sizes[curr.ukuran] !== undefined) {
-            acc[key].sizes[curr.ukuran] += Number(curr.jumlah) || 0;
+            acc[key].sizes[curr.ukuran].qty += Number(curr.jumlah) || 0;
+            if (!acc[key].sizes[curr.ukuran].id) {
+                acc[key].sizes[curr.ukuran].id = curr.id;
+            }
         }
         // Take the highest minimum_stok if multiple records exist for this grouped key
         if (curr.minimum_stok && curr.minimum_stok > acc[key].minimum_stok) {
@@ -248,7 +243,7 @@ const Stok = () => {
                                             </td>
                                             <td className="p-4">{item.cabang_id}</td>
                                             {sizesArray.map(size => {
-                                                const qty = item.sizes[size] || 0;
+                                                const qty = item.sizes[size]?.qty || 0;
                                                 return (
                                                     <td key={size} className="p-4 text-center bg-gray-50/10 border-x border-gray-100 font-extrabold text-gray-800">
                                                         {qty > 0 ? (
@@ -322,8 +317,8 @@ const Stok = () => {
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">Cabang</label>
                                     <select required value={form.cabang_id} onChange={e => setForm({...form, cabang_id: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-100 focus:border-red-600 outline-none bg-white transition-all">
-                                        <option value="Tanaka">Tanaka</option>
                                         <option value="Banua">Banua</option>
+                                        <option value="Tanaka">Tanaka</option>
                                         <option value="Acestreet">Acestreet</option>
                                     </select>
                                 </div>

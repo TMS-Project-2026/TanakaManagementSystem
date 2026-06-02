@@ -23,6 +23,8 @@ export const deleteSparepart = (id) => api.delete(`/sparepart/${id}`);
 // --- Barang Masuk ---
 export const getBarangMasuk = () => api.get('/barang-masuk');
 export const createBarangMasuk = (data) => api.post('/barang-masuk', data);
+export const updateBarangMasuk = (id, data) => api.put(`/barang-masuk/${id}`, data);
+export const deleteBarangMasuk = (id) => api.delete(`/barang-masuk/${id}`);
 
 // --- Barang Keluar ---
 export const getBarangKeluar = () => api.get('/barang-keluar');

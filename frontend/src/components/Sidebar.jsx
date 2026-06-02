@@ -86,8 +86,11 @@ const Sidebar = () => {
       group: 'MARKETPLACE BANUA',
       subMenu: [
         { title: 'Laporan Harian', path: '/marketing-online/reports/harian' },
-        { title: 'Laporan Bulanan', path: '/marketing-online/reports/bulanan' },
-        { title: 'Laporan Tahunan', path: '/marketing-online/reports/tahunan' }
+        { title: 'Laporan Harian Berjalan', path: '/marketing-online/reports/bulanan' },
+        { title: 'Laporan Bulanan', path: '/marketing-online/reports/bulanan-monthly' },
+        { title: 'Laporan Bulan Berjalan', path: '/marketing-online/reports/berjalan-monthly' },
+        { title: 'Laporan Tahunan', path: '/marketing-online/reports/tahunan' },
+        { title: 'Laporan Tahun Berjalan', path: '/marketing-online/reports/berjalan-tahunan' }
       ]
     },
     { name: 'Dashboard Gudang', path: '/gudang', icon: <LayoutDashboard size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
@@ -135,11 +138,66 @@ const Sidebar = () => {
     { name: 'Monitoring System', path: '/it/monitoring', icon: <Monitor size={20} />, roles: ['admin_it', 'Admin'], group: 'System' },
     { name: 'Settings Sistem', path: '/it/settings', icon: <Sliders size={20} />, roles: ['admin_it', 'Admin'], group: 'System' },
 
-    // MENU OWNER — Dashboard Monitoring
-    { name: 'Overview Mkt Online', path: '/owner/monitoring', icon: <TrendingUp size={20} />, roles: ['owner'], group: 'Owner Monitoring' },
-    { name: 'Overview Mkt Offline', path: '/owner/monitoring', icon: <LayoutDashboard size={20} />, roles: ['owner'], group: 'Owner Monitoring' },
-    { name: 'Overview Dashboard Finance', path: '/owner/monitoring', icon: <DollarSign size={20} />, roles: ['owner'], group: 'Owner Monitoring' },
-    { name: 'Overview Dashboard Gudang', path: '/owner/monitoring', icon: <Package size={20} />, roles: ['owner'], group: 'Owner Monitoring' },
+    // MENU OWNER — Breakdown per Departemen
+    {
+      name: 'Marketing Online',
+      icon: <TrendingUp size={20} />,
+      roles: ['owner'],
+      group: 'Owner Dashboard',
+      subMenu: [
+        { title: 'Dashboard Online', path: '/marketing-online/dashboard' },
+        { title: 'Order Marketplace', path: '/marketing-online/orders' },
+        { title: 'Stok Inventori', path: '/marketing-online/inventory' },
+        { title: 'Promo Online', path: '/marketing-online/promo' },
+        { title: 'Report', path: '/marketing-online/reports' }
+      ]
+    },
+    {
+      name: 'Marketing Offline',
+      icon: <Users size={20} />,
+      roles: ['owner'],
+      group: 'Owner Dashboard',
+      subMenu: [
+        { title: 'Dashboard Offline', path: '/marketing-offline/dashboard' },
+        { title: 'Order Offline', path: '/marketing-offline/orders' },
+        { title: 'Stok Inventory', path: '/marketing-offline/inventory' },
+        { title: 'Customer', path: '/marketing-offline/customers' },
+        { title: 'Promo', path: '/marketing-offline/promo' },
+        { title: 'Report', path: '/marketing-offline/reports' }
+      ]
+    },
+    {
+      name: 'Gudang',
+      icon: <Package size={20} />,
+      roles: ['owner'],
+      group: 'Owner Dashboard',
+      subMenu: [
+        { title: 'Dashboard Gudang', path: '/gudang' },
+        { title: 'Order Marketplace', path: '/gudang/order-marketplace' },
+        { title: 'Barang Masuk', path: '/barang-masuk' },
+        { title: 'Barang Keluar', path: '/barang-keluar' },
+        { title: 'Mutasi Barang', path: '/mutasi' },
+        { title: 'Stok Barang', path: '/stok' },
+        { title: 'Stok Jalan', path: '/stok-jalan' },
+        { title: 'Suku Cadang', path: '/sparepart' },
+        { title: 'Warning Stok', path: '/warning-stok' }
+      ]
+    },
+    {
+      name: 'Finance',
+      icon: <DollarSign size={20} />,
+      roles: ['owner'],
+      group: 'Owner Dashboard',
+      subMenu: [
+        { title: 'Finance Dashboard', path: '/finance' },
+        { title: 'Cash In Bank', path: '/cash-in-bank' },
+        { title: 'Journal', path: '/journal' },
+        { title: 'Chart of Accounts', path: '/chart-of-accounts' },
+        { title: 'Invoice', path: '/invoice' },
+        { title: 'Approval Center', path: '/finance/approval' },
+        { title: 'Report Center', path: '/report/laba-rugi' }
+      ]
+    },
 
     // MENU PRODUKSI
     { name: 'Dashboard Produksi', path: '/produksi/dashboard', icon: <Layers size={20} />, roles: ['produksi', 'owner', 'Manager', 'Admin'], group: 'Produksi' },
@@ -177,9 +235,13 @@ const Sidebar = () => {
   // Saring menu berdasarkan role (Pastikan item memiliki properti name)
   let menuItems = allMenuItems.filter(item => {
     if (!item.name) return false;
-    const hasRole = item.roles.some(r => r.toLowerCase() === userRole.toLowerCase());
-    // Owner tidak melihat daftar Produksi pada sidebar
-    if (userRole.toLowerCase() === 'owner' && item.group === 'Produksi') return false;
+    const hasRole = item.roles.some(r => r.toLowerCase() === userRole.trim().toLowerCase());
+    
+    // Owner hanya melihat grup 'Owner Dashboard' di sidebar
+    if (userRole.trim().toLowerCase() === 'owner' && item.group !== 'Owner Dashboard') {
+      return false;
+    }
+    
     return hasRole;
   });
   // Debug fallback: if no menu items match, show all to ensure visibility
@@ -257,7 +319,9 @@ const Sidebar = () => {
           {(() => {
             let currentGroup = '';
             return menuItems.map((item) => {
-              const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path + '/'));
+              const hasActiveChild = item.subMenu && item.subMenu.some(sub => location.pathname === sub.path || (sub.path && sub.path !== '/' && location.pathname.startsWith(sub.path + '/')));
+              const isActive = location.pathname === item.path || (item.path && item.path !== '/' && item.path !== '/gudang' && location.pathname.startsWith(item.path + '/')) || hasActiveChild;
+              const isExpanded = expandedMenus[item.name] || hasActiveChild || (item.path && location.pathname.startsWith(item.path));
               const showGroupLabel = item.group && item.group !== currentGroup;
               if (showGroupLabel) currentGroup = item.group;
 
@@ -297,13 +361,13 @@ const Sidebar = () => {
                     {item.subMenu && (
                       <ChevronDown
                         size={14}
-                        className={`transition-transform duration-200 ${(expandedMenus[item.name] || location.pathname.startsWith(item.path)) ? 'rotate-180' : ''}`}
+                        className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
                       />
                     )}
                   </div>
 
                   {/* Submenu (Hanya jika ada) */}
-                  {item.subMenu && (expandedMenus[item.name] || location.pathname.startsWith(item.path) || (['/payment', '/expense', '/invoice', '/report'].includes(location.pathname) && item.name === 'Finance')) && (
+                  {item.subMenu && isExpanded && (
                     <ul className="ml-12 mt-2 space-y-2 border-l-2 border-red-200 pl-4 mb-3">
                       {item.subMenu.map(sub => {
                         const isSubActive = location.pathname === (sub.path || '');
