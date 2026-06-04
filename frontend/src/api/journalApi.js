@@ -34,9 +34,7 @@ export const journalApi = {
     return response.data;
   },
   uploadFiles: async (id, formData) => {
-    const response = await axiosInstance.post(`/journal/${id}/upload`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    const response = await axiosInstance.post(`/journal/${id}/upload`, formData);
     return response.data;
   }
 };

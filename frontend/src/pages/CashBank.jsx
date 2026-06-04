@@ -23,6 +23,12 @@ import {
 const formatRupiah = (number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(number || 0);
 const formatRupiahValue = (number) => new Intl.NumberFormat('id-ID', { minimumFractionDigits: 0 }).format(number || 0);
 
+const BANKS = [
+    'BCA Tanaka', 'BRI Tanaka', 'Mandiri Tanaka', 'BNI Tanaka', 'Cash Tanaka',
+    'BCA Banua', 'BRI Banua', 'Mandiri Banua', 'BNI Banua', 'Cash Banua',
+    'BCA Acestreet', 'BRI Acestreet', 'Mandiri Acestreet', 'BNI Acestreet', 'Cash Acestreet'
+];
+
 const CashBank = () => {
     const [data, setData] = useState([]);
     const [summary, setSummary] = useState(null);
@@ -418,11 +424,7 @@ const CashBank = () => {
                         value={filters.bank} onChange={(e) => setFilters({...filters, bank: e.target.value})}
                     >
                         <option value="">Semua Bank</option>
-                        <option value="BRI">BRI</option>
-                        <option value="BCA">BCA</option>
-                        <option value="BNI">BNI</option>
-                        <option value="Mandiri">Mandiri</option>
-                        <option value="Cash">Cash</option>
+                        {BANKS.map(b => <option key={b} value={b}>{b}</option>)}
                     </select>
                     <select 
                         className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#990000]"
@@ -621,7 +623,7 @@ runningBal += masuk - keluar;
                                 <div>
                                     <label className="block text-xs font-semibold text-gray-600 mb-1">Bank</label>
                                     <select className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#990000]/20 focus:border-[#990000] outline-none" value={formData.bank} onChange={e => setFormData({...formData, bank: e.target.value})}>
-                                        <option>BCA</option><option>BRI</option><option>BNI</option><option>Mandiri</option><option>Cash</option>
+                                        {BANKS.map(b => <option key={b} value={b}>{b}</option>)}
                                     </select>
                                 </div>
                                 <div>
@@ -707,11 +709,7 @@ runningBal += masuk - keluar;
                                         onChange={e => setLkFilters({...lkFilters, bank: e.target.value})}
                                     >
                                         <option value="">Semua Bank</option>
-                                        <option value="BRI">BRI</option>
-                                        <option value="BCA">BCA</option>
-                                        <option value="BNI">BNI</option>
-                                        <option value="Mandiri">Mandiri</option>
-                                        <option value="Cash">Cash</option>
+                                        {BANKS.map(b => <option key={b} value={b}>{b}</option>)}
                                     </select>
                                 </div>
                                 <div>

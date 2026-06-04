@@ -14,27 +14,37 @@ const SemuaPembelian = () => {
         setLoading(true);
         try {
             const res = await journalApi.getAllJournals();
-            if (res.status === 'success' || Array.isArray(res.data)) {
-                let journals = res.data || [];
-                // Filter hanya Jurnal Pembelian atau Pengeluaran HPP
-                journals = journals.filter(j => 
-                    j.category === 'Jurnal Pembelian' || 
-                    (j.debit_account && j.debit_account.startsWith('5-'))
-                );
+            let journals = [];
+            if (Array.isArray(res)) {
+                journals = res;
+            } else if (res && Array.isArray(res.data)) {
+                journals = res.data;
+            }
+
+            // Filter hanya Jurnal Pembelian atau Pengeluaran HPP
+            journals = journals.filter(j => 
+                j.category === 'Jurnal Pembelian' || 
+                j.category === 'Expense' ||
+                j.category === 'Beban Operasional' ||
+                j.journal_type === 'Purchase' ||
+                (j.debit_account && j.debit_account.startsWith('5-')) ||
+                (j.description && j.description.toLowerCase().includes('beli'))
+            );
 
                 if (filters.cabang !== 'Semua Cabang') {
-                    journals = journals.filter(j => j.cabang === filters.cabang);
+                    journals = journals.filter(j => j.branch === filters.cabang || j.cabang === filters.cabang);
                 }
                 if (filters.startDate && filters.endDate) {
                     const start = new Date(filters.startDate);
+                    start.setHours(0,0,0,0);
                     const end = new Date(filters.endDate);
+                    end.setHours(23,59,59,999);
                     journals = journals.filter(j => {
-                        const d = new Date(j.tanggal);
+                        const d = new Date(j.transaction_date || j.tanggal);
                         return d >= start && d <= end;
                     });
                 }
                 setData(journals);
-            }
         } catch (error) {
             console.error("Gagal load Jurnal Pembelian", error);
         } finally {
@@ -58,8 +68,10 @@ const SemuaPembelian = () => {
 
     const exportData = data.map(d => ({
         ...d,
-        tanggal_fmt: formatDate(d.tanggal),
-        amount_fmt: formatRupiah(d.amount)
+        tanggal_fmt: formatDate(d.transaction_date || d.tanggal),
+        amount_fmt: formatRupiah(d.amount),
+        invoice_ref: d.transaction_id || d.id,
+        cabang: d.branch || d.cabang
     }));
 
     return (
@@ -96,13 +108,13 @@ const SemuaPembelian = () => {
                             <tbody>
                                 {data.length > 0 ? data.map((item, idx) => (
                                     <tr key={idx} className="border-b border-gray-50 hover:bg-gray-50">
-                                        <td className="py-3 px-3 text-gray-600 whitespace-nowrap">{formatDate(item.tanggal)}</td>
-                                        <td className="py-3 px-3 font-mono text-xs text-[#990000]">{item.invoice_ref || item.id}</td>
+                                        <td className="py-3 px-3 text-gray-600 whitespace-nowrap">{formatDate(item.transaction_date || item.tanggal)}</td>
+                                        <td className="py-3 px-3 font-mono text-xs text-[#990000]">{item.transaction_id || item.id}</td>
                                         <td className="py-3 px-3 text-gray-800 font-semibold">{item.description}</td>
                                         <td className="py-3 px-3 text-gray-600 text-xs">{item.debit_account}</td>
                                         <td className="py-3 px-3 text-gray-600 text-xs">{item.credit_account}</td>
                                         <td className="py-3 px-3 text-right text-orange-700 font-bold">{formatRupiah(item.amount)}</td>
-                                        <td className="py-3 px-3 text-gray-500">{item.cabang}</td>
+                                        <td className="py-3 px-3 text-gray-500">{item.branch || item.cabang}</td>
                                     </tr>
                                 )) : (
                                     <tr><td colSpan="7" className="text-center py-6 text-gray-400">Belum ada transaksi pembelian di Jurnal.</td></tr>

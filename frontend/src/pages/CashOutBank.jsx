@@ -7,7 +7,11 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pi
 const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
 const COLORS = ['#990000', '#D32F2F', '#EF5350', '#B71C1C', '#FF8A80'];
 const STATUS_COLORS = { Paid: '#10B981', Pending: '#F59E0B', Overdue: '#EF4444', Void: '#9CA3AF' };
-const BANKS = ['BCA', 'BRI', 'Mandiri', 'BNI', 'Cash'];
+const BANKS = [
+    'BCA Tanaka', 'BRI Tanaka', 'Mandiri Tanaka', 'BNI Tanaka', 'Cash Tanaka',
+    'BCA Banua', 'BRI Banua', 'Mandiri Banua', 'BNI Banua', 'Cash Banua',
+    'BCA Acestreet', 'BRI Acestreet', 'Mandiri Acestreet', 'BNI Acestreet', 'Cash Acestreet'
+];
 const CABANG = ['Banua', 'Tanaka', 'Acestreet'];
 const KATEGORI = ['Pembayaran Supplier', 'Biaya Operasional', 'Gaji', 'Pajak', 'Lainnya'];
 

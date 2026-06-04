@@ -11,7 +11,5 @@ export const submitQuotationToFinance = (id) => api.post(`/quotation/${id}/submi
 export const uploadQuotationFiles = (id, files) => {
     const formData = new FormData();
     files.forEach(file => formData.append('files', file));
-    return api.post(`/quotation/${id}/upload`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    return api.post(`/quotation/${id}/upload`, formData);
 };

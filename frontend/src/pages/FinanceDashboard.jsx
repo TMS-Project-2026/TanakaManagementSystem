@@ -34,7 +34,7 @@ const StatCard = ({ label, value, sub, icon: Icon, iconBg, iconColor, badge, bad
                 <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${badgeColor}`}>{badge}</span>
             )}
         </div>
-        <p className="text-xs text-gray-500 font-medium mb-1">{label}</p>
+        <p className="text-base font-bold text-gray-700 mb-2">{label}</p>
         <p className="text-xl font-black text-gray-900 leading-tight">{value}</p>
         {sub && <p className="text-xs text-gray-400 mt-1 font-semibold">{sub}</p>}
     </div>
@@ -208,11 +208,42 @@ export default function FinanceDashboard({ embedded = false }) {
                     </div>
 
                     {/* ── CHARTS ROW 1 ── */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-6">
+                        {/* Income vs Expense */}
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                            <h3 className="text-base font-black text-gray-900 mb-1">Income vs Expense</h3>
+                            <p className="text-xs text-gray-400 mb-6">Pendapatan vs (HPP + Biaya Operasional)</p>
+                            <div className="h-64">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={[
+                                        { name: 'Inc vs Exp', Income: data?.totalRevenue || 0, Expense: (data?.totalPembelian || 0) + (data?.biayaChartData || []).reduce((a,b)=>a+b.value, 0) }
+                                    ]} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                                        <XAxis dataKey="name" tick={{fill:'#6b7280', fontSize:12, fontWeight:600}} axisLine={false} tickLine={false} />
+                                        <YAxis tickFormatter={v => `${(v/1e6).toFixed(0)}Jt`} tick={{fontSize:11, fill:'#9ca3af'}} axisLine={false} tickLine={false} width={45} />
+                                        <Tooltip content={<CustomTooltip/>} cursor={{fill:'transparent'}}/>
+                                        <Legend wrapperStyle={{fontSize:'12px', fontWeight:'600'}} />
+                                        <Bar dataKey="Income" fill="#10b981" radius={[6,6,0,0]} barSize={40} />
+                                        <Bar dataKey="Expense" fill="#f43f5e" radius={[6,6,0,0]} barSize={40} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                            <div className="mt-4 grid grid-cols-2 gap-2 border-t pt-4">
+                                <div>
+                                    <p className="text-xs text-gray-500 font-bold">Total Income</p>
+                                    <p className="text-sm font-black text-emerald-600">{fmt(data?.totalRevenue)}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-gray-500 font-bold">Total Expense</p>
+                                    <p className="text-sm font-black text-rose-500">{fmt((data?.totalPembelian || 0) + (data?.biayaChartData || []).reduce((a,b)=>a+b.value, 0))}</p>
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Perbandingan Revenue dan Receivable */}
                         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                             <h3 className="text-base font-black text-gray-900 mb-1">Revenue vs Receivable</h3>
-                            <p className="text-xs text-gray-400 mb-6">Perbandingan Total Pendapatan vs Piutang (AR) yang belum ditagih</p>
+                            <p className="text-xs text-gray-400 mb-6">Total Pendapatan vs Piutang (AR)</p>
                             <div className="h-64">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={[
@@ -223,10 +254,20 @@ export default function FinanceDashboard({ embedded = false }) {
                                         <YAxis tickFormatter={v => `${(v/1e6).toFixed(0)}Jt`} tick={{fontSize:11, fill:'#9ca3af'}} axisLine={false} tickLine={false} width={45} />
                                         <Tooltip content={<CustomTooltip/>} cursor={{fill:'transparent'}}/>
                                         <Legend wrapperStyle={{fontSize:'12px', fontWeight:'600'}} />
-                                        <Bar dataKey="Revenue" fill="#1f2937" radius={[6,6,0,0]} barSize={60} />
-                                        <Bar dataKey="Receivable" fill="#3b82f6" radius={[6,6,0,0]} barSize={60} />
+                                        <Bar dataKey="Revenue" fill="#1f2937" radius={[6,6,0,0]} barSize={40} />
+                                        <Bar dataKey="Receivable" fill="#3b82f6" radius={[6,6,0,0]} barSize={40} />
                                     </BarChart>
                                 </ResponsiveContainer>
+                            </div>
+                            <div className="mt-4 grid grid-cols-2 gap-2 border-t pt-4">
+                                <div>
+                                    <p className="text-xs text-gray-500 font-bold">Total Revenue</p>
+                                    <p className="text-sm font-black text-gray-900">{fmt(data?.totalRevenue)}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-gray-500 font-bold">Total Receivable</p>
+                                    <p className="text-sm font-black text-blue-600">{fmt(data?.totalPiutangBelumDibayar)}</p>
+                                </div>
                             </div>
                         </div>
 
@@ -244,10 +285,20 @@ export default function FinanceDashboard({ embedded = false }) {
                                         <YAxis tickFormatter={v => `${(v/1e6).toFixed(0)}Jt`} tick={{fontSize:11, fill:'#9ca3af'}} axisLine={false} tickLine={false} width={45} />
                                         <Tooltip content={<CustomTooltip/>} cursor={{fill:'transparent'}}/>
                                         <Legend wrapperStyle={{fontSize:'12px', fontWeight:'600'}} />
-                                        <Bar dataKey="Piutang" fill="#3b82f6" radius={[6,6,0,0]} barSize={60} />
-                                        <Bar dataKey="Hutang" fill="#990000" radius={[6,6,0,0]} barSize={60} />
+                                        <Bar dataKey="Piutang" fill="#3b82f6" radius={[6,6,0,0]} barSize={40} />
+                                        <Bar dataKey="Hutang" fill="#990000" radius={[6,6,0,0]} barSize={40} />
                                     </BarChart>
                                 </ResponsiveContainer>
+                            </div>
+                            <div className="mt-4 grid grid-cols-2 gap-2 border-t pt-4">
+                                <div>
+                                    <p className="text-xs text-gray-500 font-bold">Total Piutang</p>
+                                    <p className="text-sm font-black text-blue-600">{fmt(data?.totalPiutangBelumDibayar)}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-gray-500 font-bold">Total Hutang</p>
+                                    <p className="text-sm font-black text-[#990000]">{fmt(data?.totalHutangBelumDibayar)}</p>
+                                </div>
                             </div>
                         </div>
                     </div>

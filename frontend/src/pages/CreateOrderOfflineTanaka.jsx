@@ -26,8 +26,7 @@ const CreateOrderOfflineTanaka = () => {
         subtotal: 0,
         ppn_persen: 0,
         jumlah_ppn: 0,
-        diskon: 0, // nominal
-        diskon_persen: 0,
+        // global discount removed; use per-item discounts instead
         ongkos_kirim: 0,
         grand_total: 0,
         deadline: '',
@@ -49,9 +48,11 @@ const CreateOrderOfflineTanaka = () => {
         nama_marketing: '',
         nama_client_ttd: '',
         bahan: '',
+        quotation_id: null,
     });
 
-    const [createQuo, setCreateQuo] = useState(true);
+    const isEditingOrder = Boolean(editData?.id);
+    const [createQuo, setCreateQuo] = useState(!isEditingOrder);
     const [quoFiles, setQuoFiles] = useState([]);
     const [saving, setSaving] = useState(false);
     const [phoneError, setPhoneError] = useState('');
@@ -88,19 +89,18 @@ const CreateOrderOfflineTanaka = () => {
         return Number(item.harga_satuan) < hargaSpv;
     };
 
-    // Auto calculate totals
+    // Auto calculate totals (no global discount)
     useEffect(() => {
         const subtotal = form.items.reduce((acc, item) => {
             const itemTotal = Number(item.qty) * Number(item.harga_satuan);
             return acc + itemTotal;
         }, 0);
         const jumlah_ppn = subtotal * (Number(form.ppn_persen) / 100);
-        const diskon_nominal = Number(form.diskon) || 0;
         const ongkir = Number(form.ongkos_kirim) || 0;
-        const grand_total = subtotal + jumlah_ppn - diskon_nominal + ongkir;
+        const grand_total = subtotal + jumlah_ppn + ongkir;
 
         setForm(prev => ({ ...prev, subtotal, jumlah_ppn, grand_total }));
-    }, [form.ppn_persen, form.items, form.diskon, form.ongkos_kirim]);
+    }, [form.ppn_persen, form.items, form.ongkos_kirim]);
 
     const handleCustomerChange = (e) => {
         const val = e.target.value;
@@ -132,7 +132,7 @@ const CreateOrderOfflineTanaka = () => {
         let finalValue = value;
         
         // Handle comma as decimal for numeric fields
-        if (['ppn_persen', 'diskon', 'ongkos_kirim'].includes(name)) {
+        if (['ppn_persen', 'ongkos_kirim'].includes(name)) {
             finalValue = String(value).replace(/,/g, '.').replace(/[^0-9.]/g, '');
             if (name === 'ppn_persen' && Number(finalValue) > 100) {
                 finalValue = '100'; // Maksimal 100%
@@ -156,6 +156,12 @@ const CreateOrderOfflineTanaka = () => {
             } else {
                 setPhoneError('');
             }
+        }
+        
+        if (name === 'payment_type' && finalValue === 'Non DP') {
+            alert("Perhatian: Pemilihan metode 'Non DP' akan membuat order ini berstatus 'Menunggu Approval Non DP' setelah disimpan, dan butuh persetujuan atasan sebelum diproses.");
+            setForm({ ...form, [name]: finalValue, status: 'Menunggu Approval Non DP' });
+            return;
         }
         
         setForm({ ...form, [name]: finalValue });
@@ -353,8 +359,9 @@ const CreateOrderOfflineTanaka = () => {
                 orderId = res.data?.id;
             }
 
-            // Also create quotation if enabled
-            if (createQuo) {
+            // Also create quotation if enabled and no existing quotation for this order
+            const hasExistingQuotation = Boolean(editData?.quotation_id || form.quotation_id);
+            if (createQuo && !isEditingOrder && !hasExistingQuotation) {
                 const noRes = await getNextQuotationNumber('Tanaka');
                 const quoData = {
                     no_quotation: noRes.data.no_quotation,
@@ -372,8 +379,6 @@ const CreateOrderOfflineTanaka = () => {
                     subtotal: form.subtotal,
                     ppn_persen: form.ppn_persen,
                     jumlah_ppn: form.jumlah_ppn,
-                    diskon_persen: form.diskon_persen,
-                    diskon: form.diskon,
                     ongkos_kirim: form.ongkos_kirim,
                     bahan: form.bahan,
                     grand_total_quo: form.grand_total,
@@ -390,7 +395,7 @@ const CreateOrderOfflineTanaka = () => {
                 if (quoFiles.length > 0 && quoRes.data?.id) {
                     const fd = new FormData();
                     quoFiles.forEach(f => fd.append('files', f));
-                    await api.post(`/quotation/${quoRes.data.id}/upload`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+                    await api.post(`/quotation/${quoRes.data.id}/upload`, fd);
                 }
             }
 
@@ -626,15 +631,14 @@ const CreateOrderOfflineTanaka = () => {
                                         <span className="w-2/3 text-right font-bold text-gray-800">Rp {form.subtotal.toLocaleString('id-ID')}</span>
                                     </div>
                                     <div className="flex items-center justify-between gap-4">
-                                        <label className="text-sm font-semibold text-gray-700 w-1/3">PPN (%)</label>
+                                        <label className="text-sm font-semibold text-gray-700 w-1/3">
+                                            PPN (%)
+                                            <span className="block text-[10px] text-gray-400 font-normal mt-0.5">(Jika dibutuhkan)</span>
+                                        </label>
                                         <input type="text" inputMode="decimal" name="ppn_persen" value={form.ppn_persen} onChange={handleChange} className="w-1/3 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-right" />
                                         <span className="w-1/3 text-right text-sm text-gray-600">Rp {form.jumlah_ppn.toLocaleString('id-ID')}</span>
                                     </div>
-                                    <div className="flex items-center justify-between gap-4">
-                                        <label className="text-sm font-semibold text-gray-700 w-1/3">Diskon (Rp)</label>
-                                        <input type="text" inputMode="decimal" name="diskon" value={form.diskon} onChange={handleChange} className="w-1/3 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-right" placeholder="0" />
-                                        <span className="w-1/3 text-right text-sm text-red-600 font-bold">- Rp {Number(form.diskon || 0).toLocaleString('id-ID')}</span>
-                                    </div>
+                                    {/* Global discount removed; per-item discounts are used instead */}
                                     <div className="flex items-center justify-between gap-4">
                                         <label className="text-sm font-semibold text-gray-700 w-1/3">Ongkos Kirim</label>
                                         <input type="text" inputMode="decimal" name="ongkos_kirim" value={form.ongkos_kirim} onChange={handleChange} className="w-1/3 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-right" placeholder="0" />
@@ -659,7 +663,7 @@ const CreateOrderOfflineTanaka = () => {
                                     <select name="payment_type" value={form.payment_type} onChange={handleChange} className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none bg-white">
                                         <option value="DP">DP (Down Payment)</option>
                                         <option value="Fullpayment">Fullpayment</option>
-                                        <option value="Non DP">Non DP</option>
+                                        <option value="Non DP">Non DP (Butuh Approval Atasan)</option>
                                     </select>
                                 </div>
                                 <div>

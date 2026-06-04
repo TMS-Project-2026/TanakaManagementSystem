@@ -230,16 +230,16 @@ export default function AccountsReceivable() {
               <table className="w-full text-sm">
                 <thead className="bg-gradient-to-r from-[#990000] to-red-800 text-white">
                   <tr>
-                    {['No.Ref','Customer','Invoice Terkait','Total Piutang','Terbayar','Sisa','Jatuh Tempo','Status','Aksi'].map(h => (
+                    {['No.Ref','Customer','Invoice Terkait','Total Piutang','Terbayar','Sisa','Jatuh Tempo','Aging','Status','Aksi'].map(h => (
                       <th key={h} className="py-3 px-4 text-left font-semibold text-xs whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
-                    <tr><td colSpan={9} className="text-center py-12 text-gray-400">Memuat data...</td></tr>
+                    <tr><td colSpan={10} className="text-center py-12 text-gray-400">Memuat data...</td></tr>
                   ) : data.length === 0 ? (
-                    <tr><td colSpan={9} className="text-center py-12 text-gray-400">Tidak ada data AR.</td></tr>
+                    <tr><td colSpan={10} className="text-center py-12 text-gray-400">Tidak ada data AR.</td></tr>
                   ) : data.map((item, idx) => (
                     <tr key={item.id} className={`border-b border-gray-50 hover:bg-red-50/20 transition-colors ${idx%2===0?'bg-white':'bg-gray-50/30'}`}>
                       <td className="py-3 px-4 font-bold text-[#990000] whitespace-nowrap">{item.no_ref}</td>
@@ -249,6 +249,18 @@ export default function AccountsReceivable() {
                       <td className="py-3 px-4 text-right text-emerald-700 font-semibold">{fmt(item.terbayar)}</td>
                       <td className="py-3 px-4 text-right font-black text-gray-900">{fmt(item.sisa)}</td>
                       <td className="py-3 px-4 text-gray-600 whitespace-nowrap">{item.jatuh_tempo ? new Date(item.jatuh_tempo).toLocaleDateString('id-ID') : '-'}</td>
+                      <td className="py-3 px-4 text-gray-600 whitespace-nowrap">
+                        {(() => {
+                          if (item.status === 'Paid' || item.status === 'Void') return '-';
+                          if (!item.jatuh_tempo) return '-';
+                          const due = new Date(item.jatuh_tempo);
+                          const diffTime = new Date() - due;
+                          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                          if (diffDays > 0) return <span className="text-red-600 font-bold">+{diffDays} Hari</span>;
+                          if (diffDays === 0) return <span className="text-amber-600 font-bold">Hari Ini</span>;
+                          return <span className="text-green-600 font-bold">{Math.abs(diffDays)} Hari Lagi</span>;
+                        })()}
+                      </td>
                       <td className="py-3 px-4">
                         <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${STATUS_STYLES[item.status]||''}`}>{item.status}</span>
                       </td>
@@ -331,8 +343,9 @@ export default function AccountsReceivable() {
                   <select required value={payForm.bank} onChange={e => setPayForm(p=>({...p,bank:e.target.value}))}
                     className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500">
                     <option value="">Pilih Bank...</option>
-                    <option>BCA - 1234567890</option><option>Mandiri - 0987654321</option>
-                    <option>BRI - 1122334455</option><option>Petty Cash</option>
+                    <option>BCA Tanaka</option><option>BRI Tanaka</option><option>Mandiri Tanaka</option><option>BNI Tanaka</option><option>Cash Tanaka</option>
+                    <option>BCA Banua</option><option>BRI Banua</option><option>Mandiri Banua</option><option>BNI Banua</option><option>Cash Banua</option>
+                    <option>BCA Acestreet</option><option>BRI Acestreet</option><option>Mandiri Acestreet</option><option>BNI Acestreet</option><option>Cash Acestreet</option>
                   </select>
                 </div>
               </div>

@@ -69,7 +69,7 @@ const Neraca = () => {
     if (cabang === 'Banua') return 'PT BANUA MITRA LESTARI';
     if (cabang === 'Tanaka') return 'PT TANAKA RIZQI BAROKAH';
     if (cabang === 'Acestreet') return 'ACCESTREAT';
-    return 'PT BANUA MITRA LESTARI & GROUP';
+    return 'PT TANAKA RIZQI BAROKAH & GROUP';
   };
 
   const fetchData = async () => {

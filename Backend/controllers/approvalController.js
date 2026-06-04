@@ -35,7 +35,7 @@ exports.getApprovalDetail = async (req, res) => {
         const approval = appRows[0];
         let detailData = null;
 
-        if (approval.tipe === 'order_to_invoice') {
+        if (approval.tipe === 'order_to_invoice' || approval.tipe === 'nondp_order') {
             const [refRows] = await db.promise().query("SELECT * FROM marketing_orders_offline WHERE id = ?", [approval.reference_id]);
             detailData = refRows.length > 0 ? refRows[0] : null;
         } else if (approval.tipe === 'quotation_to_invoice') {
@@ -229,6 +229,15 @@ exports.updateApproval = async (req, res) => {
                         
                         await db.promise().query("UPDATE marketing_orders_offline SET status='Invoice Created' WHERE id=?", [orderId]);
                     }
+                } else if (status === 'rejected') {
+                    await db.promise().query("UPDATE marketing_orders_offline SET status='Rejected' WHERE id=?", [orderId]);
+                }
+            }
+        } else if (appData.length > 0 && appData[0].tipe === 'nondp_order') {
+            const orderId = appData[0].reference_id;
+            if (orderId) {
+                if (status === 'approved') {
+                    await db.promise().query("UPDATE marketing_orders_offline SET status='New Order' WHERE id=?", [orderId]);
                 } else if (status === 'rejected') {
                     await db.promise().query("UPDATE marketing_orders_offline SET status='Rejected' WHERE id=?", [orderId]);
                 }

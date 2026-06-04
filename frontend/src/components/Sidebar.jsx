@@ -52,8 +52,11 @@ const Sidebar = () => {
       group: 'Offline Banua',
       subMenu: [
         { title: 'Laporan Harian', path: '/marketing-offline/reports/harian' },
-        { title: 'Laporan Bulanan', path: '/marketing-offline/reports/bulanan' },
-        { title: 'Laporan Tahunan', path: '/marketing-offline/reports/tahunan' }
+        { title: 'Laporan Harian Berjalan', path: '/marketing-offline/reports/bulanan' },
+        { title: 'Laporan Bulanan', path: '/marketing-offline/reports/bulanan-monthly' },
+        { title: 'Laporan Bulan Berjalan', path: '/marketing-offline/reports/berjalan-monthly' },
+        { title: 'Laporan Tahunan', path: '/marketing-offline/reports/tahunan' },
+        { title: 'Laporan Tahun Berjalan', path: '/marketing-offline/reports/berjalan-tahunan' }
       ]
     },
     // ===== OFFLINE TANAKA =====
@@ -70,8 +73,11 @@ const Sidebar = () => {
       group: 'Offline Tanaka',
       subMenu: [
         { title: 'Laporan Harian', path: '/marketing-offline-tanaka/reports/harian' },
-        { title: 'Laporan Bulanan', path: '/marketing-offline-tanaka/reports/bulanan' },
-        { title: 'Laporan Tahunan', path: '/marketing-offline-tanaka/reports/tahunan' }
+        { title: 'Laporan Harian Berjalan', path: '/marketing-offline-tanaka/reports/bulanan' },
+        { title: 'Laporan Bulanan', path: '/marketing-offline-tanaka/reports/bulanan-monthly' },
+        { title: 'Laporan Bulan Berjalan', path: '/marketing-offline-tanaka/reports/berjalan-monthly' },
+        { title: 'Laporan Tahunan', path: '/marketing-offline-tanaka/reports/tahunan' },
+        { title: 'Laporan Tahun Berjalan', path: '/marketing-offline-tanaka/reports/berjalan-tahunan' }
       ]
     },
     { name: 'Dashboard Online', path: '/marketing-online/dashboard', icon: <LayoutDashboard size={20} />, roles: ['marketing_online', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE BANUA' },
@@ -103,7 +109,7 @@ const Sidebar = () => {
     { name: 'Suku Cadang', path: '/sparepart', icon: <Settings size={20} />, roles: ['Admin', 'Manager'], group: 'Warehouse' },
     { name: 'Warning Stok', path: '/warning-stok', icon: <AlertTriangle size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Promo', path: '/promo', icon: <Gift size={20} />, roles: ['Admin', 'Manager', 'Marketing'], group: 'Sales' },
-    { name: 'Pricelist Harga', path: '/pricelist', icon: <Tag size={20} />, roles: ['Admin', 'Manager', 'owner', 'Finance', 'marketing_offline', 'marketing_offline_tanaka'], group: 'Sales' },
+    { name: 'Pricelist Harga', path: '/pricelist', icon: <Tag size={20} />, roles: ['Admin', 'Manager', 'owner', 'Finance', 'marketing_offline', 'marketing_offline_tanaka', 'Marketing', 'marketing_online'], group: 'Sales' },
     { name: 'Finance Dashboard', path: '/finance', icon: <PieChart size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'FINANCE' },
 
     // CASH & BANK

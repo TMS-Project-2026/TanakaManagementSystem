@@ -137,7 +137,14 @@ exports.getOrders = (req, res) => {
             q.id as quotation_id, q.status as quotation_status, q.no_quotation, q.file_uploads as quotation_files,
             q.alasan_penolakan as quotation_alasan_penolakan
         FROM marketing_orders_offline o
-        LEFT JOIN marketing_quotations q ON o.id = q.order_id
+        LEFT JOIN (
+            SELECT mq1.* FROM marketing_quotations mq1
+            INNER JOIN (
+                SELECT order_id, MAX(id) as max_id 
+                FROM marketing_quotations 
+                GROUP BY order_id
+            ) mq2 ON mq1.id = mq2.max_id
+        ) q ON o.id = q.order_id
         WHERE o.type = 'offline' AND o.branch = 'Banua'
     `;
     const params = [];
@@ -178,12 +185,17 @@ exports.createOrder = (req, res) => {
         harga = req.body.harga || 0;
     }
 
+    let initialStatus = status || 'New Order';
+    if (payment_type === 'Non DP') {
+        initialStatus = 'Menunggu Approval Non DP';
+    }
+
     db.query(
         "INSERT INTO marketing_orders_offline (customer, alamat_pt, up_penagihan, cp_penagihan, email, items, subtotal, ppn_persen, jumlah_ppn, diskon, diskon_persen, grand_total, produk, qty, harga, deadline, status, jenis_pembayaran, status_produksi, lokasi_proses, catatan, type, branch) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'offline', 'Banua')",
         [
             customer, alamat_pt, up_penagihan, cp_penagihan, email,
             itemsJson, subtotal || 0, ppn_persen || 0, jumlah_ppn || 0, diskon || 0, diskon_persen || 0, grand_total || (harga * qty),
-            produk, qty, harga, parseDate(deadline), status || 'New Order', payment_type || 'DP', 
+            produk, qty, harga, parseDate(deadline), initialStatus, payment_type || 'DP', 
             status_produksi || 'Beli Kain', lokasi_proses || 'Internal', catatan
         ],
         (err, result) => {
@@ -197,6 +209,11 @@ exports.createOrder = (req, res) => {
                         [customer, alamat_pt || '', cp_penagihan || '', email || '', up_penagihan || '']);
                     }
                 });
+            }
+
+            if (payment_type === 'Non DP') {
+                const ket = `Pengajuan Order NON DP - Cabang Banua | Customer: ${customer} | Total: Rp ${Number(grand_total || (harga * qty)).toLocaleString('id-ID')}`;
+                db.query("INSERT INTO approvals (tipe, keterangan, nominal, diajukan_oleh, status, tanggal_pengajuan, reference_id) VALUES ('nondp_order', ?, ?, 'Marketing Offline Banua', 'pending', CURRENT_TIMESTAMP, ?)", [ket, grand_total || (harga * qty), result.insertId]);
             }
 
             res.status(201).json({ id: result.insertId, message: "Order berhasil ditambahkan" });

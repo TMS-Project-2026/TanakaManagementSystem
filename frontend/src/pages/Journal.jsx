@@ -684,26 +684,26 @@ const Journal = () => {
                   {/* Card 1: Total Revenue = total semua */}
                   <div className="bg-red-50 p-6 rounded-3xl shadow-md border border-red-100 flex flex-col hover:shadow-lg transition-all duration-300">
                     <p className="text-sm font-bold text-red-800 flex items-center gap-2"><TrendingUp size={16} /> Total Revenue</p>
-                    <h3 className="text-lg md:text-xl font-black text-red-900 mt-2 break-words">{formatRupiah(financeSummary.total_revenue || 0)}</h3>
+                    <h3 className="text-xl font-black text-red-900 mt-2 break-words">{formatRupiah(financeSummary.total_revenue || 0)}</h3>
                     <p className="text-xs text-red-500 mt-1">Total Semua</p>
                   </div>
                   {/* Card 2: Total Receivable = total piutang (dari invoice belum lunas) */}
                   <div className="bg-red-100 p-6 rounded-3xl shadow-md border border-red-200 flex flex-col hover:shadow-lg transition-all duration-300">
                     <p className="text-sm font-bold text-red-800 flex items-center gap-2"><Activity size={16} /> Total Receivable</p>
-                    <h3 className="text-lg md:text-xl font-black text-red-900 mt-2 break-words">{formatRupiah(financeSummary.total_receivable || 0)}</h3>
+                    <h3 className="text-xl font-black text-red-900 mt-2 break-words">{formatRupiah(financeSummary.total_receivable || 0)}</h3>
                     <p className="text-xs text-red-500 mt-1">Total Piutang</p>
                   </div>
                   {/* Card 3: Total Penerimaan = Cash in Bank (All) */}
                   <div className="bg-red-500 p-6 rounded-3xl shadow-md flex flex-col hover:shadow-lg transition-all duration-300">
                     <p className="text-sm font-bold text-white flex items-center gap-2"><DollarSign size={16} /> Total Penerimaan</p>
-                    <h3 className="text-lg md:text-xl font-black text-white mt-2 break-words">{formatRupiah(financeSummary.total_cash_in_bank || 0)}</h3>
+                    <h3 className="text-xl font-black text-white mt-2 break-words">{formatRupiah(financeSummary.total_cash_in_bank || 0)}</h3>
                     <p className="text-xs text-white/70 mt-1">Cash In Bank (All)</p>
                   </div>
                   {/* Card 4: Piutang Berjalan = Revenue - Total Penerimaan */}
                   <div className="bg-gradient-to-br from-red-900 to-red-700 p-6 rounded-3xl shadow-md flex flex-col hover:shadow-lg transition-all duration-300 relative overflow-hidden">
                     <div className="absolute top-2 right-3 text-[10px] font-black text-white/60 uppercase tracking-widest">AUTO</div>
                     <p className="text-sm font-bold text-white flex items-center gap-2"><CreditCard size={16} /> Piutang Berjalan</p>
-                    <h3 className="text-lg md:text-xl font-black text-white mt-2 break-words">{formatRupiah(financeSummary.piutang_berjalan)}</h3>
+                    <h3 className="text-xl font-black text-white mt-2 break-words">{formatRupiah(financeSummary.piutang_berjalan)}</h3>
                     <div className="mt-2">
                       <div className="flex justify-between text-[10px] text-white/70 mb-1">
                         <span>Terbayar</span>
@@ -724,45 +724,45 @@ const Journal = () => {
                   {/* Card 1: Total Payable = utang (belum dibayar) */}
                   <div className="bg-orange-50 p-6 rounded-3xl shadow-md border border-orange-100 flex flex-col hover:shadow-lg transition-all duration-300">
                     <p className="text-sm font-bold text-orange-800 flex items-center gap-2"><CreditCard size={16} /> Total Payable</p>
-                    <h3 className="text-lg md:text-xl font-black text-orange-900 mt-2 break-words">{formatRupiah(purchaseSummary.total_payable)}</h3>
+                    <h3 className="text-xl font-black text-orange-900 mt-2 break-words">{formatRupiah(purchaseSummary.total_payable)}</h3>
                     <p className="text-xs text-orange-500 mt-1">Utang (Belum Dibayar)</p>
                   </div>
                   {/* Card 2: Total Purchase = total all (paid + unpaid) */}
                   <div className="bg-blue-50 p-6 rounded-3xl shadow-md border border-blue-100 flex flex-col hover:shadow-lg transition-all duration-300">
                     <p className="text-sm font-bold text-blue-800 flex items-center gap-2"><TrendingUp size={16} /> Total Purchase</p>
-                    <h3 className="text-lg md:text-xl font-black text-blue-900 mt-2 break-words">{formatRupiah(purchaseSummary.total_purchase)}</h3>
+                    <h3 className="text-xl font-black text-blue-900 mt-2 break-words">{formatRupiah(purchaseSummary.total_purchase)}</h3>
                     <p className="text-xs text-blue-500 mt-1">Dibayar + Diutang (All)</p>
                   </div>
                   {/* Card 3: Cash Paid Out = sudah dibayar */}
                   <div className="bg-indigo-500 p-6 rounded-3xl shadow-md flex flex-col hover:shadow-lg transition-all duration-300">
                     <p className="text-sm font-bold text-white flex items-center gap-2"><PiggyBank size={16} /> Cash Paid Out</p>
-                    <h3 className="text-lg md:text-xl font-black text-white mt-2 break-words">{formatRupiah(purchaseSummary.cash_paid_out)}</h3>
+                    <h3 className="text-xl font-black text-white mt-2 break-words">{formatRupiah(purchaseSummary.cash_paid_out)}</h3>
                     <p className="text-xs text-white/70 mt-1">Sudah Dibayar</p>
                   </div>
                   {/* Card 4: Total Transactions */}
                   <div className="bg-indigo-100 p-6 rounded-3xl shadow-md border border-indigo-200 flex flex-col hover:shadow-lg transition-all duration-300">
                     <p className="text-sm font-bold text-indigo-900 flex items-center gap-2"><Activity size={16} /> Total Transactions</p>
-                    <h3 className="text-lg md:text-xl font-black text-indigo-900 mt-2 break-words">{purchaseSummary.total_tx}</h3>
+                    <h3 className="text-xl font-black text-indigo-900 mt-2 break-words">{purchaseSummary.total_tx}</h3>
                   </div>
                 </>
               ) : activeTab === 'General' ? (
                 <>
                   <div className="bg-emerald-50 p-6 rounded-3xl shadow-md border border-emerald-100 flex flex-col hover:shadow-lg transition-all duration-300">
                     <p className="text-sm font-bold text-emerald-800 flex items-center gap-2"><Activity size={16} /> Total Transaksi</p>
-                    <h3 className="text-lg md:text-xl font-black text-emerald-900 mt-2 break-words">{stats.total_tx}</h3>
+                    <h3 className="text-xl font-black text-emerald-900 mt-2 break-words">{stats.total_tx}</h3>
                     <p className="text-xs text-emerald-500 mt-1">Jurnal Umum</p>
                   </div>
                   <div className="bg-emerald-100 p-6 rounded-3xl shadow-md border border-emerald-200 flex flex-col hover:shadow-lg transition-all duration-300">
                     <p className="text-sm font-bold text-emerald-800 flex items-center gap-2"><TrendingUp size={16} /> Total Debit</p>
-                    <h3 className="text-lg md:text-xl font-black text-emerald-900 mt-2 break-words">{formatRupiah(stats.total_debit)}</h3>
+                    <h3 className="text-xl font-black text-emerald-900 mt-2 break-words">{formatRupiah(stats.total_debit)}</h3>
                   </div>
                   <div className="bg-emerald-500 p-6 rounded-3xl shadow-md flex flex-col hover:shadow-lg transition-all duration-300">
                     <p className="text-sm font-bold text-white flex items-center gap-2"><DollarSign size={16} /> Total Credit</p>
-                    <h3 className="text-lg md:text-xl font-black text-white mt-2 break-words">{formatRupiah(stats.total_credit)}</h3>
+                    <h3 className="text-xl font-black text-white mt-2 break-words">{formatRupiah(stats.total_credit)}</h3>
                   </div>
                   <div className="bg-gradient-to-br from-emerald-900 to-emerald-700 p-6 rounded-3xl shadow-md flex flex-col hover:shadow-lg transition-all duration-300">
                     <p className="text-sm font-bold text-white flex items-center gap-2"><CreditCard size={16} /> Balance</p>
-                    <h3 className="text-lg md:text-xl font-black text-white mt-2 break-words">{formatRupiah(stats.balance)}</h3>
+                    <h3 className="text-xl font-black text-white mt-2 break-words">{formatRupiah(stats.balance)}</h3>
                     <p className="text-xs text-white/60 mt-1">Debit - Credit</p>
                   </div>
                 </>
@@ -770,20 +770,20 @@ const Journal = () => {
                 <>
                   <div className="bg-amber-50 p-6 rounded-3xl shadow-md border border-amber-100 flex flex-col hover:shadow-lg transition-all duration-300">
                     <p className="text-sm font-bold text-amber-800 flex items-center gap-2"><Activity size={16} /> Total Transaksi</p>
-                    <h3 className="text-lg md:text-xl font-black text-amber-900 mt-2 break-words">{stats.total_tx}</h3>
+                    <h3 className="text-xl font-black text-amber-900 mt-2 break-words">{stats.total_tx}</h3>
                     <p className="text-xs text-amber-500 mt-1">Jurnal Biaya</p>
                   </div>
                   <div className="bg-amber-100 p-6 rounded-3xl shadow-md border border-amber-200 flex flex-col hover:shadow-lg transition-all duration-300">
                     <p className="text-sm font-bold text-amber-800 flex items-center gap-2"><TrendingUp size={16} /> Total Debit</p>
-                    <h3 className="text-lg md:text-xl font-black text-amber-900 mt-2 break-words">{formatRupiah(stats.total_debit)}</h3>
+                    <h3 className="text-xl font-black text-amber-900 mt-2 break-words">{formatRupiah(stats.total_debit)}</h3>
                   </div>
                   <div className="bg-amber-500 p-6 rounded-3xl shadow-md flex flex-col hover:shadow-lg transition-all duration-300">
                     <p className="text-sm font-bold text-white flex items-center gap-2"><DollarSign size={16} /> Total Credit</p>
-                    <h3 className="text-lg md:text-xl font-black text-white mt-2 break-words">{formatRupiah(stats.total_credit)}</h3>
+                    <h3 className="text-xl font-black text-white mt-2 break-words">{formatRupiah(stats.total_credit)}</h3>
                   </div>
                   <div className="bg-gradient-to-br from-amber-900 to-amber-700 p-6 rounded-3xl shadow-md flex flex-col hover:shadow-lg transition-all duration-300">
                     <p className="text-sm font-bold text-white flex items-center gap-2"><CreditCard size={16} /> Total Biaya</p>
-                    <h3 className="text-lg md:text-xl font-black text-white mt-2 break-words">{formatRupiah(stats.balance)}</h3>
+                    <h3 className="text-xl font-black text-white mt-2 break-words">{formatRupiah(stats.balance)}</h3>
                     <p className="text-xs text-white/60 mt-1">Akumulasi Beban</p>
                   </div>
                 </>

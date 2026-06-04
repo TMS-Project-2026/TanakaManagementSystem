@@ -87,10 +87,10 @@ const QuotationForm = () => {
             return acc + (qty * harga);
         }, 0);
         const jumlah_ppn = subtotal * (Number(form.ppn_persen) / 100);
-        const diskon = subtotal * (Number(form.diskon_persen || 0) / 100);
-        const grand_total_quo = subtotal + jumlah_ppn - diskon + Number(form.ongkos_kirim || 0);
+        const diskon = 0; // global discount removed; only per-item discounts are used
+        const grand_total_quo = subtotal + jumlah_ppn + Number(form.ongkos_kirim || 0);
         setForm(prev => ({ ...prev, subtotal, jumlah_ppn, diskon, grand_total_quo }));
-    }, [form.items_detail, form.ppn_persen, form.diskon_persen, form.ongkos_kirim]);
+    }, [form.items_detail, form.ppn_persen, form.ongkos_kirim]);
 
     useEffect(() => {
         let note = '';
@@ -290,7 +290,7 @@ const QuotationForm = () => {
                                 <div className="w-full md:w-1/2 lg:w-1/3 space-y-4 bg-gray-50 p-5 rounded-xl border border-gray-200">
                                     <div className="flex items-center justify-between gap-4"><label className="text-sm font-semibold text-gray-700 w-1/3">Subtotal</label><span className="w-2/3 text-right font-bold text-gray-800">Rp {form.subtotal.toLocaleString('id-ID')}</span></div>
                                     <div className="flex items-center justify-between gap-4"><label className="text-sm font-semibold text-gray-700 w-1/3">PPN (%)</label><input type="number" name="ppn_persen" value={form.ppn_persen} onChange={handleChange} min="0" max="100" className="w-1/3 p-2 border border-gray-300 rounded-lg text-right" /><span className="w-1/3 text-right text-sm text-gray-600">Rp {form.jumlah_ppn.toLocaleString('id-ID')}</span></div>
-                                    <div className="flex items-center justify-between gap-4"><label className="text-sm font-semibold text-gray-700 w-1/3">Diskon (%)</label><input type="number" name="diskon_persen" value={form.diskon_persen} onChange={handleChange} min="0" max="100" className="w-1/3 p-2 border border-gray-300 rounded-lg text-right" /><span className="w-1/3 text-right text-sm text-red-600 font-bold">- Rp {form.diskon.toLocaleString('id-ID')}</span></div>
+                                    {/* Global discount removed; per-item discounts are used instead */}
                                     <div className="flex items-center justify-between gap-4"><label className="text-sm font-semibold text-gray-700 w-1/3">Ongkos Kirim</label><input type="number" name="ongkos_kirim" value={form.ongkos_kirim} onChange={handleChange} min="0" className="w-2/3 p-2 border border-gray-300 rounded-lg text-right" /></div>
                                     <div className="flex items-center justify-between gap-4 pt-4 border-t-2 border-gray-300"><label className="text-base font-extrabold text-blue-700 w-1/3">GRAND TOTAL</label><span className="w-2/3 text-right text-xl font-black text-blue-700">Rp {form.grand_total_quo.toLocaleString('id-ID')}</span></div>
                                 </div>

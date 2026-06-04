@@ -140,7 +140,7 @@ const QuotationPreview = () => {
             let ty = finalY;
             const pdfOngkir = Number(quotation.ongkos_kirim) > 0
                 ? Number(quotation.ongkos_kirim)
-                : Math.max(0, Number(quotation.grand_total_quo || 0) - Number(quotation.subtotal || 0) - Number(quotation.jumlah_ppn || 0) + Number(quotation.diskon || 0));
+                : Math.max(0, Number(quotation.grand_total_quo || 0) - Number(quotation.subtotal || 0) - Number(quotation.jumlah_ppn || 0));
             doc.text('Subtotal:', 130, ty); doc.text(fmtRp(quotation.subtotal), 195, ty, { align: 'right' }); ty += 6;
             doc.text(`PPN (${quotation.ppn_persen || 0}%):`, 130, ty); doc.text(fmtRp(quotation.jumlah_ppn), 195, ty, { align: 'right' }); ty += 6;
 
@@ -171,7 +171,7 @@ const QuotationPreview = () => {
     // Hitung ongkos_kirim: pakai dari DB, atau hitung dari selisih grand_total
     const ongkosKirim = Number(quotation.ongkos_kirim) > 0
         ? Number(quotation.ongkos_kirim)
-        : Math.max(0, Number(quotation.grand_total_quo || 0) - Number(quotation.subtotal || 0) - Number(quotation.jumlah_ppn || 0) + Number(quotation.diskon || 0));
+        : Math.max(0, Number(quotation.grand_total_quo || 0) - Number(quotation.subtotal || 0) - Number(quotation.jumlah_ppn || 0));
 
     return (
         <div className="flex bg-gray-100 min-h-screen font-sans">

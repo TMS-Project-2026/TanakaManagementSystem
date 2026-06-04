@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
-import { Plus, Edit, Trash2, Search, Package, DollarSign, Loader2, UploadCloud } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Package, DollarSign, Loader2, UploadCloud, Download } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import * as XLSX from 'xlsx';
-
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 const formatRupiah = (angka) => {
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
@@ -122,6 +123,27 @@ const Pricelist = () => {
         alert('Gagal menghapus produk');
       }
     }
+  };
+
+  const handleDownload = () => {
+    const doc = new jsPDF();
+    doc.text("Pricelist Produk", 14, 15);
+    
+    const tableData = filteredProducts.map((p) => [
+      p.nama_produk || '-',
+      formatRupiah(p.harga_jual)
+    ]);
+
+    autoTable(doc, {
+      startY: 20,
+      head: [['Nama Produk', 'Harga Jual']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [153, 0, 0] },
+      styles: { fontSize: 10 }
+    });
+
+    doc.save("Pricelist_Produk.pdf");
   };
 
   const handleFileUpload = (e) => {
@@ -284,14 +306,23 @@ const Pricelist = () => {
                       Import Excel
                     </label>
                   </div>
-                  <button 
+                </>
+              )}
+              <button 
+                onClick={handleDownload}
+                className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-sm"
+              >
+                <Download size={20} />
+                Download
+              </button>
+              {canCrud && (
+                <button 
                     onClick={openAddModal}
                     className="flex items-center gap-2 bg-[#990000] text-white px-5 py-2.5 rounded-xl font-bold hover:bg-red-800 transition-all shadow-sm"
                   >
                     <Plus size={20} />
                     Tambah Produk
                   </button>
-                </>
               )}
             </div>
           </div>
@@ -318,6 +349,8 @@ const Pricelist = () => {
             <table className="w-full text-left text-sm whitespace-nowrap border-collapse">
               <thead className="bg-gray-900 text-white uppercase text-[11px] tracking-wider font-bold text-center">
                 <tr>
+                  <th rowSpan="2" className="p-3 border border-gray-700 align-middle">KODE PRODUK</th>
+                  <th rowSpan="2" className="p-3 border border-gray-700 align-middle">JENIS PRODUK</th>
                   <th rowSpan="2" className="p-3 border border-gray-700 align-middle">NAMA PRODUK (Lengkap)</th>
                   <th rowSpan="2" className="p-3 border border-gray-700 align-middle">NAMA ORDER <span className="text-yellow-300">(tampil di order)</span></th>
                   <th rowSpan="2" className="p-3 border border-gray-700 align-middle">HPP</th>
@@ -337,12 +370,14 @@ const Pricelist = () => {
                 {categoriesToRender.map(cat => (
                   <React.Fragment key={cat}>
                     <tr>
-                      <td colSpan="12" className="p-3 font-black text-[#990000] border border-gray-400 bg-red-50 text-left text-sm">
+                      <td colSpan="14" className="p-3 font-black text-[#990000] border border-gray-400 bg-red-50 text-left text-sm">
                         {cat.toUpperCase()} ({groupedProducts[cat].length})
                       </td>
                     </tr>
                     {groupedProducts[cat].map((prod, index) => (
                       <tr key={prod.id} className="hover:bg-red-50/50 transition-colors">
+                        <td className="p-3 font-bold text-gray-800 border border-gray-400 text-center">PRD-{prod.id}</td>
+                        <td className="p-3 font-medium text-gray-800 border border-gray-400 text-center">{prod.kategori || 'Lainnya'}</td>
                         <td className="p-3 font-bold text-gray-800 border border-gray-400">{prod.nama_produk}</td>
                         <td className="p-3 border border-gray-400">
                           {prod.nama
@@ -371,7 +406,7 @@ const Pricelist = () => {
                 ))}
                   {filteredProducts.length === 0 && (
                     <tr>
-                      <td colSpan="12" className="p-8 text-center text-gray-500 font-medium">Belum ada data pricelist.</td>
+                      <td colSpan="14" className="p-8 text-center text-gray-500 font-medium">Belum ada data pricelist.</td>
                     </tr>
                   )}
                 </tbody>

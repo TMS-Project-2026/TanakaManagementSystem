@@ -23,7 +23,7 @@ const getCompany = (cab) => {
   if (cab === 'Banua') return 'PT BANUA MITRA LESTARI';
   if (cab === 'Tanaka') return 'PT TANAKA RIZQI BAROKAH';
   if (cab === 'Acestreet') return 'ACCESTREAT';
-  return 'PT BANUA MITRA LESTARI & GROUP';
+  return 'PT TANAKA RIZQI BAROKAH & GROUP';
 };
 
 const ArusKas = () => {
