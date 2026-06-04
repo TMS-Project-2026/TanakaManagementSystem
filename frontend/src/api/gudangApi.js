@@ -33,3 +33,9 @@ export const createBarangKeluar = (data) => api.post('/barang-keluar', data);
 // --- Mutasi ---
 export const getMutasi = () => api.get('/mutasi');
 export const createMutasi = (data) => api.post('/mutasi', data);
+
+// --- Permintaan Stok ---
+export const getPermintaanStok = () => api.get('/permintaan-stok');
+export const createPermintaanStok = (data) => api.post('/permintaan-stok', data);
+export const approvePermintaanStok = (id) => api.post(`/permintaan-stok/${id}/approve`);
+export const rejectPermintaanStok = (id) => api.post(`/permintaan-stok/${id}/reject`);

@@ -1,6 +1,8 @@
+import NotificationBell from '../components/NotificationBell';
+import { Bell } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
-import { Search, Eye, DollarSign, XCircle, X, CheckCircle, AlertTriangle, Clock, Upload, FileText, Plus } from 'lucide-react';
+import { Search, Eye, DollarSign, XCircle, X, CheckCircle, AlertTriangle, Clock, Upload, FileText, Plus, UserCircle } from 'lucide-react';
 
 const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
 const today = () => new Date().toISOString().split('T')[0];
@@ -37,6 +39,7 @@ export default function AccountsReceivable() {
   const [payForm, setPayForm] = useState(EMPTY_PAY);
   const [addForm, setAddForm] = useState(EMPTY_ADD);
   const [invoices, setInvoices] = useState([]);
+  const [showProfile, setShowProfile] = useState(false);
 
   useEffect(() => { loadDb(); loadInvoices(); }, []);
   useEffect(() => { applyFilter(); }, [search, fStatus, fCabang, fTgl, dbData]);
@@ -156,16 +159,48 @@ export default function AccountsReceivable() {
   ];
 
   return (
-    <div className="flex bg-[#f8fafc] min-h-screen font-sans">
+    <div className="flex bg-gray-50 min-h-screen font-sans">
       <Sidebar />
       <main className="flex-1 flex flex-col pt-16 md:pt-0 h-screen overflow-hidden">
-        <div className="flex-1 overflow-y-auto px-4 sm:px-10 pb-10 pt-8">
+        {/* TOPBAR */}
+        <header className="h-auto flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-10 py-4 gap-4 sm:gap-0 mb-4">
+          <div className="relative w-full sm:w-96">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder="Cari customer / No.Ref..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-12 pr-4 py-2.5 bg-white rounded-full border border-gray-200 shadow-sm text-sm focus:outline-none focus:border-[#990000] focus:ring-2 focus:ring-red-100 transition-all"
+            />
+          </div>
+          <div className="flex items-center gap-6">
 
+          <NotificationBell />
+            <div className="relative">
+              <div className="bg-white p-1.5 rounded-full shadow-sm cursor-pointer hover:shadow-md transition-all border border-gray-100" onClick={() => setShowProfile(!showProfile)}>
+                <UserCircle size={32} className="text-gray-400 hover:text-[#990000] transition-colors" />
+              </div>
+              
+              {showProfile && (
+                <div className="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+                  <div className="p-4 bg-red-50/50">
+                    <p className="text-sm font-black text-gray-900">Admin</p>
+                    <p className="text-[10px] font-bold text-[#990000] uppercase tracking-wider mt-0.5">Finance</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        <div className="flex-1 overflow-y-auto px-4 sm:px-10 pb-10">
+          <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100 flex flex-col">
           {/* Header */}
           <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">
-                Accounts <span className="text-[#990000]">Receivable</span>
+              <h1 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                Accounts Receivable
               </h1>
               <p className="text-gray-500 font-medium mt-1 text-sm">Manajemen piutang usaha pelanggan</p>
             </div>
@@ -176,13 +211,10 @@ export default function AccountsReceivable() {
 
           {/* Summary Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            {SUMMARY_CARDS.map(({ label, value, color, icon }) => (
-              <div key={label} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300">
-                <div className="flex items-center justify-between mb-3">
-                  <p className={`text-xs font-bold uppercase tracking-wider text-${color}-600`}>{label}</p>
-                  <div className={`p-2 bg-${color}-50 rounded-xl text-${color}-600`}>{icon}</div>
-                </div>
-                <p className="text-xl font-black text-gray-900">{fmt(value)}</p>
+            {SUMMARY_CARDS.map(({ label, value, color }) => (
+              <div key={label} className={`bg-white rounded-2xl p-5 shadow-sm border border-gray-100 border-l-[6px] border-l-${color}-500 flex flex-col justify-center transition-all hover:-translate-y-0.5 hover:shadow-md`}>
+                <p className="text-xs text-gray-500 font-medium mb-1">{label}</p>
+                <h3 className="text-lg lg:text-xl font-black text-gray-900 break-words">{fmt(value)}</h3>
               </div>
             ))}
           </div>
@@ -190,11 +222,17 @@ export default function AccountsReceivable() {
           {/* Aging Cards */}
           <div className="mb-6">
             <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Aging Piutang</h2>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {AGING_CARDS.map(({ label, val, grad }) => (
-                <div key={label} className={`bg-gradient-to-br ${grad} rounded-2xl p-5 text-white shadow-md`}>
-                  <p className="text-xs font-bold uppercase tracking-wider text-white/80 mb-2">{label}</p>
-                  <p className="text-lg font-black">{fmt(val)}</p>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              {[
+                { label: 'Kurang 7 Hari', val: aging.less7 },
+                { label: 'Lebih 7 Hari', val: aging.over7 },
+                { label: 'Lebih 14 Hari', val: aging.over14 },
+                { label: 'Lebih 30 Hari', val: aging.over30 },
+                { label: 'Lebih 60 Hari', val: aging.over60 },
+              ].map(({ label, val }, idx) => (
+                <div key={idx} className="bg-white rounded-2xl p-4 xl:p-5 shadow-sm border border-gray-100 border-l-[6px] border-l-[#990000] flex flex-col justify-center transition-all hover:-translate-y-0.5 hover:shadow-md">
+                  <p className="text-[11px] text-gray-500 font-medium mb-1 truncate" title={label}>{label}</p>
+                  <h3 className="text-sm lg:text-base font-black text-gray-900 truncate" title={fmt(val)}>{fmt(val)}</h3>
                 </div>
               ))}
             </div>
@@ -203,12 +241,6 @@ export default function AccountsReceivable() {
           {/* Filters + Table */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="p-4 border-b border-gray-100 flex flex-wrap gap-3">
-              <div className="relative flex-1 min-w-[200px]">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input type="text" placeholder="Cari customer / No.Ref..." value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#990000] bg-gray-50" />
-              </div>
               <select value={fStatus} onChange={e => setFStatus(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-[#990000]">
                 <option value="">Semua Status</option>
                 <option>Unpaid</option><option>Paid</option><option>Due Date</option><option>Over Due</option><option>Void</option>
@@ -280,6 +312,7 @@ export default function AccountsReceivable() {
                 </tbody>
               </table>
             </div>
+          </div>
           </div>
         </div>
       </main>

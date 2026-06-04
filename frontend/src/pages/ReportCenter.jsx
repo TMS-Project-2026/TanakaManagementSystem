@@ -1,3 +1,5 @@
+import NotificationBell from '../components/NotificationBell';
+import { Bell } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
@@ -350,6 +352,8 @@ const ReportCenter = () => {
                     />
                   </div>
                   <div className="flex items-center gap-6">
+
+          <NotificationBell />
                     <div className="relative">
                       <div className="bg-white p-1.5 rounded-full shadow-sm cursor-pointer hover:shadow-md transition-all border border-gray-100" onClick={() => setShowProfile(!showProfile)}>
                         <UserCircle size={32} className="text-gray-400 hover:text-[#990000] transition-colors" />
@@ -373,8 +377,8 @@ const ReportCenter = () => {
                     {/* Page Title */}
                     <div className="flex justify-between items-center mb-6">
                         <div className="flex flex-col items-start gap-1">
-                            <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-tight">
-                                Laporan <span className="text-[#990000]">Keuangan</span>
+                            <h1 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                                Laporan Keuangan
                             </h1>
                             <p className="text-gray-500 font-medium mt-1">Laporan keuangan dan analisis bisnis Tanaka Management System.</p>
                         </div>

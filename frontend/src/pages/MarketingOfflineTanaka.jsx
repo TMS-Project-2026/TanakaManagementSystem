@@ -4,10 +4,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import {
   Users, FileText, ShoppingBag, Plus, Edit, Trash2, Send, X, Search, UserCircle, ChevronDown, Gift,
-  Loader2, Download, TrendingUp, TrendingDown, Activity, AlertTriangle, CheckCircle, Package, Eye, Upload
+  Loader2, Download, TrendingUp, TrendingDown, Activity, AlertTriangle, CheckCircle, Package, Eye, Upload, DollarSign
 } from 'lucide-react';
 import { submitQuotationToFinance, uploadQuotationFiles } from '../api/quotationApi';
-import { getStok } from '../api/gudangApi';
+import { getStok, createPermintaanStok } from '../api/gudangApi';
 import * as XLSX from 'xlsx';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
@@ -119,6 +119,38 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
   const [uploadQuotationModal, setUploadQuotationModal] = useState(null);
   const [quoFiles, setQuoFiles] = useState([]);
 
+  // Request Stok States
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [selectedItemForRequest, setSelectedItemForRequest] = useState(null);
+  const [requestForm, setRequestForm] = useState({
+    ukuran: '',
+    jumlah: 1,
+    nama_pengambil: JSON.parse(localStorage.getItem('user'))?.name || '',
+    divisi: 'Marketing Offline Tanaka',
+    keterangan: ''
+  });
+
+  const handleRequestStokSubmit = async (e) => {
+    e.preventDefault();
+    if (!requestForm.ukuran) return alert('Silakan pilih ukuran terlebih dahulu!');
+    if (!selectedItemForRequest.sizes[requestForm.ukuran]?.id) return alert('ID Stok untuk ukuran ini tidak ditemukan!');
+    
+    try {
+        await createPermintaanStok({
+            stok_id: selectedItemForRequest.sizes[requestForm.ukuran].id,
+            jumlah: requestForm.jumlah,
+            nama_pengambil: requestForm.nama_pengambil,
+            divisi: requestForm.divisi,
+            keterangan: requestForm.keterangan
+        });
+        alert('Permintaan stok berhasil diajukan dan menunggu approval Gudang.');
+        setShowRequestModal(false);
+        setRequestForm(prev => ({ ...prev, ukuran: '', jumlah: 1, keterangan: '' }));
+    } catch (err) {
+        alert(err.response?.data?.message || 'Terjadi kesalahan saat mengajukan permintaan.');
+    }
+  };
+
   // Forms
   const [customerForm, setCustomerForm] = useState({ id: null, nama_customer: '', no_hp: '', alamat: '', catatan: '' });
   const [quotationForm, setQuotationForm] = useState({ id: null, customer_name: '', product_name: '', qty: 1, price: 0, note: '' });
@@ -209,12 +241,13 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
             kode_rak: item.kode_rak || '-',
             total_stok: 0,
             minimum_stok: item.minimum_stok || 5,
-            sizes: Object.fromEntries(sizesArray.map(s => [s, 0]))
+            sizes: sizesArray.reduce((obj, sz) => { obj[sz] = { qty: 0, id: null }; return obj; }, {})
           };
         }
         grouped[key].total_stok += Number(item.jumlah) || 0;
         if (item.ukuran && grouped[key].sizes[item.ukuran] !== undefined) {
-          grouped[key].sizes[item.ukuran] += Number(item.jumlah) || 0;
+          grouped[key].sizes[item.ukuran].qty += Number(item.jumlah) || 0;
+          if (!grouped[key].sizes[item.ukuran].id) grouped[key].sizes[item.ukuran].id = item.id;
         }
         if (item.minimum_stok && item.minimum_stok > grouped[key].minimum_stok) {
           grouped[key].minimum_stok = item.minimum_stok;
@@ -774,18 +807,24 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
                   <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                       {[
-                        { title: 'Revenue (Bulan Ini)', value: formatRupiah(dashboardData.summary.range_revenue), bg: 'bg-red-100', text: 'text-gray-900' },
-                        { title: 'Transaction', value: `${dashboardData.summary.total_orders || 0} Orders`, bg: 'bg-[#ff3b3b]', text: 'text-white' },
-                        { title: 'Total Customer', value: `${dashboardData.summary.total_customers || 0} Customers`, bg: 'bg-red-100', text: 'text-gray-900' },
-                        { title: 'Qty Terjual', value: `${dashboardData.summary.total_qty || 0} Pcs`, bg: 'bg-[#ff4d4d]', text: 'text-white' }
+                        { title: 'Revenue (Bulan Ini)', value: formatRupiah(dashboardData.summary.range_revenue), icon: <DollarSign size={16} className="text-white" /> },
+                        { title: 'Transaction', value: `${dashboardData.summary.total_orders || 0} Orders`, icon: <ShoppingBag size={16} className="text-white" /> },
+                        { title: 'Total Customer', value: `${dashboardData.summary.total_customers || 0} Customers`, icon: <Users size={16} className="text-white" /> },
+                        { title: 'Qty Terjual', value: `${dashboardData.summary.total_qty || 0} Pcs`, icon: <Package size={16} className="text-white" /> }
                       ].map((card, index) => (
                         <div
-                          key={index}
-                          className={`${card.bg} p-6 rounded-[2rem] shadow-sm flex flex-col justify-center min-h-[120px]`}
-                        >
-                          <p className={`text-[10px] font-black uppercase tracking-widest mb-2 ${card.text === 'text-white' ? 'text-white/80' : 'text-red-900/60'}`}>{card.title}</p>
-                          <h3 className={`text-2xl font-black ${card.text}`}>{card.value}</h3>
+                        key={index}
+                        className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 border-l-[6px] border-l-[#990000] flex flex-col justify-center transition-all hover:-translate-y-1 hover:shadow-md min-h-[110px]"
+                      >
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-[30px] h-[30px] rounded-full bg-[#990000] flex items-center justify-center shrink-0 shadow-sm shadow-red-900/20">
+                            {card.icon}
+                          </div>
+                          <p className="text-[12px] font-bold text-gray-500 tracking-wider uppercase truncate">{card.title}</p>
                         </div>
+                        <h3 className="text-2xl font-black text-gray-900 leading-tight truncate">{card.value}</h3>
+                        {card.sub && <p className="text-[11px] mt-1 font-medium text-gray-400 truncate">{card.sub}</p>}
+                      </div>
                       ))}
                     </div>
 
@@ -1807,12 +1846,17 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
                                   <td className="p-4 font-bold text-gray-800">{item.nama_barang}</td>
                                   <td className="p-4"><span className={`px-2 py-0.5 rounded text-[11px] font-bold ${item.kategori === 'Utama' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-gray-100 text-gray-600'}`}>{item.kategori}</span></td>
                                   <td className="p-4">{item.cabang_id}</td>
-                                  {sizesArray.map(size => <td key={size} className="p-4 text-center border-x border-gray-100 font-extrabold text-gray-800">{item.sizes?.[size] || '-'}</td>)}
-                                  <td className="p-4 text-center font-extrabold text-red-600 text-base">{item.total_stok} Pcs</td>
-                                  <td className="p-4 text-center"><span className="bg-red-50 border border-red-100 text-red-700 px-2.5 py-1 rounded-full text-xs font-bold">{item.minimum_stok} Pcs</span></td>
+                                  {sizesArray.map(size => {
+                                    const qty = item.sizes?.[size]?.qty || 0;
+                                    return <td key={size} className="p-4 text-center border-x border-gray-100 font-extrabold text-gray-800">{qty > 0 ? qty : <span className="text-gray-300 font-normal">-</span>}</td>
+                                  })}
+                                  <td className="p-4 text-center font-extrabold text-red-600 text-base">{item.total_stok}</td>
+                                  <td className="p-4 text-center"><span className="bg-red-50 border border-red-100 text-red-700 px-2.5 py-1 rounded-full text-xs font-bold">{item.minimum_stok}</span></td>
                                   <td className="p-4 font-semibold text-gray-600">{item.kode_rak}</td>
                                   <td className="p-4 text-center">
-                                    <button onClick={() => handleOrderFromStock({ product_name: item.nama_barang, stock_qty: item.total_stok })} disabled={item.total_stok <= 0} className={`px-4 py-2 rounded-lg text-xs font-black ${item.total_stok > 0 ? 'bg-[#990000] text-white' : 'bg-gray-100 text-gray-400'}`}>Pesan</button>
+                                    <div className="flex flex-col gap-1.5">
+                                      <button onClick={() => { setSelectedItemForRequest(item); setShowRequestModal(true); }} disabled={item.total_stok <= 0} className={`px-4 py-1.5 rounded-lg text-[11px] font-black w-full flex items-center justify-center gap-1 ${item.total_stok > 0 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}><Package size={12} /> Ambil Stok</button>
+                                    </div>
                                   </td>
                                 </tr>
                               ))
@@ -2171,6 +2215,59 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
             <div className="flex gap-3 justify-end">
               <button onClick={() => { setUploadQuotationModal(null); setQuoFiles([]); }} className="px-4 py-2 border border-gray-200 rounded-xl text-gray-700 hover:bg-gray-50 font-semibold">Batal</button>
               <button onClick={handleUploadQuotation} disabled={!quoFiles.length} className="px-6 py-2 bg-[#990000] text-white font-bold rounded-xl shadow-lg hover:bg-red-800 disabled:opacity-50 transition-colors">Upload</button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {showRequestModal && selectedItemForRequest && (
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-gray-50">
+              <h3 className="font-black text-gray-900 text-lg flex items-center gap-2">
+                <Package className="text-blue-600" size={20} /> Request Ambil Stok
+              </h3>
+              <button onClick={() => setShowRequestModal(false)} className="text-gray-400 hover:text-red-500 bg-white p-1 rounded-md shadow-sm">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="mb-5 p-4 bg-blue-50 border border-blue-100 rounded-xl">
+                <p className="text-sm font-semibold text-blue-900">Barang: <span className="font-black">{selectedItemForRequest.nama_barang}</span></p>
+                <p className="text-xs font-medium text-blue-700 mt-1">Total Stok Tersedia: {selectedItemForRequest.total_stok}</p>
+              </div>
+              <form onSubmit={handleRequestStokSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Pilih Ukuran *</label>
+                  <select required value={requestForm.ukuran} onChange={(e) => setRequestForm({ ...requestForm, ukuran: e.target.value })} className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border">
+                    <option value="">-- Pilih Ukuran --</option>
+                    {Object.entries(selectedItemForRequest.sizes).map(([sz, data]) => {
+                      if (data.qty > 0) {
+                        return <option key={sz} value={sz}>{sz} (Tersedia: {data.qty})</option>;
+                      }
+                      return null;
+                    })}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Jumlah (Qty) *</label>
+                  <input type="number" min="1" max={requestForm.ukuran ? selectedItemForRequest.sizes[requestForm.ukuran]?.qty : 1} required value={requestForm.jumlah} onChange={(e) => setRequestForm({ ...requestForm, jumlah: e.target.value })} className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Nama Pengambil *</label>
+                  <input type="text" required value={requestForm.nama_pengambil} onChange={(e) => setRequestForm({ ...requestForm, nama_pengambil: e.target.value })} className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Keperluan / Keterangan</label>
+                  <textarea rows="2" value={requestForm.keterangan} onChange={(e) => setRequestForm({ ...requestForm, keterangan: e.target.value })} placeholder="Cth: Untuk sampel / diberikan ke instansi" className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border"></textarea>
+                </div>
+                <div className="pt-2 flex justify-end gap-3">
+                  <button type="button" onClick={() => setShowRequestModal(false)} className="px-5 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold transition-colors">Batal</button>
+                  <button type="submit" className="px-5 py-2.5 text-white bg-blue-600 hover:bg-blue-700 rounded-xl font-bold shadow-sm transition-all flex items-center gap-2">
+                    <Send size={16} /> Konfirmasi Ambil Stok
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

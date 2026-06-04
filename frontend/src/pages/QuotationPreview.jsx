@@ -43,7 +43,7 @@ const QuotationPreview = () => {
             const doc = new jsPDF('p', 'mm', 'a4');
             const loadImageBase64 = (src) => new Promise((resolve) => {
                 const img = new Image(); img.crossOrigin = 'anonymous';
-                img.onload = () => { const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; c.getContext('2d').drawImage(img, 0, 0); resolve(c.toDataURL('image/png')); };
+                img.onload = () => { const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; c.getContext('2d').drawImage(img, 0, 0); resolve({ dataUrl: c.toDataURL('image/png'), w: img.width, h: img.height }); };
                 img.onerror = () => resolve(null); img.src = src;
             });
 
@@ -55,19 +55,26 @@ const QuotationPreview = () => {
             if (quotation.cabang === 'Banua') {
                 const logoData = await loadImageBase64(LogoBanua);
                 if (logoData) { 
-                    doc.addImage(logoData, 'PNG', 14, 6, 55, 22); 
-                    doc.setFontSize(16);
+                    const desiredWidth = 28;
+                    const desiredHeight = desiredWidth / (logoData.w / logoData.h);
+                    doc.addImage(logoData.dataUrl, 'PNG', 14, 6, desiredWidth, desiredHeight); 
+                    doc.setFontSize(12);
                     doc.setFont('helvetica', 'bold');
                     doc.setTextColor(30, 64, 175);
-                    doc.text("PT BANUA MITRA LESTARI", 72, 18);
-                    addressStartY = 30; 
+                    doc.text("PT BANUA MITRA LESTARI", 14 + desiredWidth + 5, 16);
+                    addressStartY = Math.max(30, 6 + desiredHeight + 5); 
                 }
             } else if (quotation.cabang === 'Tanaka') {
                 const logoData = await loadImageBase64(LogoTanaka);
-                if (logoData) { const kopHeight = 210 / 4.58; doc.addImage(logoData, 'PNG', 0, 0, 210, kopHeight); yOffset = kopHeight - 10; addressStartY = kopHeight + 4; }
+                if (logoData) { const kopHeight = 210 / (logoData.w / logoData.h); doc.addImage(logoData.dataUrl, 'PNG', 0, 0, 210, kopHeight); yOffset = kopHeight - 10; addressStartY = kopHeight + 4; }
             } else if (quotation.cabang === 'Acestreet') {
                 const logoData = await loadImageBase64(LogoAcestreet);
-                if (logoData) { doc.addImage(logoData, 'PNG', 14, 2, 45, 50); addressStartY = 32; }
+                if (logoData) { 
+                    const desiredWidth = 35;
+                    const desiredHeight = desiredWidth / (logoData.w / logoData.h);
+                    doc.addImage(logoData.dataUrl, 'PNG', 14, 2, desiredWidth, desiredHeight); 
+                    addressStartY = Math.max(32, 2 + desiredHeight + 5); 
+                }
             }
 
             doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(100, 100, 100);
@@ -99,7 +106,7 @@ const QuotationPreview = () => {
             const items = quotation.items_detail || [];
             const tableColumn = ["Nama Produk", "Detail", "Qty", "Unit", "Harga Satuan", "Diskon/Item", "Total"];
             const tableRows = items.map(item => {
-                const hargaSatuanGabung = Number(item.harga_satuan || 0) + Number(item.harga_bordir || 0);
+                const hargaSatuanGabung = Number(item.harga_satuan || 0);
                 const totalBaris = Number(item.qty || 0) * hargaSatuanGabung;
                 const diskonItem = Number(item.diskon_item || 0);
                 const namaProduk = item.bordir
@@ -123,7 +130,12 @@ const QuotationPreview = () => {
             let finalY = doc.lastAutoTable.finalY + 10;
 
             // Payment note (left)
-            const noteText = quotation.payment_note || '';
+            const defaultNotes = {
+                Banua: `PAYMENT METHOD :\nBank                      : BANK RAKYAT INDONESIA (BRI)\nCabang                    : Yogyakarta\nNo. Rekening              : 2099 0100 0545 304\nAtas Nama                 : PT BANUA MITRA LESTARI`,
+                Tanaka: `PAYMENT METHOD :\nBank                      : BANK RAKYAT INDONESIA (BRI)\nCabang                    : Yogyakarta\nNo. Rekening              : 2099 0100 0495 305\nAtas Nama                 : PT TANAKA RIZQI BAROKAH`,
+                Acestreet: `PAYMENT METHOD :\nBank                      : BANK RAKYAT INDONESIA (BRI)\nCabang                    : Yogyakarta\nNo. Rekening              : 2099 0100 0545 304\nAtas Nama                 : ACESTREET`
+            };
+            const noteText = quotation.payment_note || defaultNotes[quotation.cabang] || '';
             if (noteText) {
                 doc.setFontSize(9); doc.setTextColor(80);
                 noteText.split('\n').forEach((line, i) => doc.text(line, 14, finalY + (i * 5)));
@@ -150,7 +162,7 @@ const QuotationPreview = () => {
             doc.text('GRAND TOTAL:', 130, ty); doc.text(fmtRp(quotation.grand_total_quo), 195, ty, { align: 'right' });
 
             // Signatures
-            const sigY = Math.max(ty + 30, doc.internal.pageSize.height - 50);
+            const sigY = Math.max(ty + 30, 200);
             doc.setFontSize(10); doc.setTextColor(0); doc.setFont(undefined, 'normal');
             doc.text('Marketing,', 40, sigY, { align: 'center' }); doc.text('Client,', 150, sigY, { align: 'center' });
             doc.setFont('helvetica', 'bold');
@@ -174,9 +186,9 @@ const QuotationPreview = () => {
         : Math.max(0, Number(quotation.grand_total_quo || 0) - Number(quotation.subtotal || 0) - Number(quotation.jumlah_ppn || 0));
 
     return (
-        <div className="flex bg-gray-100 min-h-screen font-sans">
+        <div className="flex bg-gray-100 min-h-screen font-sans print:block print:min-h-0 print:h-auto print:bg-white">
             <div className="print:hidden"><Sidebar /></div>
-            <main className="flex-1 p-4 md:p-8 overflow-y-auto h-screen print:p-0 print:h-auto print:overflow-visible">
+            <main className="flex-1 p-4 md:p-8 overflow-y-auto h-screen print:block print:p-0 print:h-auto print:overflow-visible">
                 {/* Actions Header */}
                 <div className="max-w-4xl mx-auto mb-6 flex flex-col sm:flex-row justify-between items-center gap-4 print:hidden">
                     <button onClick={() => navigate(-1)} className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg shadow hover:bg-gray-50 border border-gray-200">
@@ -189,7 +201,7 @@ const QuotationPreview = () => {
                 </div>
 
                 {/* A4 Paper Container */}
-                <div className="max-w-4xl mx-auto bg-white min-h-[297mm] p-10 md:p-16 shadow-xl print:shadow-none print:p-0">
+                <div className="max-w-4xl mx-auto bg-white min-h-[297mm] p-10 md:p-16 shadow-xl print:shadow-none print:min-h-0 print:p-0">
 
                     {/* Header */}
                     {(() => {
@@ -202,14 +214,17 @@ const QuotationPreview = () => {
                                 )}
                                 {quotation.cabang !== 'Tanaka' && (
                                     <div className="flex justify-between items-start">
-                                        <div className="flex items-center gap-4">
-                                            {quotation.cabang === 'Banua' && (
-                                                <>
-                                                    <img src={LogoBanua} alt="Logo Banua" className="h-24 object-contain" />
-                                                    <span className="font-bold text-2xl text-blue-900 tracking-wide">PT Banua Mitra Lestari</span>
-                                                </>
-                                            )}
-                                            {quotation.cabang === 'Acestreet' && <img src={LogoAcestreet} alt="Logo Acestreet" className="h-32 object-contain" />}
+                                        <div className="flex flex-col">
+                                            <div className="flex items-center gap-4">
+                                                {quotation.cabang === 'Banua' && (
+                                                    <>
+                                                        <img src={LogoBanua} alt="Logo Banua" className="h-24 object-contain" />
+                                                        <span className="font-bold text-2xl text-blue-900 tracking-wide">PT Banua Mitra Lestari</span>
+                                                    </>
+                                                )}
+                                                {quotation.cabang === 'Acestreet' && <img src={LogoAcestreet} alt="Logo Acestreet" className="h-32 object-contain" />}
+                                            </div>
+                                            <p className={`text-sm whitespace-pre-line mt-2 max-w-md ${isBanua ? 'text-blue-700/70' : 'text-gray-500'}`}>{addresses[quotation.cabang] || ''}</p>
                                         </div>
                                         <div className="text-right shrink-0 ml-8">
                                             <h1 className="text-4xl font-black text-gray-200 tracking-widest mb-2">QUOTATION</h1>
@@ -224,7 +239,9 @@ const QuotationPreview = () => {
                                 )}
                                 {quotation.cabang === 'Tanaka' && (
                                     <div className="flex justify-between items-start">
-                                        <div></div>
+                                        <div>
+                                            <p className={`text-sm whitespace-pre-line mt-2 max-w-md ${isBanua ? 'text-blue-700/70' : 'text-gray-500'}`}>{addresses[quotation.cabang] || ''}</p>
+                                        </div>
                                         <div className="text-right">
                                             <h1 className="text-4xl font-black text-gray-200 tracking-widest mb-2">QUOTATION</h1>
                                             <p className="font-bold text-gray-800 text-lg">{quotation.no_quotation}</p>
@@ -236,7 +253,6 @@ const QuotationPreview = () => {
                                         </div>
                                     </div>
                                 )}
-                                <p className={`text-sm whitespace-pre-line mt-1 max-w-md ${isBanua ? 'text-blue-700/70' : 'text-gray-500'}`}>{addresses[quotation.cabang] || ''}</p>
                             </div>
                         );
                     })()}
@@ -320,7 +336,7 @@ const QuotationPreview = () => {
 
 
                     {/* Totals & Notes */}
-                    <div className="flex flex-col md:flex-row justify-between items-start gap-8">
+                    <div className="flex flex-col md:flex-row print:flex-row justify-between items-start gap-8">
                         <div className="flex-1">
                             <div className="border-l-4 border-gray-200 pl-3">
                                 {(() => {
@@ -354,7 +370,7 @@ const QuotationPreview = () => {
                                 )}
                             </div>
                         </div>
-                        <div className="w-full md:w-80">
+                        <div className="w-full md:w-80 print:w-80 shrink-0">
                             <table className="w-full text-sm">
                                 <tbody>
                                     <tr className="border-b border-gray-100">
@@ -382,7 +398,7 @@ const QuotationPreview = () => {
                     </div>
 
                     {/* Footer / Signature */}
-                    <div className="mt-20 flex justify-between px-10">
+                    <div className="mt-20 print:mt-10 flex justify-between px-10 print:px-0">
                         <div className="text-center w-48">
                             <p className="text-gray-600 mb-4">Marketing,</p>
                             <div className="h-24"></div>
@@ -415,7 +431,7 @@ const QuotationPreview = () => {
                 </div>
 
                 {/* Print Styles */}
-                <style dangerouslySetInnerHTML={{ __html: `@media print { body { background: white; } @page { size: auto; margin: 0mm; } }` }} />
+                <style dangerouslySetInnerHTML={{ __html: `@media print { body { background: white; -webkit-print-color-adjust: exact; color-adjust: exact; } @page { size: auto; margin: 10mm; } }` }} />
             </main>
         </div>
     );

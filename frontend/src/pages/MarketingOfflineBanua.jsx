@@ -4,14 +4,14 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import {
   Users, FileText, ShoppingBag, Plus, Edit, Trash2, Send, X, Search, UserCircle, ChevronDown, Gift,
-  Loader2, Download, TrendingUp, TrendingDown, Activity, AlertTriangle, CheckCircle, Package, Eye, Upload
+  Loader2, Download, TrendingUp, TrendingDown, Activity, AlertTriangle, CheckCircle, Package, Eye, Upload, DollarSign
 } from 'lucide-react';
 import { submitQuotationToFinance, uploadQuotationFiles } from '../api/quotationApi';
-import { getStok } from '../api/gudangApi';
+import { getStok, createPermintaanStok } from '../api/gudangApi';
 import * as XLSX from 'xlsx';
 import {
   XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
-  AreaChart, Area, LineChart, Line
+  AreaChart, Area, LineChart, Line, BarChart, Bar, Legend
 } from 'recharts';
 
 const calculateTopProducts = (ordersList) => {
@@ -94,9 +94,22 @@ export default function MarketingOfflineBanua({ embedded = false }) {
     const d = new Date(); const m = d.getMonth() === 0 ? 12 : d.getMonth(); const y = d.getMonth() === 0 ? d.getFullYear() - 1 : d.getFullYear();
     return `${y}-${String(m).padStart(2, '0')}`;
   });
-  const [targetPerOrang] = useState(70000000); // 70 Juta per Kategori/Orang
+  const [targetHarian] = useState(2400000);
+  const [targetBulanan] = useState(70000000);
+  const [targetTahunan] = useState(840000000);
   const [expandedProduct, setExpandedProduct] = useState(null);
   const [tooltipProduk, setTooltipProduk] = useState(null);
+
+  // Request Stok States
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [selectedItemForRequest, setSelectedItemForRequest] = useState(null);
+  const [requestForm, setRequestForm] = useState({
+    ukuran: '',
+    jumlah: 1,
+    nama_pengambil: JSON.parse(localStorage.getItem('user'))?.name || '',
+    divisi: 'Marketing Offline Banua',
+    keterangan: ''
+  });
 
   useEffect(() => {
     if (pathParts[3]) setReportSubTab(pathParts[3]);
@@ -209,12 +222,13 @@ export default function MarketingOfflineBanua({ embedded = false }) {
             kode_rak: item.kode_rak || '-',
             total_stok: 0,
             minimum_stok: item.minimum_stok || 5,
-            sizes: Object.fromEntries(sizesArray.map(s => [s, 0]))
+            sizes: sizesArray.reduce((obj, sz) => { obj[sz] = { qty: 0, id: null }; return obj; }, {})
           };
         }
         grouped[key].total_stok += Number(item.jumlah) || 0;
         if (item.ukuran && grouped[key].sizes[item.ukuran] !== undefined) {
-          grouped[key].sizes[item.ukuran] += Number(item.jumlah) || 0;
+          grouped[key].sizes[item.ukuran].qty += Number(item.jumlah) || 0;
+          if (!grouped[key].sizes[item.ukuran].id) grouped[key].sizes[item.ukuran].id = item.id;
         }
         if (item.minimum_stok && item.minimum_stok > grouped[key].minimum_stok) {
           grouped[key].minimum_stok = item.minimum_stok;
@@ -276,40 +290,42 @@ export default function MarketingOfflineBanua({ embedded = false }) {
       let allOrders = res.data || [];
  
       const globalAccounts = new Set();
-      allOrders.forEach(o => { getOrderItemsWithCategory(o).forEach(item => globalAccounts.add(item.category)); });
+      allOrders.forEach(o => { 
+        if (o.customer) globalAccounts.add(o.customer); 
+      });
       const accounts = [...globalAccounts];
 
       if (reportSubTab === 'harian') {
         const dailyData = [];
-        const getDailyRevenue = (orders, category, targetDateStr) => {
+        const getDailyRevenue = (orders, customerName, targetDateStr) => {
           if (!targetDateStr) return 0;
           const targetDate = new Date(targetDateStr);
           return orders.reduce((sum, o) => {
               const od = new Date(o.created_at || o.order_date);
-              if (od.getFullYear() === targetDate.getFullYear() && od.getMonth() === targetDate.getMonth() && od.getDate() === targetDate.getDate()) {
-                  return sum + getOrderItemsWithCategory(o).filter(i => i.category === category).reduce((s, i) => s + i.total, 0);
+              if (o.customer === customerName && od.getFullYear() === targetDate.getFullYear() && od.getMonth() === targetDate.getMonth() && od.getDate() === targetDate.getDate()) {
+                  return sum + getOrderItemsWithCategory(o).reduce((s, i) => s + i.total, 0);
               }
               return sum;
           }, 0);
         };
         accounts.forEach(cat => {
           const rev = getDailyRevenue(allOrders, cat, filterDate1);
-          const target = (targetPerOrang / 30);
+          const target = targetHarian;
           const ach = target > 0 ? (rev / target) * 100 : 0;
-          if (rev > 0 || target > 0) dailyData.push({ account: cat, revenue: rev, target: target, achievement: ach });
+          if (rev > 0) dailyData.push({ account: cat, revenue: rev, target: target, achievement: ach });
         });
         dailyData.sort((a, b) => b.revenue - a.revenue);
         setReportComparisonData(dailyData);
-      } else if (reportSubTab === 'berjalan' || reportSubTab === 'bulanan') {
+      } else if (reportSubTab === 'berjalan') {
         const dailyData = [];
-        const getRangeRevenue = (orders, category, sd, ed) => {
+        const getRangeRevenue = (orders, customerName, sd, ed) => {
           if (!sd || !ed) return 0;
           const startDate = new Date(sd); startDate.setHours(0,0,0,0);
           const endDate = new Date(ed); endDate.setHours(23,59,59,999);
           return orders.reduce((sum, o) => {
               const od = new Date(o.created_at || o.order_date);
-              if (od >= startDate && od <= endDate) {
-                  return sum + getOrderItemsWithCategory(o).filter(i => i.category === category).reduce((s, i) => s + i.total, 0);
+              if (o.customer === customerName && od >= startDate && od <= endDate) {
+                  return sum + getOrderItemsWithCategory(o).reduce((s, i) => s + i.total, 0);
               }
               return sum;
           }, 0);
@@ -321,7 +337,7 @@ export default function MarketingOfflineBanua({ embedded = false }) {
         };
         accounts.forEach(acc => {
           const mtd1Revenue = getRangeRevenue(allOrders, acc, filterDate1, filterDateEnd);
-          const target = targetPerOrang * getMonthsDiff(filterDate1, filterDateEnd);
+          const target = targetBulanan * getMonthsDiff(filterDate1, filterDateEnd);
           const achievement = target > 0 ? (mtd1Revenue / target) * 100 : 0;
           if (mtd1Revenue > 0) dailyData.push({ account: acc, date1: filterDate1, date1End: filterDateEnd, revenue: mtd1Revenue, target: target, achievement: achievement });
         });
@@ -337,12 +353,13 @@ export default function MarketingOfflineBanua({ embedded = false }) {
         accounts.forEach(acc => {
           let currentRev = 0, prevYearRev = 0;
           allOrders.forEach(order => {
+             if (order.customer !== acc) return;
              const od = new Date(order.created_at || order.order_date);
-             const revenue = getOrderItemsWithCategory(order).filter(i => i.category === acc).reduce((s, i) => s + i.total, 0);
+             const revenue = getOrderItemsWithCategory(order).reduce((s, i) => s + i.total, 0);
              if (od >= startCurrent && od <= endCurrent) currentRev += revenue;
              if (od >= startPrevYear && od <= endPrevYear) prevYearRev += revenue;
           });
-          if (currentRev > 0 || prevYearRev > 0) {
+          if (currentRev > 0) {
             finalReport.push({
               account: acc, currentRevenue: currentRev, dateCurrent: startCurrent.toISOString(), dateCurrentEnd: endCurrent.toISOString(),
               comparisons: [
@@ -361,16 +378,16 @@ export default function MarketingOfflineBanua({ embedded = false }) {
           let startYear = new Date(filterDate1).getFullYear(); let endYear = new Date(filterDate2).getFullYear();
           if (startYear > endYear) { const t = startYear; startYear = endYear; endYear = t; }
           const rangeLength = endYear - startYear + 1; const startPrevYear = startYear - rangeLength; const endPrevYear = endYear - rangeLength;
-          const getRangeYtd = (orders, account, sY, eY) => orders.reduce((sum, o) => {
+          const getRangeYtd = (orders, customerName, sY, eY) => orders.reduce((sum, o) => {
               const od = new Date(o.created_at || o.order_date); const orderYear = od.getFullYear();
-              if (orderYear >= sY && orderYear <= eY && (od.getMonth() < limitMonth || (od.getMonth() === limitMonth && od.getDate() <= limitDay))) {
-                 return sum + getOrderItemsWithCategory(o).filter(i => i.category === account).reduce((s, i) => s + i.total, 0);
+              if (o.customer === customerName && orderYear >= sY && orderYear <= eY && (od.getMonth() < limitMonth || (od.getMonth() === limitMonth && od.getDate() <= limitDay))) {
+                 return sum + getOrderItemsWithCategory(o).reduce((s, i) => s + i.total, 0);
               }
               return sum;
           }, 0);
           accounts.forEach(acc => {
             const v1 = getRangeYtd(allOrders, acc, startYear, endYear); const v2 = getRangeYtd(allOrders, acc, startPrevYear, endPrevYear);
-            if (v1 > 0 || v2 > 0) {
+            if (v1 > 0) {
               yearlyData.push({
                 account: acc, currentRevenue: v1, dateCurrent: `${startYear}`, dateCurrentEnd: `${endYear}`,
                 comparisons: [ { id: 'target', title: 'Target', compareValue: 0 }, { id: 'prev_year', title: 'Tahun Lalu', compareValue: v2, dateCompare: `${startPrevYear}`, dateCompareEnd: `${endPrevYear}` } ]
@@ -379,16 +396,16 @@ export default function MarketingOfflineBanua({ embedded = false }) {
           });
         } else {
           const y1 = new Date(filterDate1).getFullYear(); const y2 = y1 - 1;
-          const getYearlyYtd = (orders, account, yearNum) => orders.reduce((sum, o) => {
+          const getYearlyYtd = (orders, customerName, yearNum) => orders.reduce((sum, o) => {
               const od = new Date(o.created_at || o.order_date);
-              if (od.getFullYear() === yearNum && (od.getMonth() < limitMonth || (od.getMonth() === limitMonth && od.getDate() <= limitDay))) {
-                 return sum + getOrderItemsWithCategory(o).filter(i => i.category === account).reduce((s, i) => s + i.total, 0);
+              if (o.customer === customerName && od.getFullYear() === yearNum && (od.getMonth() < limitMonth || (od.getMonth() === limitMonth && od.getDate() <= limitDay))) {
+                 return sum + getOrderItemsWithCategory(o).reduce((s, i) => s + i.total, 0);
               }
               return sum;
           }, 0);
           accounts.forEach(acc => {
             const v1 = getYearlyYtd(allOrders, acc, y1); const v2 = getYearlyYtd(allOrders, acc, y2);
-            if (v1 > 0 || v2 > 0) {
+            if (v1 > 0) {
               yearlyData.push({
                 account: acc, currentRevenue: v1, dateCurrent: `${y1}`,
                 comparisons: [ { id: 'target', title: 'Target', compareValue: 0 }, { id: 'prev_year', title: 'Tahun Sebelumnya', compareValue: v2, dateCompare: `${y2}` } ]
@@ -400,25 +417,101 @@ export default function MarketingOfflineBanua({ embedded = false }) {
         setReportComparisonData(yearlyData);
       } else if (reportSubTab === 'bulanan-monthly') {
         const [mainYear, mainMonth] = monthlyTo.split('-').map(Number);
-        const getMonthRev = (orders, acc, year, month) => orders.reduce((sum, o) => {
+        const getMonthRev = (orders, customerName, year, month) => orders.reduce((sum, o) => {
               const od = new Date(o.created_at || o.order_date);
-              if (od.getFullYear() === year && (od.getMonth() + 1) === month) {
-                 return sum + getOrderItemsWithCategory(o).filter(i => i.category === acc).reduce((s, i) => s + i.total, 0);
+              if (o.customer === customerName && od.getFullYear() === year && (od.getMonth() + 1) === month) {
+                 return sum + getOrderItemsWithCategory(o).reduce((s, i) => s + i.total, 0);
               }
               return sum;
         }, 0);
         const monthlyResult = [];
         accounts.forEach(acc => {
           const v1 = getMonthRev(allOrders, acc, mainYear, mainMonth);
-          if (v1 > 0 || targetPerOrang > 0) monthlyResult.push({ account: acc, date1: monthlyTo, val1: v1, revenue: v1 });
+          if (v1 > 0) monthlyResult.push({ account: acc, date1: monthlyTo, val1: v1, revenue: v1 });
         });
         monthlyResult.sort((a, b) => b.val1 - a.val1);
         setReportComparisonData(monthlyResult);
+      } else if (reportSubTab === 'bulanan') {
+        const startCurrent = new Date(filterDate1); startCurrent.setHours(0, 0, 0, 0);
+        const endCurrent = new Date(filterDateEnd); endCurrent.setHours(23, 59, 59, 999);
+
+        const startPrevMonth = new Date(startCurrent); startPrevMonth.setMonth(startPrevMonth.getMonth() - 1);
+        if (startPrevMonth.getDate() !== startCurrent.getDate()) startPrevMonth.setDate(0);
+        const endPrevMonth = new Date(endCurrent); endPrevMonth.setMonth(endPrevMonth.getMonth() - 1);
+        if (endPrevMonth.getDate() !== endCurrent.getDate()) endPrevMonth.setDate(0);
+
+        const startPrevYear = new Date(startCurrent); startPrevYear.setFullYear(startPrevYear.getFullYear() - 1);
+        if (startPrevYear.getDate() !== startCurrent.getDate()) startPrevYear.setDate(0);
+        const endPrevYear = new Date(endCurrent); endPrevYear.setFullYear(endPrevYear.getFullYear() - 1);
+        if (endPrevYear.getDate() !== endCurrent.getDate()) endPrevYear.setDate(0);
+
+        const finalReport = [];
+        accounts.forEach(acc => {
+          let currentRev = 0, prevMonthRev = 0, prevYearRev = 0;
+          allOrders.forEach(order => {
+            if (order.customer !== acc) return;
+            const od = new Date(order.created_at || order.order_date);
+            const revenue = getOrderItemsWithCategory(order).reduce((s, i) => s + i.total, 0);
+            if (od >= startCurrent && od <= endCurrent) currentRev += revenue;
+            if (od >= startPrevMonth && od <= endPrevMonth) prevMonthRev += revenue;
+            if (od >= startPrevYear && od <= endPrevYear) prevYearRev += revenue;
+          });
+          if (currentRev > 0) {
+            finalReport.push({
+              account: acc, currentRevenue: currentRev, dateCurrent: startCurrent.toISOString(), dateCurrentEnd: endCurrent.toISOString(),
+              comparisons: [
+                { id: 'target', title: 'Target', compareValue: 0 },
+                { id: 'prev_month', title: 'Bulan Sebelumnya', compareValue: prevMonthRev, dateCompare: startPrevMonth.toISOString(), dateCompareEnd: endPrevMonth.toISOString() },
+                { id: 'prev_year', title: 'Tahun Lalu', compareValue: prevYearRev, dateCompare: startPrevYear.toISOString(), dateCompareEnd: endPrevYear.toISOString() }
+              ]
+            });
+          }
+        });
+        finalReport.sort((a, b) => b.currentRevenue - a.currentRevenue);
+        setReportComparisonData(finalReport);
       }
     } catch (err) { console.error(err); } finally { setLoading(false); }
   };
 
-    useEffect(() => {
+  const handleRequestStokSubmit = async (e) => {
+    e.preventDefault();
+    if (!requestForm.ukuran) return alert('Silakan pilih ukuran terlebih dahulu!');
+    if (!selectedItemForRequest.sizes[requestForm.ukuran]?.id) return alert('ID Stok untuk ukuran ini tidak ditemukan!');
+    
+    try {
+        await createPermintaanStok({
+            stok_id: selectedItemForRequest.sizes[requestForm.ukuran].id,
+            jumlah: requestForm.jumlah,
+            nama_pengambil: requestForm.nama_pengambil,
+            divisi: requestForm.divisi,
+            keterangan: requestForm.keterangan
+        });
+        alert('Permintaan stok berhasil diajukan dan menunggu approval Gudang.');
+        setShowRequestModal(false);
+        setRequestForm(prev => ({ ...prev, ukuran: '', jumlah: 1, keterangan: '' }));
+    } catch (err) {
+        alert(err.response?.data?.message || 'Terjadi kesalahan saat mengajukan permintaan.');
+    }
+  };
+
+  const handleOrderFromStock = (item) => {
+    navigate('/marketing-offline/create-order', {
+      state: {
+        orderData: {
+          customer: '',
+          items: [{
+            rincian: item.product_name,
+            qty: 1,
+            harga_satuan: 0,
+            satuan: 'Pcs'
+          }],
+          status: 'New Order'
+        }
+      }
+    });
+  };
+
+  useEffect(() => {
     if (activeTab === 'dashboard') {
       fetchDashboard();
       fetchOrders();
@@ -543,33 +636,16 @@ export default function MarketingOfflineBanua({ embedded = false }) {
     } catch (err) { alert('Failed to submit: ' + (err.response?.data?.message || err.message)); }
   };
 
-  const handleOrderFromStock = (item) => {
-    navigate('/marketing-offline/create-order', {
-      state: {
-        orderData: {
-          customer: '',
-          items: [{
-            rincian: item.product_name,
-            qty: 1,
-            harga_satuan: 0,
-            satuan: 'Pcs'
-          }],
-          status: 'New Order'
-        }
-      }
-    });
-  };
-
   const handleExportExcel = () => {
     let dataToExport = [];
     let fileName = "";
 
     if (activeTab === 'reports') {
       dataToExport = (reportComparisonData || []).map(r => ({
-        'Kategori': r.account || '-',
+        'Instansi': r.account || '-',
         'Pendapatan': r.revenue || r.currentRevenue || r.val1 || 0,
-        'Target': r.target || (r.currentRevenue ? (targetPerOrang * 12) : targetPerOrang),
-        'Pencapaian (%)': (r.achievement || ((r.revenue || r.currentRevenue || r.val1 || 0) / (r.target || (r.currentRevenue ? (targetPerOrang * 12) : targetPerOrang) || 1) * 100)).toFixed(2) + '%'
+        'Target': r.target || (reportSubTab === 'tahunan' || reportSubTab === 'berjalan-tahunan' ? targetTahunan : targetBulanan),
+        'Pencapaian (%)': (r.achievement || ((r.revenue || r.currentRevenue || r.val1 || 0) / (r.target || (reportSubTab === 'tahunan' || reportSubTab === 'berjalan-tahunan' ? targetTahunan : targetBulanan) || 1) * 100)).toFixed(2) + '%'
       }));
       fileName = `Report_Offline_${reportSubTab}_${new Date().toISOString().split('T')[0]}`;
     } else {
@@ -774,17 +850,23 @@ export default function MarketingOfflineBanua({ embedded = false }) {
                 <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {[
-                      { title: 'Revenue (Bulan Ini)', value: formatRupiah(dashboardData.summary.range_revenue), bg: 'bg-red-100', text: 'text-gray-900' },
-                      { title: 'Transaction', value: `${dashboardData.summary.total_orders || 0} Orders`, bg: 'bg-[#ff3b3b]', text: 'text-white' },
-                      { title: 'Total Customer', value: `${dashboardData.summary.total_customers || 0} Customers`, bg: 'bg-red-100', text: 'text-gray-900' },
-                      { title: 'Qty Terjual', value: `${dashboardData.summary.total_qty || 0} Pcs`, bg: 'bg-[#ff4d4d]', text: 'text-white' }
+                      { title: 'Revenue (Bulan Ini)', value: formatRupiah(dashboardData.summary.range_revenue), icon: <DollarSign size={16} className="text-white" /> },
+                      { title: 'Transaction', value: `${dashboardData.summary.total_orders || 0} Orders`, icon: <ShoppingBag size={16} className="text-white" /> },
+                      { title: 'Total Customer', value: `${dashboardData.summary.total_customers || 0} Customers`, icon: <Users size={16} className="text-white" /> },
+                      { title: 'Qty Terjual', value: `${dashboardData.summary.total_qty || 0} Pcs`, icon: <Package size={16} className="text-white" /> }
                     ].map((card, index) => (
                       <div
                         key={index}
-                        className={`${card.bg} p-6 rounded-[2rem] shadow-sm flex flex-col justify-center min-h-[120px]`}
+                        className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 border-l-[6px] border-l-[#990000] flex flex-col justify-center transition-all hover:-translate-y-1 hover:shadow-md min-h-[110px]"
                       >
-                        <p className={`text-[10px] font-black uppercase tracking-widest mb-2 ${card.text === 'text-white' ? 'text-white/80' : 'text-red-900/60'}`}>{card.title}</p>
-                        <h3 className={`text-2xl font-black ${card.text}`}>{card.value}</h3>
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-[30px] h-[30px] rounded-full bg-[#990000] flex items-center justify-center shrink-0 shadow-sm shadow-red-900/20">
+                            {card.icon}
+                          </div>
+                          <p className="text-[12px] font-bold text-gray-500 tracking-wider uppercase truncate">{card.title || card.label}</p>
+                        </div>
+                        <h3 className="text-2xl font-black text-gray-900 leading-tight truncate">{card.value}</h3>
+                        {card.sub && <p className="text-[11px] mt-1 font-medium text-gray-400 truncate">{card.sub}</p>}
                       </div>
                     ))}
                   </div>
@@ -934,7 +1016,7 @@ export default function MarketingOfflineBanua({ embedded = false }) {
                         let months = (end.getFullYear() - start.getFullYear()) * 12; months -= start.getMonth(); months += end.getMonth();
                         return months <= 0 ? 1 : months + 1;
                     };
-                    const derivedHarianBerjalanTarget = getDaysDiff(filterDate1, filterDateEnd) * (targetPerOrang / 30);
+                    const derivedHarianBerjalanTarget = getDaysDiff(filterDate1, filterDateEnd) * targetHarian;
                     const filteredReportComparisonData = reportComparisonData || [];
                     const formatRupiah = (angka) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka || 0);
 
@@ -966,7 +1048,7 @@ export default function MarketingOfflineBanua({ embedded = false }) {
                     <div className="flex-1 min-w-[200px] p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
                       <label className="block text-xs font-bold text-emerald-600 uppercase mb-2">Target Pendapatan</label>
                       <div className="w-full py-1 text-emerald-700 font-bold text-lg">
-                        {formatRupiah(3067000000)}
+                        <span className="font-bold text-gray-700">{formatRupiah(targetTahunan)}</span>
                       </div>
                     </div>
                   </>
@@ -1014,7 +1096,7 @@ export default function MarketingOfflineBanua({ embedded = false }) {
                     <div className="flex-1 min-w-[200px] p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
                       <label className="block text-xs font-bold text-emerald-600 uppercase mb-2">Target Pendapatan</label>
                       <div className="w-full py-1 text-emerald-700 font-bold text-lg">
-                        {formatRupiah(3067000000 * (Math.abs(new Date(filterDate2).getFullYear() - new Date(filterDate1).getFullYear()) + 1))}
+                        {formatRupiah(targetTahunan * (Math.abs(new Date(filterDate2).getFullYear() - new Date(filterDate1).getFullYear()) + 1))}
                       </div>
                     </div>
                   </>
@@ -1032,7 +1114,7 @@ export default function MarketingOfflineBanua({ embedded = false }) {
                     <div className="flex-1 min-w-[200px] p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
                       <label className="block text-xs font-bold text-emerald-600 uppercase mb-2">Target Pendapatan</label>
                       <div className="w-full py-1 text-emerald-700 font-bold text-lg">
-                        {formatRupiah(8500000)}
+                        {formatRupiah(targetHarian)}
                       </div>
                     </div>
                   </>
@@ -1049,7 +1131,7 @@ export default function MarketingOfflineBanua({ embedded = false }) {
                     <div className="flex-1 min-w-[200px] p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
                       <label className="block text-xs font-bold text-emerald-600 uppercase mb-2">Target Pendapatan</label>
                       <div className="w-full py-1 text-emerald-700 font-bold text-lg">
-                        {formatRupiah(250000000 * getMonthsDiff(filterDate1, filterDateEnd))}
+                        {formatRupiah(targetBulanan * getMonthsDiff(filterDate1, filterDateEnd))}
                       </div>
                     </div>
                   </>
@@ -1068,7 +1150,7 @@ export default function MarketingOfflineBanua({ embedded = false }) {
                     <div className="flex-1 min-w-[200px] p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
                       <label className="block text-xs font-bold text-emerald-600 uppercase mb-2">Target Pendapatan</label>
                       <div className="w-full py-1 text-emerald-700 font-bold text-lg">
-                        {formatRupiah(255000000)}
+                        {formatRupiah(targetBulanan)}
                       </div>
                     </div>
                   </>
@@ -1097,7 +1179,7 @@ export default function MarketingOfflineBanua({ embedded = false }) {
                     <div className="flex-1 min-w-[200px] p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
                       <label className="block text-xs font-bold text-emerald-600 uppercase mb-2">Target Pendapatan</label>
                       <div className="w-full py-1 text-emerald-700 font-bold text-lg">
-                        {formatRupiah(255000000 * getMonthsDiff(`${berjalanMonthMain}-01`, `${berjalanMonthCmp}-01`))}
+                        {formatRupiah(targetBulanan * getMonthsDiff(`${berjalanMonthMain}-01`, `${berjalanMonthCmp}-01`))}
                       </div>
                     </div>
                   </>
@@ -1140,7 +1222,7 @@ export default function MarketingOfflineBanua({ embedded = false }) {
                     <thead>
                       <tr className="bg-gray-900 text-white">
                         <th className="py-4 px-6 text-center text-xs font-black uppercase tracking-widest border border-gray-800">No</th>
-                        <th className="py-4 px-6 text-left text-xs font-black uppercase tracking-widest border border-gray-800">Nama Akun</th>
+                        <th className="py-4 px-6 text-left text-xs font-black uppercase tracking-widest border border-gray-800">Instansi</th>
                         {reportSubTab === 'harian' && (
                           <>
                             <th className="py-4 px-6 text-right text-xs font-black uppercase tracking-widest border border-gray-800">Pendapatan Hari Ini</th>
@@ -1187,7 +1269,7 @@ export default function MarketingOfflineBanua({ embedded = false }) {
                       {filteredReportComparisonData.length > 0 ? (
                         reportSubTab === 'bulanan-monthly' ? (
                           filteredReportComparisonData.map((row, idx) => {
-                            const t = targetPerOrang || 0;
+                            const t = targetBulanan || 0;
                             const ach = t > 0 ? (row.val1 / t) * 100 : 0;
                             return (
                               <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
@@ -1243,7 +1325,7 @@ export default function MarketingOfflineBanua({ embedded = false }) {
                           ))
                         ) : reportSubTab === 'tahunan' ? (
                           filteredReportComparisonData.map((row, idx) => {
-                            const t = (targetPerOrang * 12) || 0;
+                            const t = targetTahunan || 0;
                             const ach = t > 0 ? (row.currentRevenue / t) * 100 : 0;
                             return (
                               <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
@@ -1272,12 +1354,12 @@ export default function MarketingOfflineBanua({ embedded = false }) {
                               { 
                                 titleCompare: 'Target',
                                 valueCompare: reportSubTab === 'berjalan-tahunan' 
-                                  ? ((targetPerOrang * 12) || 0) * (Math.abs(new Date(filterDate2).getFullYear() - new Date(filterDate1).getFullYear()) + 1)
+                                  ? targetTahunan * (Math.abs(new Date(filterDate2).getFullYear() - new Date(filterDate1).getFullYear()) + 1)
                                   : (reportSubTab === 'bulanan' 
-                                    ? ((targetPerOrang / 30) || 2000000) * getDaysDiff(filterDate1, filterDateEnd) 
+                                    ? targetHarian * getDaysDiff(filterDate1, filterDateEnd) 
                                     : (reportSubTab === 'berjalan-monthly' 
-                                      ? (targetPerOrang || 0) * getMonthsDiff(`${berjalanMonthMain}-01`, `${berjalanMonthCmp}-01`) 
-                                      : (targetPerOrang || 0))),
+                                      ? targetBulanan * getMonthsDiff(`${berjalanMonthMain}-01`, `${berjalanMonthCmp}-01`) 
+                                      : targetBulanan)),
                                 dateCompare1: null,
                                 dateCompare2: null
 
@@ -1382,11 +1464,11 @@ export default function MarketingOfflineBanua({ embedded = false }) {
                             {(() => {
                               const totalRev = filteredReportComparisonData.reduce((acc, curr) => acc + curr.currentRevenue, 0);
                               const totalTarget = reportSubTab === 'berjalan-tahunan' 
-                                ? 3067000000 * (Math.abs(new Date(filterDate2).getFullYear() - new Date(filterDate1).getFullYear()) + 1) 
+                                ? targetTahunan * (Math.abs(new Date(filterDate2).getFullYear() - new Date(filterDate1).getFullYear()) + 1) 
                                 : (reportSubTab === 'berjalan-monthly' 
-                                  ? 255000000 * getMonthsDiff(`${berjalanMonthMain}-01`, `${berjalanMonthCmp}-01`) 
+                                  ? targetBulanan * getMonthsDiff(`${berjalanMonthMain}-01`, `${berjalanMonthCmp}-01`) 
                                   : (reportSubTab === 'bulanan' ? derivedHarianBerjalanTarget : filteredReportComparisonData.reduce((acc, curr) => {
-                                      const t = reportSubTab === 'tahunan' ? ((targetPerOrang * 12) || 0) : (targetPerOrang || 0);
+                                      const t = reportSubTab === 'tahunan' ? targetTahunan : targetBulanan;
                                       return acc + t;
                                     }, 0)));
                               const pct = totalTarget > 0 ? (totalRev / totalTarget) * 100 : (totalRev > 0 ? 100 : 0);
@@ -1407,7 +1489,7 @@ export default function MarketingOfflineBanua({ embedded = false }) {
                           
                           {(reportSubTab === 'bulanan-monthly' || reportSubTab === 'tahunan') && (
                             <td className="py-5 px-6 text-center text-emerald-400 text-lg font-black">
-                              {formatRupiah(reportSubTab === 'tahunan' ? 3067000000 : 255000000)}
+                              {formatRupiah(reportSubTab === 'tahunan' ? targetTahunan : targetBulanan)}
                             </td>
                           )}
 
@@ -1417,12 +1499,12 @@ export default function MarketingOfflineBanua({ embedded = false }) {
                           {reportSubTab === 'harian' ? (
                             <>
                               <td className="py-5 px-6 text-center text-emerald-400 text-lg font-black">
-                                {formatRupiah(8500000)}
+                                {formatRupiah(targetHarian)}
                               </td>
                               <td className="py-5 px-6 text-center text-emerald-400 text-lg font-black">
                                 {(() => {
                                   const totalRev = filteredReportComparisonData.reduce((acc, curr) => acc + (curr.revenue || 0), 0);
-                                  const pct = (totalRev / 8500000) * 100;
+                                  const pct = targetHarian > 0 ? (totalRev / targetHarian) * 100 : 0;
                                   return `${pct.toFixed(2)}%`;
                                 })()}
                               </td>
@@ -1432,10 +1514,10 @@ export default function MarketingOfflineBanua({ embedded = false }) {
                               {(() => {
                                   const totalRev = filteredReportComparisonData.reduce((acc, curr) => acc + (curr.val1 || curr.currentRevenue || curr.revenue), 0);
                                   if (reportSubTab === 'bulanan-monthly') {
-                                    const pct = (totalRev / 255000000) * 100;
+                                    const pct = targetBulanan > 0 ? (totalRev / targetBulanan) * 100 : 0;
                                     return `${pct.toFixed(2)}%`;
                                   } else if (reportSubTab === 'tahunan') {
-                                    const pct = (totalRev / 3067000000) * 100;
+                                    const pct = targetTahunan > 0 ? (totalRev / targetTahunan) * 100 : 0;
                                     return `${pct.toFixed(2)}%`;
                                   } else {
                                     const totalPrev = filteredReportComparisonData.reduce((acc, curr) => acc + (curr.val2 || curr.prevRevenue), 0);
@@ -1453,7 +1535,7 @@ export default function MarketingOfflineBanua({ embedded = false }) {
                           <td className="py-4 px-6 text-right border-l border-gray-700">
                             <span className="text-emerald-400 font-bold text-lg">
                               {(() => {
-                                const totalTarget = 250000000 * getMonthsDiff(filterDate1, filterDateEnd);
+                                const totalTarget = targetBulanan * getMonthsDiff(filterDate1, filterDateEnd);
                                 return formatRupiah(totalTarget);
                               })()}
                             </span>
@@ -1461,7 +1543,7 @@ export default function MarketingOfflineBanua({ embedded = false }) {
                           <td className="py-4 px-6 text-center text-blue-400 text-lg font-black border-l border-gray-700">
                             {(() => {
                                 const totalRev = filteredReportComparisonData.reduce((acc, curr) => acc + curr.revenue, 0);
-                                const totalTarget = 250000000 * getMonthsDiff(filterDate1, filterDateEnd);
+                                const totalTarget = targetBulanan * getMonthsDiff(filterDate1, filterDateEnd);
                                 const pct = totalTarget > 0 ? (totalRev / totalTarget) * 100 : 0;
                                 return `${pct.toFixed(2)}%`;
                             })()} <span className="text-xs text-gray-400 block mt-1">(Ach. Target)</span>
@@ -1478,7 +1560,7 @@ export default function MarketingOfflineBanua({ embedded = false }) {
                 <div className="flex justify-between items-center mb-8">
                   <div>
                     <h3 className="text-xl font-black text-gray-900">
-                      {reportSubTab === 'harian' ? 'Pencapaian Target Akun' : 'Perbandingan Performa Akun'}
+                      {reportSubTab === 'harian' ? 'Pencapaian Target Instansi' : 'Perbandingan Performa Instansi'}
                     </h3>
                     <p className="text-sm text-gray-500 mt-1">
                       {reportSubTab === 'harian' ? 'Visualisasi pendapatan harian terhadap target' : 'Visualisasi pendapatan antara dua periode terpilih'}
@@ -1508,7 +1590,7 @@ export default function MarketingOfflineBanua({ embedded = false }) {
                       (reportSubTab === 'bulanan' || reportSubTab === 'berjalan-monthly' || reportSubTab === 'tahunan') ? filteredReportComparisonData.map(acc => ({
                         account: acc.account,
                         revenue: acc.currentRevenue,
-                        target: reportSubTab === 'tahunan' ? ((targetPerOrang * 12) || 0) : (targetPerOrang || 0),
+                        target: reportSubTab === 'tahunan' ? targetTahunan : targetBulanan,
                         prevMonth: reportSubTab === 'tahunan' ? 0 : (acc.comparisons?.find(c => c.id === 'prev_month')?.compareValue || 0),
                         prevYear: acc.comparisons?.find(c => c.id === 'prev_year')?.compareValue || 0
                       })) :
@@ -1775,12 +1857,9 @@ export default function MarketingOfflineBanua({ embedded = false }) {
 {activeTab === 'inventory' && (() => {
   const sizesArray = ['XS','S','M','L','XL','XXL','XXXL','XXXXL','XXXXXL','All Size'];
   return (
-    // 1. Pastikan kontainer utama punya radius
     <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700">
-      
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
-          {/* 2. Gunakan THEAD dengan warna, tanpa perlu rounded di dalam th */}
           <thead className="bg-gray-900 text-xs text-white uppercase tracking-wider font-semibold sticky top-0 z-10">
             <tr>
               <th className="p-4 font-semibold">Brand</th>
@@ -1797,7 +1876,6 @@ export default function MarketingOfflineBanua({ embedded = false }) {
             </tr>
           </thead>
           <tbody>
-            {/* ... isi data sama persis seperti sebelumnya ... */}
             {loading ? (
               <tr><td colSpan={7 + sizesArray.length} className="p-10 text-center"><Loader2 className="w-10 h-10 animate-spin text-[#990000] mx-auto" /></td></tr>
             ) : filteredInventory.length === 0 ? (
@@ -1809,12 +1887,17 @@ export default function MarketingOfflineBanua({ embedded = false }) {
                   <td className="p-4 font-bold text-gray-800">{item.nama_barang}</td>
                   <td className="p-4"><span className={`px-2 py-0.5 rounded text-[11px] font-bold ${item.kategori === 'Utama' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-gray-100 text-gray-600'}`}>{item.kategori}</span></td>
                   <td className="p-4">{item.cabang_id}</td>
-                  {sizesArray.map(size => <td key={size} className="p-4 text-center border-x border-gray-100 font-extrabold text-gray-800">{item.sizes?.[size] || '-'}</td>)}
-                  <td className="p-4 text-center font-extrabold text-red-600 text-base">{item.total_stok} Pcs</td>
-                  <td className="p-4 text-center"><span className="bg-red-50 border border-red-100 text-red-700 px-2.5 py-1 rounded-full text-xs font-bold">{item.minimum_stok} Pcs</span></td>
+                  {sizesArray.map(size => {
+                    const qty = item.sizes[size]?.qty || 0;
+                    return <td key={size} className="p-4 text-center border-x border-gray-100 font-extrabold text-gray-800">{qty > 0 ? qty : <span className="text-gray-300 font-normal">-</span>}</td>
+                  })}
+                  <td className="p-4 text-center font-extrabold text-red-600 text-base">{item.total_stok}</td>
+                  <td className="p-4 text-center"><span className="bg-red-50 border border-red-100 text-red-700 px-2.5 py-1 rounded-full text-xs font-bold">{item.minimum_stok}</span></td>
                   <td className="p-4 font-semibold text-gray-600">{item.kode_rak}</td>
                   <td className="p-4 text-center">
-                    <button onClick={() => handleOrderFromStock({ product_name: item.nama_barang, stock_qty: item.total_stok })} disabled={item.total_stok <= 0} className={`px-4 py-2 rounded-lg text-xs font-black ${item.total_stok > 0 ? 'bg-[#990000] text-white' : 'bg-gray-100 text-gray-400'}`}>Pesan</button>
+                    <div className="flex flex-col gap-1.5">
+                      <button onClick={() => { setSelectedItemForRequest(item); setShowRequestModal(true); }} disabled={item.total_stok <= 0} className={`px-4 py-1.5 rounded-lg text-[11px] font-black w-full flex items-center justify-center gap-1 ${item.total_stok > 0 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}><Package size={12} /> Ambil Stok</button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -1822,6 +1905,59 @@ export default function MarketingOfflineBanua({ embedded = false }) {
           </tbody>
         </table>
       </div>
+      
+      {showRequestModal && selectedItemForRequest && (
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-gray-50">
+              <h3 className="font-black text-gray-900 text-lg flex items-center gap-2">
+                <Package className="text-blue-600" size={20} /> Request Ambil Stok
+              </h3>
+              <button onClick={() => setShowRequestModal(false)} className="text-gray-400 hover:text-red-500 bg-white p-1 rounded-md shadow-sm">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="mb-5 p-4 bg-blue-50 border border-blue-100 rounded-xl">
+                <p className="text-sm font-semibold text-blue-900">Barang: <span className="font-black">{selectedItemForRequest.nama_barang}</span></p>
+                <p className="text-xs font-medium text-blue-700 mt-1">Total Stok Tersedia: {selectedItemForRequest.total_stok}</p>
+              </div>
+              <form onSubmit={handleRequestStokSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Pilih Ukuran *</label>
+                  <select required value={requestForm.ukuran} onChange={(e) => setRequestForm({ ...requestForm, ukuran: e.target.value })} className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border">
+                    <option value="">-- Pilih Ukuran --</option>
+                    {Object.entries(selectedItemForRequest.sizes).map(([sz, data]) => {
+                      if (data.qty > 0) {
+                        return <option key={sz} value={sz}>{sz} (Tersedia: {data.qty})</option>;
+                      }
+                      return null;
+                    })}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Jumlah (Qty) *</label>
+                  <input type="number" min="1" max={requestForm.ukuran ? selectedItemForRequest.sizes[requestForm.ukuran]?.qty : 1} required value={requestForm.jumlah} onChange={(e) => setRequestForm({ ...requestForm, jumlah: e.target.value })} className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Nama Pengambil *</label>
+                  <input type="text" required value={requestForm.nama_pengambil} onChange={(e) => setRequestForm({ ...requestForm, nama_pengambil: e.target.value })} className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Keperluan / Keterangan</label>
+                  <textarea rows="2" value={requestForm.keterangan} onChange={(e) => setRequestForm({ ...requestForm, keterangan: e.target.value })} placeholder="Cth: Untuk sampel / diberikan ke instansi" className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border"></textarea>
+                </div>
+                <div className="pt-2 flex justify-end gap-3">
+                  <button type="button" onClick={() => setShowRequestModal(false)} className="px-5 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold transition-colors">Batal</button>
+                  <button type="submit" className="px-5 py-2.5 text-white bg-blue-600 hover:bg-blue-700 rounded-xl font-bold shadow-sm transition-all flex items-center gap-2">
+                    <Send size={16} /> Konfirmasi Ambil Stok
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 })()}

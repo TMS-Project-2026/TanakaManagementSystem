@@ -254,10 +254,10 @@ const Stok = () => {
                                                     </td>
                                                 );
                                             })}
-                                            <td className="p-4 text-center font-extrabold text-red-600 text-base">{item.total_stok} Pcs</td>
+                                            <td className="p-4 text-center font-extrabold text-red-600 text-base">{item.total_stok}</td>
                                             <td className="p-4 text-center bg-gray-50/10 border-l border-gray-100">
                                                 <span className="bg-red-50 border border-red-100 text-red-700 px-2.5 py-1 rounded-full text-xs font-bold">
-                                                    {item.minimum_stok} Pcs
+                                                    {item.minimum_stok}
                                                 </span>
                                             </td>
                                             <td className="p-4 font-semibold text-gray-600">{item.kode_rak}</td>

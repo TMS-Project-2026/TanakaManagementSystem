@@ -468,60 +468,30 @@ const BarangMasuk = () => {
                                 </div>
                                 
                                 <form onSubmit={handleCreate}>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Brand</label>
-                                            <input 
-                                                list="brand-list" 
-                                                type="text" 
-                                                placeholder="Contoh: Honda" 
-                                                required 
-                                                value={namaBrand} 
-                                                onChange={e => setNamaBrand(e.target.value)} 
-                                                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-green-100 focus:border-green-600 outline-none transition-all" 
-                                            />
-                                            <datalist id="brand-list">
-                                                {uniqueBrands.map(b => <option key={b} value={b} />)}
-                                            </datalist>
-                                        </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
                                         <div>
                                             <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Barang</label>
-                                            <input 
-                                                list="barang-list" 
-                                                type="text" 
-                                                placeholder="Contoh: Kemeja Alisan" 
+                                            <select 
                                                 required 
                                                 value={namaBarang} 
-                                                onChange={e => setNamaBarang(e.target.value)} 
-                                                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-green-100 focus:border-green-600 outline-none transition-all" 
-                                            />
-                                            <datalist id="barang-list">
-                                                {uniqueBarang.map(b => <option key={b} value={b} />)}
-                                            </datalist>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-1">Kategori</label>
-                                            <select 
-                                                required 
-                                                value={kategori} 
-                                                onChange={e => setKategori(e.target.value)} 
-                                                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-green-100 focus:border-green-600 outline-none bg-white transition-all"
+                                                onChange={e => {
+                                                    const selected = e.target.value;
+                                                    setNamaBarang(selected);
+                                                    const existing = stokList.find(s => s.nama_barang === selected);
+                                                    if (existing) {
+                                                        setNamaBrand(existing.nama_brand || '');
+                                                        setKategori(existing.kategori || 'Reguler');
+                                                        setKodeRak(existing.kode_rak || '');
+                                                        setCabangId(existing.cabang_id || 'Banua');
+                                                        setMinimumStok(existing.minimum_stok || '5');
+                                                    }
+                                                }} 
+                                                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-green-100 focus:border-green-600 outline-none transition-all bg-white"
                                             >
-                                                <option value="Reguler">Reguler</option>
-                                                <option value="Utama">Utama</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-1">Cabang Tujuan</label>
-                                            <select 
-                                                required 
-                                                value={cabangId} 
-                                                onChange={e => setCabangId(e.target.value)} 
-                                                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-green-100 focus:border-green-600 outline-none bg-white transition-all"
-                                            >
-                                                <option value="Banua">Banua</option>
-                                                <option value="Tanaka">Tanaka</option>
-                                                <option value="Acestreet">Acestreet</option>
+                                                <option value="">-- Pilih Barang --</option>
+                                                {uniqueBarang.sort().map(b => (
+                                                    <option key={b} value={b}>{b}</option>
+                                                ))}
                                             </select>
                                         </div>
                                         <div>
@@ -532,28 +502,6 @@ const BarangMasuk = () => {
                                                 value={tanggal} 
                                                 onChange={e => setTanggal(e.target.value)} 
                                                 className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-green-100 focus:border-green-600 outline-none transition-all" 
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-1">Kode Rak (Opsional)</label>
-                                            <input 
-                                                type="text" 
-                                                placeholder="Contoh: A1-02" 
-                                                value={kodeRak} 
-                                                onChange={e => setKodeRak(e.target.value)} 
-                                                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-green-100 focus:border-green-600 outline-none transition-all" 
-                                            />
-                                        </div>
-                                        <div className="lg:col-span-2">
-                                            <label className="block text-sm font-semibold text-gray-700 mb-1 text-green-700 font-bold">Minimal Stok (Semua Ukuran)</label>
-                                            <input 
-                                                type="number" 
-                                                min="0" 
-                                                placeholder="Contoh: 50" 
-                                                required 
-                                                value={minimumStok} 
-                                                onChange={e => setMinimumStok(e.target.value)} 
-                                                className="w-full border border-green-300 bg-green-50/20 rounded-lg p-2.5 focus:ring-2 focus:ring-green-100 focus:border-green-600 outline-none font-bold transition-all" 
                                             />
                                         </div>
                                     </div>
@@ -572,25 +520,35 @@ const BarangMasuk = () => {
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-gray-100 text-sm">
-                                                    {sizeItems.map((item, idx) => (
-                                                        <tr key={item.ukuran} className="hover:bg-gray-50/30 transition-colors">
-                                                            <td className="p-3 pl-6 font-bold text-gray-700">Ukuran {item.ukuran}</td>
-                                                            <td className="p-3 pr-6">
-                                                                <input 
-                                                                    type="number" 
-                                                                    min="0" 
-                                                                    placeholder="0" 
-                                                                    value={item.jumlah} 
-                                                                    onChange={e => {
-                                                                        const newSizes = [...sizeItems];
-                                                                        newSizes[idx].jumlah = e.target.value;
-                                                                        setSizeItems(newSizes);
-                                                                    }} 
-                                                                    className="w-full border border-gray-200 rounded-lg p-2 focus:ring-2 focus:ring-green-100 focus:border-green-600 outline-none transition-all"
-                                                                />
-                                                            </td>
-                                                        </tr>
-                                                    ))}
+                                                    {sizeItems.map((item, idx) => {
+                                                        const existingStock = stokList.find(s => s.nama_barang === namaBarang && s.ukuran === item.ukuran && s.cabang_id === cabangId)?.jumlah || 0;
+                                                        return (
+                                                            <tr key={item.ukuran} className="hover:bg-gray-50/30 transition-colors">
+                                                                <td className="p-3 pl-6 font-bold text-gray-700">
+                                                                    Ukuran {item.ukuran}
+                                                                    {namaBarang && (
+                                                                        <span className="ml-2 text-[10px] font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full border border-gray-200">
+                                                                            Stok: {existingStock}
+                                                                        </span>
+                                                                    )}
+                                                                </td>
+                                                                <td className="p-3 pr-6">
+                                                                    <input 
+                                                                        type="number" 
+                                                                        min="0" 
+                                                                        placeholder="0" 
+                                                                        value={item.jumlah} 
+                                                                        onChange={e => {
+                                                                            const newSizes = [...sizeItems];
+                                                                            newSizes[idx].jumlah = e.target.value;
+                                                                            setSizeItems(newSizes);
+                                                                        }} 
+                                                                        className="w-full border border-gray-200 rounded-lg p-2 focus:ring-2 focus:ring-green-100 focus:border-green-600 outline-none transition-all"
+                                                                    />
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
                                                 </tbody>
                                                 <tfoot className="bg-gray-50/50">
                                                     <tr className="font-bold text-gray-800">

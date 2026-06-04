@@ -4,11 +4,11 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import * as XLSX from 'xlsx';
 import { shopeeDataAdapter } from '../utils/shopeeAdapter';
-import { getStok } from '../api/gudangApi';
+import { getStok, createPermintaanStok } from '../api/gudangApi';
 import {
   LayoutDashboard, ShoppingBag, Package, FileText, Upload, Gift,
   TrendingUp, Users, DollarSign, Calendar, Search, Loader2,
-  CheckCircle, AlertTriangle, ArrowRight, X, Download, Send, UserCircle, Plus, ChevronDown
+  CheckCircle, AlertTriangle, ArrowRight, X, Download, Send, UserCircle, Plus, ChevronDown, PieChart
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
@@ -130,6 +130,37 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
     potongan_shopee: '', hpp_aktual: '', order_date: new Date().toISOString().split('T')[0],
     address: '', status: 'Pesanan Selesai'
   });
+  
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [selectedItemForRequest, setSelectedItemForRequest] = useState(null);
+  const [requestForm, setRequestForm] = useState({
+    ukuran: '',
+    jumlah: 1,
+    nama_pengambil: JSON.parse(localStorage.getItem('user'))?.name || '',
+    divisi: 'Marketing Online',
+    keterangan: ''
+  });
+
+  const handleRequestStokSubmit = async (e) => {
+    e.preventDefault();
+    if (!requestForm.ukuran) return alert('Silakan pilih ukuran terlebih dahulu!');
+    if (!selectedItemForRequest.sizes[requestForm.ukuran]?.id) return alert('ID Stok untuk ukuran ini tidak ditemukan!');
+    
+    try {
+        await createPermintaanStok({
+            stok_id: selectedItemForRequest.sizes[requestForm.ukuran].id,
+            jumlah: requestForm.jumlah,
+            nama_pengambil: requestForm.nama_pengambil,
+            divisi: requestForm.divisi,
+            keterangan: requestForm.keterangan
+        });
+        alert('Permintaan stok berhasil diajukan dan menunggu approval Gudang.');
+        setShowRequestModal(false);
+        setRequestForm(prev => ({ ...prev, ukuran: '', jumlah: 1, keterangan: '' }));
+    } catch (err) {
+        alert(err.response?.data?.message || 'Terjadi kesalahan saat mengajukan permintaan.');
+    }
+  };
 
 
   // Formatting utils
@@ -1298,16 +1329,22 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
               {/* Summary Cards Grid (3 Columns) - Compact Version */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {[
-                  { title: 'Revenue (Bulan Ini)', value: formatRupiah(dashboardData.monthlySummary.totalRevenue), bg: 'bg-red-100', text: 'text-gray-900' },
-                  { title: 'Total Profit', value: formatRupiah(dashboardData.monthlySummary.totalProfit), bg: 'bg-[#ff3b3b]', text: 'text-white' },
-                  { title: 'Total HPP', value: formatRupiah(dashboardData.monthlySummary.totalHpp), bg: 'bg-red-100', text: 'text-gray-900' },
-                  { title: 'Qty Terjual', value: `${dashboardData.monthlySummary.totalQty || 0} Pcs`, bg: 'bg-red-100', text: 'text-gray-900' },
-                  { title: 'Potongan Shopee', value: formatRupiah(dashboardData.monthlySummary.totalPotongan), bg: 'bg-red-100', text: 'text-gray-900' },
-                  { title: 'Order Hari Ini', value: `${dashboardData.ordersToday} Pesanan`, bg: 'bg-[#ff4d4d]', text: 'text-white' }
+                  { title: 'Revenue (Bulan Ini)', value: formatRupiah(dashboardData.monthlySummary.totalRevenue), icon: <DollarSign size={16} className="text-white" /> },
+                  { title: 'Total Profit', value: formatRupiah(dashboardData.monthlySummary.totalProfit), icon: <TrendingUp size={16} className="text-white" /> },
+                  { title: 'Total HPP', value: formatRupiah(dashboardData.monthlySummary.totalHpp), icon: <PieChart size={16} className="text-white" /> },
+                  { title: 'Qty Terjual', value: `${dashboardData.monthlySummary.totalQty || 0} Pcs`, icon: <Package size={16} className="text-white" /> },
+                  { title: 'Potongan Shopee', value: formatRupiah(dashboardData.monthlySummary.totalPotongan), icon: <Gift size={16} className="text-white" /> },
+                  { title: 'Order Hari Ini', value: `${dashboardData.ordersToday} Pesanan`, icon: <ShoppingBag size={16} className="text-white" /> }
                 ].map((card, index) => (
-                  <div key={index} className={`${card.bg} p-6 rounded-[2rem] shadow-sm flex flex-col justify-center min-h-[120px] transition-transform hover:scale-[1.01]`}>
-                    <p className={`text-[10px] font-black uppercase tracking-widest mb-2 ${card.text === 'text-white' ? 'text-white/80' : 'text-red-900/60'}`}>{card.title}</p>
-                    <h3 className={`text-2xl font-black ${card.text}`}>{card.value}</h3>
+                  <div key={index} className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 border-l-[6px] border-l-[#990000] flex flex-col justify-center transition-all hover:-translate-y-1 hover:shadow-md min-h-[110px]">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-[30px] h-[30px] rounded-full bg-[#990000] flex items-center justify-center shrink-0 shadow-sm shadow-red-900/20">
+                        {card.icon}
+                      </div>
+                      <p className="text-[12px] font-bold text-gray-500 tracking-wider uppercase truncate">{card.title || card.label}</p>
+                    </div>
+                    <h3 className="text-2xl font-black text-gray-900 leading-tight truncate">{card.value}</h3>
+                    {card.sub && <p className="text-[11px] mt-1 font-medium text-gray-400 truncate">{card.sub}</p>}
                   </div>
                 ))}
               </div>
@@ -1691,12 +1728,14 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                   kode_rak: curr.kode_rak || '-',
                   total_stok: 0,
                   minimum_stok: curr.minimum_stok || 5,
-                  sizes: { XS:0, S:0, M:0, L:0, XL:0, XXL:0, XXXL:0, XXXXL:0, XXXXXL:0, 'All Size':0 }
+                  sizes: sizesArray.reduce((obj, sz) => { obj[sz] = { qty: 0, id: null }; return obj; }, {})
                 };
               }
               acc[key].total_stok += Number(curr.jumlah) || 0;
-              if (curr.ukuran && acc[key].sizes[curr.ukuran] !== undefined)
-                acc[key].sizes[curr.ukuran] += Number(curr.jumlah) || 0;
+              if (curr.ukuran && acc[key].sizes[curr.ukuran] !== undefined) {
+                acc[key].sizes[curr.ukuran].qty += Number(curr.jumlah) || 0;
+                if (!acc[key].sizes[curr.ukuran].id) acc[key].sizes[curr.ukuran].id = curr.id;
+              }
               if (curr.minimum_stok && curr.minimum_stok > acc[key].minimum_stok)
                 acc[key].minimum_stok = curr.minimum_stok;
               return acc;
@@ -1768,45 +1807,37 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                               </td>
                               <td className="p-4 text-gray-700 font-medium">{item.cabang_id}</td>
                               {sizesArray.map(size => {
-                                const qty = item.sizes[size] || 0;
+                                const qty = item.sizes[size]?.qty || 0;
                                 return (
                                   <td key={size} className="p-4 text-center bg-gray-50/10 border-x border-gray-100 font-extrabold text-gray-800">
                                     {qty > 0 ? qty : <span className="text-gray-300 font-normal">-</span>}
                                   </td>
                                 );
                               })}
-                              <td className="p-4 text-center font-extrabold text-red-600 text-base">{item.total_stok} Pcs</td>
+                              <td className="p-4 text-center font-extrabold text-red-600 text-base">{item.total_stok}</td>
                               <td className="p-4 text-center bg-gray-50/10 border-l border-gray-100">
                                 <span className="bg-red-50 border border-red-100 text-red-700 px-2.5 py-1 rounded-full text-xs font-bold">
-                                  {item.minimum_stok} Pcs
+                                  {item.minimum_stok}
                                 </span>
                               </td>
                               <td className="p-4 font-semibold text-gray-600">{item.kode_rak}</td>
                               <td className="p-4 text-center">
-                                <button
-                                  onClick={() => {
-                                    setManualOrder(prev => ({
-                                      ...prev,
-                                      product_name: item.nama_barang,
-                                      akun_toko: '',
-                                      qty: 1,
-                                      price_unit: '',
-                                      potongan_shopee: '',
-                                      hpp_aktual: '',
-                                      order_date: new Date().toISOString().split('T')[0],
-                                      status: 'Pesanan Selesai'
-                                    }));
-                                    setShowManualModal(true);
-                                  }}
-                                  disabled={item.total_stok <= 0}
-                                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 mx-auto ${
-                                    item.total_stok > 0
-                                      ? 'bg-[#990000] text-white hover:bg-red-900 shadow-sm hover:shadow-md active:scale-95'
-                                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                  }`}
-                                >
-                                  <ShoppingBag size={13} /> Pesan Sekarang
-                                </button>
+                                <div className="flex flex-col gap-1.5">
+                                  <button
+                                    onClick={() => {
+                                      setSelectedItemForRequest(item);
+                                      setShowRequestModal(true);
+                                    }}
+                                    disabled={item.total_stok <= 0}
+                                    className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 w-full ${
+                                      item.total_stok > 0
+                                        ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
+                                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                    }`}
+                                  >
+                                    <Package size={13} /> Ambil Stok
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           ))
@@ -2767,6 +2798,254 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                 {loading ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />}
                 Simpan Perubahan
               </button>
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                  <thead className="bg-gray-900 text-white text-[9px] uppercase tracking-widest font-bold sticky top-0">
+                    <tr>
+                      <th className="py-4 px-6">Tanggal</th>
+                      <th className="py-4 px-6">Akun</th>
+                      <th className="py-4 px-6">Produk</th>
+                      <th className="py-4 px-6">Qty</th>
+                      <th className="py-4 px-6">Total Harga</th>
+                      <th className="py-4 px-6">Potongan</th>
+                      <th className="py-4 px-6">Profit</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-[10px] divide-y divide-gray-100">
+                    {importPreview.slice(0, 50).map((row, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50">
+                        <td className="py-3 px-6 whitespace-nowrap">{row.order_date}</td>
+                        <td className="py-3 px-6 text-gray-500">{row.akun_toko}</td>
+                        <td className="py-3 px-6 font-bold">{row.product_name}</td>
+                        <td className="py-3 px-6 font-black text-[#990000]">{row.qty}</td>
+                        <td className="py-3 px-6 font-semibold">{formatRupiah(row.total_price)}</td>
+                        <td className="py-3 px-6 text-red-500 font-medium">{formatRupiah(row.potongan_shopee)}</td>
+                        <td className="py-3 px-6 font-bold text-emerald-600">{formatRupiah(row.profit)}</td>
+                      </tr>
+                    ))}
+                    {importPreview.length > 50 && (
+                      <tr>
+                        <td colSpan="6" className="py-4 text-center text-gray-500 font-medium bg-gray-50">
+                          ... dan {importPreview.length - 50} baris lainnya
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="px-8 py-5 border-t border-gray-100 bg-white flex justify-end gap-3">
+              <button
+                onClick={() => setShowImportModal(false)}
+                className="px-6 py-2.5 rounded-xl text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleSaveImport}
+                disabled={loading}
+                className="px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-[#990000] hover:bg-[#7a0000] shadow-sm hover:shadow-md transition-all flex items-center gap-2"
+              >
+                {loading ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />}
+                Simpan ke Database
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MANUAL ORDER MODAL */}
+      <ManualOrderModal
+        show={showManualModal}
+        onClose={() => setShowManualModal(false)}
+        onSave={handleSaveManual}
+        order={manualOrder}
+        setOrder={setManualOrder}
+        loading={loading}
+        formatRupiah={formatRupiah}
+        inventory={inventory}
+        availableAccounts={[...new Set([...Object.keys(dailyTargets), ...Object.keys(bulananTargets), ...Object.keys(tahunanTargets)])].sort()}
+      />
+
+      {/* EDIT ORDER MODAL */}
+      {showEditModal && editOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between px-8 py-6 border-b border-gray-100 sticky top-0 bg-white z-10 rounded-t-3xl">
+              <div>
+                <h2 className="text-xl font-black text-gray-900">Edit Order</h2>
+                <p className="text-xs text-gray-400 font-medium mt-0.5">Perbarui data pesanan — semua kalkulasi dihitung ulang otomatis</p>
+              </div>
+              <button onClick={() => { setShowEditModal(false); setEditOrder(null); }} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+                <X size={20} className="text-gray-500" />
+              </button>
+            </div>
+
+            <div className="px-8 py-6 space-y-5">
+              {/* Baris 1: Tanggal & Akun Toko */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Tanggal Order</label>
+                  <input type="date" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-medium text-sm"
+                    value={editOrder.order_date} onChange={e => setEditOrder({ ...editOrder, order_date: e.target.value })} />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Akun Toko</label>
+                  <input type="text" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-medium text-sm"
+                    value={editOrder.akun_toko} onChange={e => setEditOrder({ ...editOrder, akun_toko: e.target.value })} placeholder="Nama akun toko" />
+                </div>
+              </div>
+
+              {/* Nama Produk */}
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Nama Produk</label>
+                <input type="text" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-medium text-sm"
+                  value={editOrder.product_name} onChange={e => setEditOrder({ ...editOrder, product_name: e.target.value })} placeholder="Nama produk" />
+              </div>
+
+              {/* Baris 2: Qty & Harga Satuan */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Qty</label>
+                  <input type="number" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-medium text-sm"
+                    value={editOrder.qty} onChange={e => setEditOrder({ ...editOrder, qty: e.target.value })} placeholder="0" min="0" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Harga Satuan</label>
+                  <input type="number" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-medium text-sm"
+                    value={editOrder.price_unit} onChange={e => setEditOrder({ ...editOrder, price_unit: e.target.value })} placeholder="0" min="0" />
+                </div>
+              </div>
+
+              {/* Baris 3: HPP Satuan & Potongan Shopee */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#990000] uppercase mb-2">⚡ HPP Satuan</label>
+                  <input type="number" className="w-full p-3 bg-red-50 border border-red-200 rounded-xl outline-none focus:ring-2 focus:ring-red-100 font-bold text-sm text-[#990000]"
+                    value={editOrder.hpp_aktual} onChange={e => setEditOrder({ ...editOrder, hpp_aktual: e.target.value })} placeholder="0" min="0" />
+                  <p className="text-[10px] text-gray-400 mt-1">Ubah jika harga bahan baku berubah</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Potongan Shopee</label>
+                  <input type="number" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-medium text-sm"
+                    value={editOrder.potongan_shopee} onChange={e => setEditOrder({ ...editOrder, potongan_shopee: e.target.value })} placeholder="0" min="0" />
+                </div>
+              </div>
+
+              {/* Preview Kalkulasi Otomatis */}
+              {(() => {
+                const q   = parseInt(editOrder.qty) || 0;
+                const pu  = parseFloat(editOrder.price_unit) || 0;
+                const ps  = parseFloat(editOrder.potongan_shopee) || 0;
+                const hpp = parseFloat(editOrder.hpp_aktual) || 0;
+                const totalHarga   = q * pu;
+                const hppTotal     = q * hpp;
+                const totalHppAkt  = hppTotal + ps;
+                const actual       = totalHarga - ps;
+                const profit       = actual - hppTotal;
+                return (
+                  <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 grid grid-cols-3 gap-3">
+                    {[
+                      { label: 'Total Harga', val: totalHarga, color: 'text-gray-800' },
+                      { label: 'Total HPP', val: totalHppAkt, color: 'text-orange-600' },
+                      { label: 'Actual', val: actual, color: 'text-blue-700' },
+                      { label: 'HPP (qty×hpp)', val: hppTotal, color: 'text-gray-600' },
+                      { label: 'Profit', val: profit, color: profit >= 0 ? 'text-emerald-700' : 'text-red-600' },
+                    ].map((item, i) => (
+                      <div key={i} className="text-center">
+                        <p className="text-[9px] font-black uppercase text-gray-400 tracking-wider">{item.label}</p>
+                        <p className={`text-sm font-black ${item.color} mt-0.5`}>{formatRupiah(item.val)}</p>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+
+              {/* Status & Catatan */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Status</label>
+                  <select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-bold text-sm"
+                    value={editOrder.status} onChange={e => setEditOrder({ ...editOrder, status: e.target.value })}>
+                    <option value="Pesanan Selesai">Pesanan Selesai</option>
+                    <option value="Menunggu Finance">Menunggu Finance</option>
+                    <option value="Batal">Batal</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Catatan</label>
+                  <input type="text" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-medium text-sm"
+                    value={editOrder.catatan} onChange={e => setEditOrder({ ...editOrder, catatan: e.target.value })} placeholder="Catatan tambahan..." />
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-8 py-5 border-t border-gray-100 flex justify-end gap-3 sticky bottom-0 bg-white rounded-b-3xl">
+              <button onClick={() => { setShowEditModal(false); setEditOrder(null); }}
+                className="px-6 py-2.5 rounded-xl text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">
+                Batal
+              </button>
+              <button onClick={handleSaveEdit} disabled={loading}
+                className="px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition-all flex items-center gap-2">
+                {loading ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />}
+                Simpan Perubahan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showRequestModal && selectedItemForRequest && (
+        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-5 border-b border-gray-100 bg-gray-50">
+              <h3 className="font-black text-gray-900 text-lg flex items-center gap-2">
+                <Package className="text-blue-600" size={20} /> Ambil Stok
+              </h3>
+              <button onClick={() => setShowRequestModal(false)} className="text-gray-400 hover:text-red-500 bg-white p-1 rounded-md shadow-sm">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="mb-5 p-4 bg-blue-50 border border-blue-100 rounded-xl">
+                <p className="text-sm font-semibold text-blue-900">Barang: <span className="font-black">{selectedItemForRequest.nama_barang}</span></p>
+                <p className="text-xs font-medium text-blue-700 mt-1">Total Stok Tersedia: {selectedItemForRequest.total_stok}</p>
+              </div>
+              <form onSubmit={handleRequestStokSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Pilih Ukuran *</label>
+                  <select required value={requestForm.ukuran} onChange={(e) => setRequestForm({ ...requestForm, ukuran: e.target.value })} className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border">
+                    <option value="">-- Pilih Ukuran --</option>
+                    {Object.entries(selectedItemForRequest.sizes).map(([sz, data]) => {
+                      if (data.qty > 0) {
+                        return <option key={sz} value={sz}>{sz} (Tersedia: {data.qty})</option>;
+                      }
+                      return null;
+                    })}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Jumlah (Qty) *</label>
+                  <input type="number" min="1" max={requestForm.ukuran ? selectedItemForRequest.sizes[requestForm.ukuran]?.qty : 1} required value={requestForm.jumlah} onChange={(e) => setRequestForm({ ...requestForm, jumlah: e.target.value })} className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Nama Pengambil *</label>
+                  <input type="text" required value={requestForm.nama_pengambil} onChange={(e) => setRequestForm({ ...requestForm, nama_pengambil: e.target.value })} className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Keperluan / Keterangan</label>
+                  <textarea rows="2" value={requestForm.keterangan} onChange={(e) => setRequestForm({ ...requestForm, keterangan: e.target.value })} placeholder="Untuk pesanan Shopee No. 123..." className="w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 p-2 border"></textarea>
+                </div>
+                <div className="pt-2 flex justify-end gap-3">
+                  <button type="button" onClick={() => setShowRequestModal(false)} className="px-5 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold transition-colors">Batal</button>
+                  <button type="submit" className="px-5 py-2.5 text-white bg-blue-600 hover:bg-blue-700 rounded-xl font-bold shadow-sm transition-all flex items-center gap-2">
+                    <Send size={16} /> Konfirmasi Ambil Stok
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

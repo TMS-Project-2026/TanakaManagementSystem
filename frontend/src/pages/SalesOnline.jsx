@@ -1,3 +1,5 @@
+import NotificationBell from '../components/NotificationBell';
+import { Bell } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import Sidebar from '../components/Sidebar';
@@ -366,6 +368,8 @@ const SalesOnline = () => {
           </div>
 
           <div className="flex items-center gap-6">
+
+          <NotificationBell />
             {/* FILTER TANGGAL (Pindahan) */}
             <div className="flex items-center gap-2 bg-white p-1.5 rounded-full shadow-sm border border-gray-100">
               <div className="flex flex-col">

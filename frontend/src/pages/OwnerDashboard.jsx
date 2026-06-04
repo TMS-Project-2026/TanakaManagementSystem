@@ -67,10 +67,10 @@ const OwnerDashboard = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                         {cards.map((card, i) => (
-                            <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow flex items-center justify-between">
+                            <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 border-l-[6px] border-l-[#990000] hover:-translate-y-0.5 hover:shadow-md transition-all flex items-center justify-between min-h-[120px]">
                                 <div>
-                                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{card.title}</p>
-                                    <h3 className="text-xl font-black text-gray-900">{card.value}</h3>
+                                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{card.title}</p>
+                                    <h3 className="text-2xl font-black text-gray-900 leading-tight">{card.value}</h3>
                                 </div>
                                 <div className={`p-4 rounded-xl ${card.bg}`}>{card.icon}</div>
                             </div>

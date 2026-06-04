@@ -1,3 +1,5 @@
+import NotificationBell from '../components/NotificationBell';
+import { Bell } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { getPayments, createPayment, updatePaymentStatus } from '../api/financeApi';
 import { PlusCircle, Edit, Search, UserCircle } from 'lucide-react';
@@ -52,6 +54,8 @@ const Payment = () => {
                 {/* TOPBAR */}
                 <header className="h-auto flex flex-col sm:flex-row items-end justify-end px-4 sm:px-10 py-4 gap-4 sm:gap-0 mb-4">
                   <div className="flex items-center gap-6">
+
+          <NotificationBell />
                     <div className="relative">
                       <div className="bg-white p-1.5 rounded-full shadow-sm cursor-pointer hover:shadow-md transition-all border border-gray-100" onClick={() => {}}>
                         <UserCircle size={32} className="text-gray-400 hover:text-[#990000] transition-colors" />

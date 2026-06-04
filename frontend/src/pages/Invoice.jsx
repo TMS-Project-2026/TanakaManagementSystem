@@ -1,3 +1,5 @@
+import NotificationBell from '../components/NotificationBell';
+import { Bell } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { getInvoices, deleteInvoice, updateInvoice } from '../api/invoiceApi';
 import { PlusCircle, Edit, Trash2, Eye, Printer, Download, Search, Filter, Receipt, UserCircle } from 'lucide-react';
@@ -62,40 +64,63 @@ const Invoice = () => {
     };
 
     return (
-        <div className="flex bg-[#f8fafc] min-h-screen font-sans">
+        <div className="flex bg-gray-50 min-h-screen font-sans">
             <Sidebar />
-            <main className="flex-1 p-6 lg:p-8 overflow-y-auto h-screen">
-                <div className="max-w-7xl mx-auto">
-                    {/* Header */}
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                        <div className="border-l-4 border-[#990000] pl-4">
-                            <h1 className="text-3xl font-black text-gray-900 tracking-tight">
-                                Data <span className="text-[#990000]">Invoice</span>
-                            </h1>
-                            <p className="text-gray-500 font-medium mt-1">Kelola seluruh tagihan perusahaan dari berbagai cabang.</p>
-                        </div>
-                        <button
-                            onClick={() => navigate('/invoice/create')}
-                            className="bg-[#990000] hover:bg-red-800 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-2 transition-transform active:scale-95 font-semibold"
-                        >
-                            <PlusCircle size={20} />
-                            Buat Invoice
-                        </button>
-                    </div>
+            <main className="flex-1 flex flex-col pt-16 md:pt-0 h-screen overflow-hidden">
+                {/* TOPBAR */}
+                <header className="h-auto flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-10 py-4 gap-4 sm:gap-0 mb-4">
+                  <div className="relative w-full sm:w-96">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <input
+                      type="text"
+                      placeholder="Cari No. Invoice / Nama PT..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="w-full pl-12 pr-4 py-2.5 bg-white rounded-full border border-gray-200 shadow-sm text-sm focus:outline-none focus:border-[#990000] focus:ring-2 focus:ring-red-100 transition-all"
+                    />
+                  </div>
+                  <div className="flex items-center gap-6">
 
-                    {/* Filter Bar */}
-                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6 flex flex-col md:flex-row gap-4 justify-between items-center">
-                        <div className="flex flex-wrap gap-3 w-full md:w-auto items-center">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                                <input
-                                    type="text"
-                                    placeholder="Cari No. Invoice / Nama PT..."
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                    className="pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#990000]/20 focus:border-[#990000] outline-none text-sm w-64"
-                                />
+          <NotificationBell />
+                    <div className="relative">
+                      <div className="bg-white p-1.5 rounded-full shadow-sm cursor-pointer hover:shadow-md transition-all border border-gray-100" onClick={() => setShowProfile(!showProfile)}>
+                        <UserCircle size={32} className="text-gray-400 hover:text-[#990000] transition-colors" />
+                      </div>
+                      
+                      {showProfile && (
+                        <div className="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+                          <div className="p-4 bg-red-50/50">
+                            <p className="text-sm font-black text-gray-900">Admin</p>
+                            <p className="text-[10px] font-bold text-[#990000] uppercase tracking-wider mt-0.5">Finance</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </header>
+
+                <div className="flex-1 overflow-y-auto px-4 sm:px-10 pb-10">
+                    <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+                        {/* Header */}
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                            <div>
+                                <h1 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                                    Data Invoice
+                                </h1>
+                                <p className="text-gray-500 mt-2 text-sm font-medium">Kelola seluruh tagihan perusahaan dari berbagai cabang.</p>
                             </div>
+                            <button
+                                onClick={() => navigate('/invoice/create')}
+                                className="bg-[#990000] hover:bg-red-800 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-2 transition-transform active:scale-95 font-semibold"
+                            >
+                                <PlusCircle size={20} />
+                                Buat Invoice
+                            </button>
+                        </div>
+
+                        {/* Filter Bar */}
+                        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6 flex flex-col md:flex-row gap-4 justify-between items-center">
+                            <div className="flex flex-wrap gap-3 w-full md:w-auto items-center">
                             <select
                                 value={filterCabang}
                                 onChange={(e) => setFilterCabang(e.target.value)}
@@ -188,9 +213,10 @@ const Invoice = () => {
                         </div>
                     </div>
                 </div>
-            </main>
-        </div>
-    );
+            </div>
+        </main>
+    </div>
+  );
 
 };
 

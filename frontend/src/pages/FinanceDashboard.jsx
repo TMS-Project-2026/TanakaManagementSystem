@@ -9,34 +9,27 @@ import {
 } from 'recharts';
 import {
     TrendingUp, TrendingDown, Wallet, CreditCard, FileText,
-    RefreshCw, Activity, Loader2, ArrowUpRight, ArrowDownRight, PieChart as PieIcon
+    RefreshCw, Activity, Loader2, ArrowUpRight, ArrowDownRight, PieChart as PieIcon,
+    UserCircle, ChevronDown
 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 
 const PIE_COLORS = ['#990000','#e05252','#f59e0b','#10b981','#6366f1','#8b5cf6', '#ec4899', '#14b8a6'];
 
 const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
-const fmtShort = (n) => {
-    const abs = Math.abs(n || 0);
-    if (abs >= 1e9) return `Rp ${(n/1e9).toFixed(1)}M`;
-    if (abs >= 1e6) return `Rp ${(n/1e6).toFixed(1)}jt`;
-    if (abs >= 1e3) return `Rp ${(n/1e3).toFixed(0)}rb`;
-    return `Rp ${n}`;
-};
 
-const StatCard = ({ label, value, sub, icon: Icon, iconBg, iconColor, badge, badgeColor }) => (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:shadow-md transition-all hover:-translate-y-0.5">
-        <div className="flex items-start justify-between mb-4">
-            <div className={`w-11 h-11 ${iconBg} rounded-xl flex items-center justify-center`}>
-                <Icon size={20} className={iconColor}/>
-            </div>
-            {badge && (
-                <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${badgeColor}`}>{badge}</span>
+const StatCard = ({ label, value, sub, icon }) => (
+    <div className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 border-l-[6px] border-l-[#990000] flex flex-col justify-center transition-all hover:-translate-y-1 hover:shadow-md min-h-[110px]">
+        <div className="flex items-center gap-3 mb-2">
+            {icon && (
+                <div className="w-[30px] h-[30px] rounded-full bg-[#990000] flex items-center justify-center shrink-0 shadow-sm shadow-red-900/20">
+                    {icon}
+                </div>
             )}
+            <p className="text-[12px] font-bold text-gray-500 tracking-wider uppercase truncate">{label}</p>
         </div>
-        <p className="text-base font-bold text-gray-700 mb-2">{label}</p>
-        <p className="text-xl font-black text-gray-900 leading-tight">{value}</p>
-        {sub && <p className="text-xs text-gray-400 mt-1 font-semibold">{sub}</p>}
+        <p className="text-2xl font-black text-gray-900 leading-tight truncate">{value}</p>
+        {sub && <p className="text-[11px] mt-1 font-medium text-gray-400 truncate">{sub}</p>}
     </div>
 );
 
@@ -56,6 +49,7 @@ export default function FinanceDashboard({ embedded = false }) {
     const [data, setData]       = useState(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [showProfile, setShowProfile] = useState(false);
 
     const fetchData = useCallback(async (showSpinner = true) => {
         if (showSpinner) setLoading(true); else setRefreshing(true);
@@ -157,18 +151,39 @@ export default function FinanceDashboard({ embedded = false }) {
     const isProfit = (data?.labaBersih || 0) >= 0;
 
     return (
-        <div className="flex bg-[#f8fafc] min-h-screen font-sans">
+        <div className="flex bg-[#f8fafc] min-h-screen font-sans relative">
             {!embedded && <Sidebar/>}
             <main className="flex-1 flex flex-col pt-16 md:pt-0 h-screen overflow-hidden">
-                <div className="flex-1 overflow-y-auto px-4 sm:px-8 pb-10 pt-6">
+                {!embedded && (
+                    <header className="h-20 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center px-10 sticky top-0 z-30 justify-end shrink-0">
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-2xl border border-gray-100">
+                                <div className="bg-gray-100 p-2 rounded-full cursor-pointer hover:bg-gray-200 transition-colors" onClick={() => setShowProfile(!showProfile)}>
+                                    <UserCircle className="text-gray-400" size={24} />
+                                </div>
+                                <ChevronDown size={14} className="text-gray-400" />
+                                {showProfile && (
+                                    <div className="absolute right-10 top-16 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                        <div className="p-4 bg-red-50/50">
+                                            <p className="text-sm font-black text-gray-900">Admin / Manager</p>
+                                            <p className="text-[10px] font-bold text-[#990000] uppercase tracking-wider mt-0.5">Role Finance</p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </header>
+                )}
+
+                <div className="flex-1 overflow-y-auto px-4 sm:px-10 pb-10 pt-8">
 
                     {/* ── HEADER ── */}
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-7">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-7 max-w-[1600px] mx-auto">
                         <div>
-                            <p className="text-xs text-[#990000] font-bold uppercase tracking-widest mb-1">Live Sync Laba Rugi & Neraca</p>
-                            <h1 className="text-2xl md:text-3xl font-black text-gray-900">
-                                Dashboard <span className="text-[#990000]">Keuangan</span>
+                            <h1 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                                Dashboard Finance
                             </h1>
+                            <p className="text-gray-500 mt-2 text-sm font-medium">Live Sync Laba Rugi, Neraca, dan ringkasan aktivitas keuangan secara real-time</p>
                         </div>
                         <div className="flex items-center gap-2">
                             <button onClick={() => fetchData(false)}
@@ -182,29 +197,18 @@ export default function FinanceDashboard({ embedded = false }) {
                     {/* ── STAT CARDS ── */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                         <StatCard
-                            label="Total Revenue (Pendapatan)" value={fmtShort(data?.totalRevenue)}
-                            sub="Seluruh transaksi penjualan"
-                            icon={TrendingUp} iconBg="bg-blue-50" iconColor="text-blue-600"
-                            badge="Revenue" badgeColor="bg-blue-50 text-blue-600"/>
+                            label="Total Revenue" value={fmt(data?.totalRevenue)}
+                            sub="Seluruh transaksi penjualan" icon={<TrendingUp size={16} className="text-white"/>} />
                         <StatCard
-                            label="Total Pembelian (HPP)" value={fmtShort(data?.totalPembelian)}
-                            sub="Seluruh transaksi pembelian"
-                            icon={CreditCard} iconBg="bg-orange-50" iconColor="text-orange-600"
-                            badge="Pembelian" badgeColor="bg-orange-50 text-orange-600"/>
+                            label="Total Pembelian" value={fmt(data?.totalPembelian)}
+                            sub="Seluruh transaksi pembelian" icon={<TrendingDown size={16} className="text-white"/>} />
                         <StatCard
-                            label="Kas Berjalan (In Hand)" value={fmtShort(data?.kasInHand)}
-                            sub="Kas di Bank & Kas Kecil"
-                            icon={Wallet} iconBg="bg-emerald-50" iconColor="text-emerald-600"
-                            badge="Kas" badgeColor="bg-emerald-50 text-emerald-600"/>
+                            label="Kas Berjalan" value={fmt(data?.kasInHand)}
+                            sub="Kas di Bank & Kas Kecil" icon={<Wallet size={16} className="text-white"/>} />
                         <StatCard
                             label={isProfit ? 'Persentase Laba Bersih' : 'Persentase Rugi Bersih'}
                             value={`${data?.labaPresentase}%`}
-                            sub={isProfit ? `${fmtShort(data?.labaBersih)} (Profit)` : `${fmtShort(data?.labaBersih)} (Loss)`}
-                            icon={isProfit ? TrendingUp : TrendingDown}
-                            iconBg={isProfit ? 'bg-amber-50' : 'bg-red-50'}
-                            iconColor={isProfit ? 'text-amber-600' : 'text-red-600'}
-                            badge={isProfit ? 'Profit' : 'Loss'}
-                            badgeColor={isProfit ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-600'}/>
+                            sub={isProfit ? `${fmt(data?.labaBersih)} (Profit)` : `${fmt(data?.labaBersih)} (Loss)`} icon={<Activity size={16} className="text-white"/>} />
                     </div>
 
                     {/* ── CHARTS ROW 1 ── */}
@@ -212,7 +216,7 @@ export default function FinanceDashboard({ embedded = false }) {
                         {/* Income vs Expense */}
                         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                             <h3 className="text-base font-black text-gray-900 mb-1">Income vs Expense</h3>
-                            <p className="text-xs text-gray-400 mb-6">Pendapatan vs (HPP + Biaya Operasional)</p>
+                            <p className="text-xs text-gray-400 mb-6">Total Pendapatan vs (Pembelian + Biaya Operasional)</p>
                             <div className="h-64">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={[
@@ -223,19 +227,19 @@ export default function FinanceDashboard({ embedded = false }) {
                                         <YAxis tickFormatter={v => `${(v/1e6).toFixed(0)}Jt`} tick={{fontSize:11, fill:'#9ca3af'}} axisLine={false} tickLine={false} width={45} />
                                         <Tooltip content={<CustomTooltip/>} cursor={{fill:'transparent'}}/>
                                         <Legend wrapperStyle={{fontSize:'12px', fontWeight:'600'}} />
-                                        <Bar dataKey="Income" fill="#10b981" radius={[6,6,0,0]} barSize={40} />
-                                        <Bar dataKey="Expense" fill="#f43f5e" radius={[6,6,0,0]} barSize={40} />
+                                        <Bar dataKey="Income" fill="#990000" radius={[6,6,0,0]} barSize={40} />
+                                        <Bar dataKey="Expense" fill="#475569" radius={[6,6,0,0]} barSize={40} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>
                             <div className="mt-4 grid grid-cols-2 gap-2 border-t pt-4">
                                 <div>
                                     <p className="text-xs text-gray-500 font-bold">Total Income</p>
-                                    <p className="text-sm font-black text-emerald-600">{fmt(data?.totalRevenue)}</p>
+                                    <p className="text-sm font-black text-[#990000]">{fmt(data?.totalRevenue)}</p>
                                 </div>
                                 <div>
                                     <p className="text-xs text-gray-500 font-bold">Total Expense</p>
-                                    <p className="text-sm font-black text-rose-500">{fmt((data?.totalPembelian || 0) + (data?.biayaChartData || []).reduce((a,b)=>a+b.value, 0))}</p>
+                                    <p className="text-sm font-black text-gray-700">{fmt((data?.totalPembelian || 0) + (data?.biayaChartData || []).reduce((a,b)=>a+b.value, 0))}</p>
                                 </div>
                             </div>
                         </div>
@@ -243,7 +247,7 @@ export default function FinanceDashboard({ embedded = false }) {
                         {/* Perbandingan Revenue dan Receivable */}
                         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                             <h3 className="text-base font-black text-gray-900 mb-1">Revenue vs Receivable</h3>
-                            <p className="text-xs text-gray-400 mb-6">Total Pendapatan vs Piutang (AR)</p>
+                            <p className="text-xs text-gray-400 mb-6">Total Pendapatan vs Piutang</p>
                             <div className="h-64">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={[
@@ -254,27 +258,27 @@ export default function FinanceDashboard({ embedded = false }) {
                                         <YAxis tickFormatter={v => `${(v/1e6).toFixed(0)}Jt`} tick={{fontSize:11, fill:'#9ca3af'}} axisLine={false} tickLine={false} width={45} />
                                         <Tooltip content={<CustomTooltip/>} cursor={{fill:'transparent'}}/>
                                         <Legend wrapperStyle={{fontSize:'12px', fontWeight:'600'}} />
-                                        <Bar dataKey="Revenue" fill="#1f2937" radius={[6,6,0,0]} barSize={40} />
-                                        <Bar dataKey="Receivable" fill="#3b82f6" radius={[6,6,0,0]} barSize={40} />
+                                        <Bar dataKey="Revenue" fill="#990000" radius={[6,6,0,0]} barSize={40} />
+                                        <Bar dataKey="Receivable" fill="#f87171" radius={[6,6,0,0]} barSize={40} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>
                             <div className="mt-4 grid grid-cols-2 gap-2 border-t pt-4">
                                 <div>
                                     <p className="text-xs text-gray-500 font-bold">Total Revenue</p>
-                                    <p className="text-sm font-black text-gray-900">{fmt(data?.totalRevenue)}</p>
+                                    <p className="text-sm font-black text-[#990000]">{fmt(data?.totalRevenue)}</p>
                                 </div>
                                 <div>
                                     <p className="text-xs text-gray-500 font-bold">Total Receivable</p>
-                                    <p className="text-sm font-black text-blue-600">{fmt(data?.totalPiutangBelumDibayar)}</p>
+                                    <p className="text-sm font-black text-red-400">{fmt(data?.totalPiutangBelumDibayar)}</p>
                                 </div>
                             </div>
                         </div>
 
                         {/* Piutang vs Hutang */}
                         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                            <h3 className="text-base font-black text-gray-900 mb-1">Piutang vs Hutang (Belum Dibayar)</h3>
-                            <p className="text-xs text-gray-400 mb-6">Perbandingan AR (Piutang) dan AP (Hutang) yang masih gantung</p>
+                            <h3 className="text-base font-black text-gray-900 mb-1">Piutang vs Hutang</h3>
+                            <p className="text-xs text-gray-400 mb-6">Perbandingan Piutang dan Hutang berjalan</p>
                             <div className="h-64">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={[
@@ -285,7 +289,7 @@ export default function FinanceDashboard({ embedded = false }) {
                                         <YAxis tickFormatter={v => `${(v/1e6).toFixed(0)}Jt`} tick={{fontSize:11, fill:'#9ca3af'}} axisLine={false} tickLine={false} width={45} />
                                         <Tooltip content={<CustomTooltip/>} cursor={{fill:'transparent'}}/>
                                         <Legend wrapperStyle={{fontSize:'12px', fontWeight:'600'}} />
-                                        <Bar dataKey="Piutang" fill="#3b82f6" radius={[6,6,0,0]} barSize={40} />
+                                        <Bar dataKey="Piutang" fill="#f87171" radius={[6,6,0,0]} barSize={40} />
                                         <Bar dataKey="Hutang" fill="#990000" radius={[6,6,0,0]} barSize={40} />
                                     </BarChart>
                                 </ResponsiveContainer>
@@ -293,7 +297,7 @@ export default function FinanceDashboard({ embedded = false }) {
                             <div className="mt-4 grid grid-cols-2 gap-2 border-t pt-4">
                                 <div>
                                     <p className="text-xs text-gray-500 font-bold">Total Piutang</p>
-                                    <p className="text-sm font-black text-blue-600">{fmt(data?.totalPiutangBelumDibayar)}</p>
+                                    <p className="text-sm font-black text-red-400">{fmt(data?.totalPiutangBelumDibayar)}</p>
                                 </div>
                                 <div>
                                     <p className="text-xs text-gray-500 font-bold">Total Hutang</p>

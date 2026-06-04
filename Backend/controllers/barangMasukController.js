@@ -18,15 +18,18 @@ exports.getAllBarangMasuk = async (req, res) => {
 };
 
 exports.createBarangMasuk = async (req, res) => {
+    const promiseDb = db.promise();
     try {
         const { barang_id, jumlah, tanggal, supplier, transaksi_id, items, nama_brand, nama_barang, kategori, cabang_id, kode_rak } = req.body;
 
-        const promiseDb = db.promise();
         const trxId = transaksi_id || 'TRX-IN-' + Date.now() + Math.floor(Math.random() * 1000);
+
+        await promiseDb.query("START TRANSACTION");
 
         // Jika request dalam format baru (multi-size / auto-create)
         if (items && Array.isArray(items)) {
             if (!nama_barang || !kategori || !cabang_id || !tanggal) {
+                await promiseDb.query("ROLLBACK");
                 return res.status(400).json({ message: "Data utama tidak lengkap (Nama Barang, Kategori, Cabang, Tanggal wajib diisi)!" });
             }
 
@@ -69,33 +72,38 @@ exports.createBarangMasuk = async (req, res) => {
                 );
             }
 
+            await promiseDb.query("COMMIT");
             return res.status(201).json({ message: "Barang masuk berhasil dicatat dan stok diperbarui!", transaksi_id: trxId });
         }
 
         // Fallback ke format lama (single item)
         if (!barang_id || !jumlah || !tanggal) {
+            await promiseDb.query("ROLLBACK");
             return res.status(400).json({ message: "Data tidak lengkap!" });
         }
 
         const sqlInsert = "INSERT INTO barang_masuk (transaksi_id, barang_id, jumlah, tanggal, supplier) VALUES (?, ?, ?, ?, ?)";
-        await promiseDb.query(sqlInsert, [trxId, barang_id, jumlah, tanggal, supplier]);
+        await promiseDb.query(sqlInsert, [trxId, barang_id, jumlah, tanggal, supplier || null]);
         
         const sqlUpdate = "UPDATE stok SET jumlah = jumlah + ? WHERE id = ?";
         await promiseDb.query(sqlUpdate, [jumlah, barang_id]);
 
+        await promiseDb.query("COMMIT");
         res.status(201).json({ message: "Barang masuk berhasil dicatat dan stok bertambah!", transaksi_id: trxId });
     } catch (error) {
+        if (promiseDb) await promiseDb.query("ROLLBACK");
         console.error("Error create barang_masuk:", error);
         res.status(500).json({ message: error.message });
     }
 };
 
 exports.updateBarangMasuk = async (req, res) => {
+    const promiseDb = db.promise();
     try {
         const { transaksi_id } = req.params;
-        const { tanggal, cabang_id, nama_brand, nama_barang, kategori, kode_rak, items } = req.body;
+        const { tanggal, cabang_id, nama_brand, nama_barang, kategori, kode_rak, items, supplier } = req.body;
         
-        const promiseDb = db.promise();
+        await promiseDb.query("START TRANSACTION");
         
         // 1. Revert old stock
         const [oldItems] = await promiseDb.query("SELECT * FROM barang_masuk WHERE transaksi_id = ?", [transaksi_id]);
@@ -137,25 +145,37 @@ exports.updateBarangMasuk = async (req, res) => {
 
                 await promiseDb.query(
                     "INSERT INTO barang_masuk (transaksi_id, barang_id, jumlah, tanggal, supplier) VALUES (?, ?, ?, ?, ?)",
-                    [transaksi_id, stockId, qty, tanggal, null]
+                    [transaksi_id, stockId, qty, tanggal, supplier || null]
                 );
             }
+        } else if (req.body.barang_id && req.body.jumlah) {
+             // Fallback ke format lama untuk update
+             const sqlInsert = "INSERT INTO barang_masuk (transaksi_id, barang_id, jumlah, tanggal, supplier) VALUES (?, ?, ?, ?, ?)";
+             await promiseDb.query(sqlInsert, [transaksi_id, req.body.barang_id, req.body.jumlah, tanggal, supplier || null]);
+             
+             const sqlUpdate = "UPDATE stok SET jumlah = jumlah + ? WHERE id = ?";
+             await promiseDb.query(sqlUpdate, [req.body.jumlah, req.body.barang_id]);
         }
         
+        await promiseDb.query("COMMIT");
         res.status(200).json({ message: "Transaksi berhasil diupdate dan stok disesuaikan." });
     } catch (error) {
+        if (promiseDb) await promiseDb.query("ROLLBACK");
         console.error("Error update barang_masuk:", error);
         res.status(500).json({ message: error.message });
     }
 };
 
 exports.deleteBarangMasuk = async (req, res) => {
+    const promiseDb = db.promise();
     try {
         const { transaksi_id } = req.params;
-        const promiseDb = db.promise();
+        
+        await promiseDb.query("START TRANSACTION");
         
         const [items] = await promiseDb.query("SELECT * FROM barang_masuk WHERE transaksi_id = ?", [transaksi_id]);
         if (items.length === 0) {
+            await promiseDb.query("ROLLBACK");
             return res.status(404).json({ message: "Transaksi tidak ditemukan!" });
         }
         
@@ -165,8 +185,10 @@ exports.deleteBarangMasuk = async (req, res) => {
         
         await promiseDb.query("DELETE FROM barang_masuk WHERE transaksi_id = ?", [transaksi_id]);
         
+        await promiseDb.query("COMMIT");
         res.status(200).json({ message: "Transaksi berhasil dihapus dan stok telah disesuaikan." });
     } catch (error) {
+        if (promiseDb) await promiseDb.query("ROLLBACK");
         console.error("Error delete barang_masuk:", error);
         res.status(500).json({ message: error.message });
     }

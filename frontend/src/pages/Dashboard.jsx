@@ -109,51 +109,21 @@ const Dashboard = ({ embedded = false }) => {
             </h1>
           </div>
 
-{/* ================= 1. TOP METRICS (6 Kotak Grid 3x2) - ALL RED ================= */}
+{/* ================= 1. TOP METRICS (6 Kotak Grid 3x2) - CLEAN RED-WHITE ================= */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            
-            <div className="bg-red-50 p-6 rounded-3xl shadow-md border border-red-100 flex items-center justify-between hover:shadow-lg transition-all duration-300">
-              <div>
-                <p className="text-sm font-bold text-red-800">Sales Revenue</p>
-                <h3 className="text-2xl font-black text-red-900 mt-2 break-words">{formatRupiah(data.summary.totalRevenue)}</h3>
+            {[
+              { title: 'Sales Revenue', value: formatRupiah(data.summary.totalRevenue) },
+              { title: 'Profit Bersih', value: formatRupiah(data.summary.totalProfit) },
+              { title: 'Total HPP', value: formatRupiah(data.summary.totalHPP) },
+              { title: 'Qty Terjual', value: `${data.summary.totalQty} Pcs` },
+              { title: 'Potongan Admin', value: formatRupiah(data.summary.totalPotongan) },
+              { title: 'Status Terjual', value: `${data.summary.totalQty} Item` }
+            ].map((card, i) => (
+              <div key={i} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 border-l-[6px] border-l-[#990000] flex flex-col justify-center transition-all hover:-translate-y-0.5 hover:shadow-md min-h-[120px]">
+                <p className="text-xs font-bold uppercase tracking-wider mb-2 text-gray-500">{card.title}</p>
+                <h3 className="text-2xl font-black text-gray-900 leading-tight break-words">{card.value}</h3>
               </div>
-            </div>
-
-            <div className="bg-red-500 p-6 rounded-3xl shadow-md flex items-center justify-between hover:shadow-lg transition-all duration-300">
-              <div>
-                <p className="text-sm font-bold text-white">Profit Bersih</p>
-                <h3 className="text-2xl font-black text-white mt-2 break-words">{formatRupiah(data.summary.totalProfit)}</h3>
-              </div>
-            </div>
-
-            <div className="bg-red-100 p-6 rounded-3xl shadow-md border border-red-200 flex items-center justify-between hover:shadow-lg transition-all duration-300">
-              <div>
-                <p className="text-sm font-bold text-red-800">Total HPP</p>
-                <h3 className="text-2xl font-black text-red-900 mt-2 break-words">{formatRupiah(data.summary.totalHPP)}</h3>
-              </div>
-            </div>
-
-            <div className="bg-red-200 p-6 rounded-3xl shadow-md border border-red-300 flex items-center justify-between hover:shadow-lg transition-all duration-300">
-              <div>
-                <p className="text-sm font-bold text-red-900">Qty Terjual</p>
-                <h3 className="text-2xl font-black text-red-900 mt-2">{data.summary.totalQty} <span className="text-xs font-bold text-red-700">Pcs</span></h3>
-              </div>
-            </div>
-
-            <div className="bg-red-300 p-6 rounded-3xl shadow-md border border-red-400 flex items-center justify-between hover:shadow-lg transition-all duration-300">
-              <div>
-                <p className="text-sm font-bold text-red-950">Potongan Admin</p>
-                <h3 className="text-2xl font-black text-red-950 mt-2 break-words">{formatRupiah(data.summary.totalPotongan)}</h3>
-              </div>
-            </div>
-
-            <div className="bg-red-400 p-6 rounded-3xl shadow-md border border-red-500 flex items-center justify-between hover:shadow-lg transition-all duration-300">
-              <div>
-                <p className="text-sm font-bold text-white">Status Terjual</p>
-                <h3 className="text-2xl font-black text-white mt-2">{data.summary.totalQty} Item</h3>
-              </div>
-            </div>
-
+            ))}
           </div>
 
           {/* ================= AREA TENGAH ================= */}

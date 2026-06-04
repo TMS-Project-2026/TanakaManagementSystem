@@ -15,9 +15,10 @@ const Sidebar = () => {
   const userRole = user.role || '';
 
   const [pendingApprovals, setPendingApprovals] = useState(0);
+  const [pendingPermintaanStok, setPendingPermintaanStok] = useState(0);
 
   useEffect(() => {
-    if (['finance', 'admin', 'manager', 'owner'].includes(userRole.toLowerCase())) {
+    if (['finance', 'admin', 'manager', 'owner', 'gudang'].includes(userRole.toLowerCase())) {
       const fetchPendingCount = async () => {
         try {
           const res = await axios.get('http://localhost:3000/api/owner/approval/pending/count', {
@@ -28,9 +29,25 @@ const Sidebar = () => {
           console.error('Error fetching pending approvals:', err);
         }
       };
+      
+      const fetchPermintaanStokCount = async () => {
+        try {
+          const res = await axios.get('http://localhost:3000/api/permintaan-stok/pending/count', {
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+          });
+          setPendingPermintaanStok(res.data.count);
+        } catch (err) {
+          console.error('Error fetching pending permintaan stok:', err);
+        }
+      };
+
       fetchPendingCount();
-      // Optional: Polling setiap 30 detik agar realtime
-      const intervalId = setInterval(fetchPendingCount, 30000);
+      fetchPermintaanStokCount();
+      
+      const intervalId = setInterval(() => {
+        fetchPendingCount();
+        fetchPermintaanStokCount();
+      }, 30000);
       return () => clearInterval(intervalId);
     }
   }, [userRole]);
@@ -82,7 +99,7 @@ const Sidebar = () => {
     },
     { name: 'Dashboard Online', path: '/marketing-online/dashboard', icon: <LayoutDashboard size={20} />, roles: ['marketing_online', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE BANUA' },
     { name: 'Order Marketplace', path: '/marketing-online/orders', icon: <ShoppingBag size={20} />, roles: ['marketing_online', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE BANUA' },
-    { name: 'Stok Inventori', path: '/marketing-online/inventory', icon: <Package size={20} />, roles: ['marketing_online', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE BANUA' },
+    { name: 'Stok Inventory', path: '/marketing-online/inventory', icon: <Package size={20} />, roles: ['marketing_online', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE BANUA' },
     { name: 'Promo Online', path: '/marketing-online/promo', icon: <Gift size={20} />, roles: ['marketing_online', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE BANUA' },
     {
       name: 'Report',
@@ -101,6 +118,7 @@ const Sidebar = () => {
     },
     { name: 'Dashboard Gudang', path: '/gudang', icon: <LayoutDashboard size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Order Marketplace', path: '/gudang/order-marketplace', icon: <ShoppingBag size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
+    { name: 'Approval Permintaan', path: '/permintaan-stok', icon: <Bell size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse', hasPermintaanBadge: true },
     { name: 'Barang Masuk', path: '/barang-masuk', icon: <TrendingUp size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Barang Keluar', path: '/barang-keluar', icon: <TrendingDown size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Mutasi Barang', path: '/mutasi', icon: <ArrowRightLeft size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
@@ -109,32 +127,35 @@ const Sidebar = () => {
     { name: 'Suku Cadang', path: '/sparepart', icon: <Settings size={20} />, roles: ['Admin', 'Manager'], group: 'Warehouse' },
     { name: 'Warning Stok', path: '/warning-stok', icon: <AlertTriangle size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Promo', path: '/promo', icon: <Gift size={20} />, roles: ['Admin', 'Manager', 'Marketing'], group: 'Sales' },
-    { name: 'Pricelist Harga', path: '/pricelist', icon: <Tag size={20} />, roles: ['Admin', 'Manager', 'owner', 'Finance', 'marketing_offline', 'marketing_offline_tanaka', 'Marketing', 'marketing_online'], group: 'Sales' },
-    { name: 'Finance Dashboard', path: '/finance', icon: <PieChart size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'FINANCE' },
+    { name: 'Pricelist Harga', path: '/pricelist', icon: <Tag size={20} />, roles: ['Admin', 'Manager', 'owner', 'marketing_offline', 'marketing_offline_tanaka', 'Marketing'], group: 'Sales' },
+    { name: 'Finance Dashboard', path: '/finance', icon: <PieChart size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Finance' },
 
     // CASH & BANK
-    { name: 'Cash & Bank', path: '/cash-bank', icon: <CreditCard size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'CASH & BANK' },
+    { name: 'Cash & Bank', path: '/cash-bank', icon: <CreditCard size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Cash & Bank' },
 
-    { name: 'Petty Cash', path: '/petty-cash', icon: <Briefcase size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'CASH & BANK' },
+    { name: 'Petty Cash', path: '/petty-cash', icon: <Briefcase size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Cash & Bank' },
 
     // TAGIHAN
-    { name: 'Invoice', path: '/invoice', icon: <Receipt size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'TAGIHAN' },
-    { name: 'Accounts Receivable', path: '/piutang', icon: <Download size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'TAGIHAN' },
-    { name: 'Accounts Payable', path: '/hutang', icon: <Upload size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'TAGIHAN' },
+    { name: 'Invoice', path: '/invoice', icon: <Receipt size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Tagihan' },
+    { name: 'Accounts Receivable', path: '/piutang', icon: <Download size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Tagihan' },
+    { name: 'Accounts Payable', path: '/hutang', icon: <Upload size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Tagihan' },
 
     // JURNAL
-    { name: 'Jurnal Penjualan', path: '/journal/sales', icon: <TrendingUp size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'JURNAL' },
-    { name: 'Jurnal Pembelian', path: '/journal/purchase', icon: <TrendingDown size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'JURNAL' },
-    { name: 'Jurnal Umum', path: '/journal/general', icon: <FileText size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'JURNAL' },
-    { name: 'Jurnal Biaya', path: '/journal/expense', icon: <DollarSign size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'JURNAL' },
+    { name: 'Jurnal Penjualan', path: '/journal/sales', icon: <TrendingUp size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Jurnal' },
+    { name: 'Jurnal Pembelian', path: '/journal/purchase', icon: <TrendingDown size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Jurnal' },
+    { name: 'Jurnal Umum', path: '/journal/general', icon: <FileText size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Jurnal' },
+    { name: 'Jurnal Biaya', path: '/journal/expense', icon: <DollarSign size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Jurnal' },
 
     // AKUNTANSI
-    { name: 'Chart of Accounts', path: '/chart-of-accounts', icon: <Activity size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'AKUNTANSI' },
+    { name: 'Chart of Accounts', path: '/chart-of-accounts', icon: <Activity size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Akuntansi' },
 
     // MANAJEMEN
-    { name: 'Approval Center', path: '/finance/approval', icon: <Shield size={20} />, roles: ['owner', 'Admin', 'Manager', 'Finance'], group: 'MANAJEMEN', hasBadge: true },
-    { name: 'Report Center', path: '/report/laba-rugi', icon: <BarChart2 size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'MANAJEMEN' },
-    { name: 'Pengaturan Keuangan', path: '/finance/settings', icon: <Settings size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'MANAJEMEN' },
+    { name: 'Approval Center', path: '/finance/approval', icon: <Shield size={20} />, roles: ['owner', 'Admin', 'Manager', 'Finance'], group: 'Manajemen', hasBadge: true },
+    { name: 'Report Center', path: '/report/laba-rugi', icon: <BarChart2 size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Manajemen' },
+    { name: 'Pengaturan Keuangan', path: '/finance/settings', icon: <Settings size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Manajemen' },
+
+    // REFERENSI (KHUSUS FINANCE - POSISI BAWAH)
+    { name: 'Pricelist Harga', path: '/pricelist', icon: <Tag size={20} />, roles: ['Finance'], group: 'Referensi' },
 
     { name: 'Dashboard IT', path: '/it/dashboard', icon: <Monitor size={20} />, roles: ['admin_it', 'Admin'], group: 'System' },
     { name: 'User Management', path: '/it/users', icon: <Users size={20} />, roles: ['admin_it', 'Admin'], group: 'System' },
@@ -153,7 +174,7 @@ const Sidebar = () => {
       subMenu: [
         { title: 'Dashboard Online', path: '/marketing-online/dashboard' },
         { title: 'Order Marketplace', path: '/marketing-online/orders' },
-        { title: 'Stok Inventori', path: '/marketing-online/inventory' },
+        { title: 'Stok Inventory', path: '/marketing-online/inventory' },
         { title: 'Promo Online', path: '/marketing-online/promo' },
         { title: 'Report', path: '/marketing-online/reports' }
       ]
@@ -180,6 +201,7 @@ const Sidebar = () => {
       subMenu: [
         { title: 'Dashboard Gudang', path: '/gudang' },
         { title: 'Order Marketplace', path: '/gudang/order-marketplace' },
+        { title: 'Approval Permintaan', path: '/permintaan-stok', hasPermintaanBadge: true },
         { title: 'Barang Masuk', path: '/barang-masuk' },
         { title: 'Barang Keluar', path: '/barang-keluar' },
         { title: 'Mutasi Barang', path: '/mutasi' },
@@ -256,6 +278,8 @@ const Sidebar = () => {
     menuItems = allMenuItems;
   }
 
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
   const handleLogout = () => {
     localStorage.clear();
     window.location.href = '/';
@@ -302,22 +326,6 @@ const Sidebar = () => {
               <p className="text-[10px] text-gray-400 font-medium uppercase">Tanaka System</p>
             </div>
           </div>
-
-          {/* NOTIFICATION BELL FOR APPROVALS */}
-          {['finance', 'owner', 'admin', 'manager'].includes(userRole.toLowerCase()) && (
-            <div 
-              className="relative cursor-pointer p-2 hover:bg-red-50 rounded-full transition-colors"
-              onClick={() => navigate('/finance/approval')}
-              title="Cek Approval Center"
-            >
-              <Bell size={22} className={pendingApprovals > 0 ? "text-red-600 drop-shadow-md" : "text-gray-400"} />
-              {pendingApprovals > 0 && (
-                <span className="absolute top-1 right-1 flex items-center justify-center w-4 h-4 bg-red-600 text-white text-[9px] font-black rounded-full border-2 border-white animate-pulse">
-                  {pendingApprovals}
-                </span>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Menu Navigasi */}
@@ -326,8 +334,8 @@ const Sidebar = () => {
             let currentGroup = '';
             return menuItems.map((item) => {
               const hasActiveChild = item.subMenu && item.subMenu.some(sub => location.pathname === sub.path || (sub.path && sub.path !== '/' && location.pathname.startsWith(sub.path + '/')));
-              const isActive = location.pathname === item.path || (item.path && item.path !== '/' && item.path !== '/gudang' && location.pathname.startsWith(item.path + '/')) || hasActiveChild;
-              const isExpanded = expandedMenus[item.name] || hasActiveChild || (item.path && location.pathname.startsWith(item.path));
+              const isActive = location.pathname === item.path || (item.path && item.path !== '/' && item.path !== '/gudang' && item.path !== '/finance' && location.pathname.startsWith(item.path + '/')) || hasActiveChild;
+              const isExpanded = expandedMenus[item.name] || hasActiveChild || (item.path && location.pathname.startsWith(item.path) && item.path !== '/finance');
               const showGroupLabel = item.group && item.group !== currentGroup;
               if (showGroupLabel) currentGroup = item.group;
 
@@ -364,6 +372,11 @@ const Sidebar = () => {
                         {pendingApprovals}
                       </span>
                     )}
+                    {item.hasPermintaanBadge && pendingPermintaanStok > 0 && (
+                      <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm">
+                        {pendingPermintaanStok}
+                      </span>
+                    )}
                     {item.subMenu && (
                       <ChevronDown
                         size={14}
@@ -384,12 +397,17 @@ const Sidebar = () => {
                               e.stopPropagation();
                               if (sub.path) navigate(sub.path);
                             }}
-                            className={`text-[13px] cursor-pointer py-2 px-4 rounded-xl transition-all duration-200 flex items-center gap-2 ${isSubActive
+                            className={`text-[13px] cursor-pointer py-2 px-4 rounded-xl transition-all duration-200 flex items-center justify-between ${isSubActive
                               ? 'bg-red-800 text-white font-black shadow-sm'
                               : 'text-gray-600 font-bold hover:bg-red-50 hover:text-red-800'
                               }`}
                           >
-                            {sub.title || sub}
+                            <span className="flex items-center gap-2">{sub.title || sub}</span>
+                            {sub.hasPermintaanBadge && pendingPermintaanStok > 0 && (
+                                <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm">
+                                  {pendingPermintaanStok}
+                                </span>
+                            )}
                           </li>
                         );
                       })}
@@ -404,7 +422,7 @@ const Sidebar = () => {
         {/* Logout Button */}
         <div className="p-4 border-t border-gray-100">
           <button
-            onClick={handleLogout}
+            onClick={() => setShowLogoutModal(true)}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 text-red-700 font-bold hover:bg-red-700 hover:text-white transition-all duration-300"
           >
             <LogOut size={18} />
@@ -412,6 +430,34 @@ const Sidebar = () => {
           </button>
         </div>
       </aside>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[340px] animate-in zoom-in-95 duration-200 flex flex-col relative border-t-[8px] border-t-[#990000]">
+            
+            <div className="p-8 pb-6 text-center">
+              <h3 className="text-xl font-black text-gray-900 m-0 tracking-wide">Yakin ingin logout?</h3>
+            </div>
+            
+            <div className="px-8 pb-8 flex justify-center gap-4">
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="flex-1 py-3 text-sm text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 hover:text-gray-900 rounded-xl font-bold transition-all shadow-sm"
+              >
+                No
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex-1 py-3 text-sm text-white bg-[#990000] hover:bg-red-800 rounded-xl font-black shadow-md hover:shadow-lg transition-all"
+              >
+                Yes
+              </button>
+            </div>
+            
+          </div>
+        </div>
+      )}
     </>
   );
 };

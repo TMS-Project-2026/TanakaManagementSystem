@@ -81,15 +81,21 @@ const GudangDashboard = ({ embedded = false }) => {
                         {/* Summary Cards Grid (3 Columns) - Compact version matching Marketing Online exactly */}
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {[
-                                { title: 'Total Item Barang', value: `${data.totalItem} Item`, bg: 'bg-red-100', text: 'text-gray-900' },
-                                { title: 'Total Stok Gudang', value: `${data.totalStok} Pcs`, bg: 'bg-[#ff3b3b]', text: 'text-white' },
-                                { title: 'Masuk Hari Ini', value: `${data.masukHariIni} Pcs`, bg: 'bg-red-100', text: 'text-gray-900' },
-                                { title: 'Keluar Hari Ini', value: `${data.keluarHariIni} Pcs`, bg: 'bg-red-100', text: 'text-gray-900' },
-                                { title: 'Warning Stok', value: `${data.stokMenipisCount} Item`, bg: 'bg-[#ff4d4d]', text: 'text-white' }
+                                { title: 'Total Item Barang', value: `${data.totalItem} Item`, icon: <Box size={16} className="text-white" /> },
+                                { title: 'Total Stok Gudang', value: `${data.totalStok} Pcs`, icon: <Package size={16} className="text-white" /> },
+                                { title: 'Masuk Hari Ini', value: `${data.masukHariIni} Pcs`, icon: <TrendingDown size={16} className="text-white" /> },
+                                { title: 'Keluar Hari Ini', value: `${data.keluarHariIni} Pcs`, icon: <TrendingUp size={16} className="text-white" /> },
+                                { title: 'Warning Stok', value: `${data.stokMenipisCount} Item`, icon: <AlertTriangle size={16} className="text-white" /> }
                             ].map((card, index) => (
-                                <div key={index} className={`${card.bg} p-6 rounded-[2rem] shadow-sm flex flex-col justify-center min-h-[120px] transition-transform hover:scale-[1.01]`}>
-                                    <p className={`text-[10px] font-black uppercase tracking-widest mb-2 ${card.text === 'text-white' ? 'text-white/80' : 'text-red-900/60'}`}>{card.title}</p>
-                                    <h3 className={`text-2xl font-black ${card.text}`}>{card.value}</h3>
+                                <div key={index} className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 border-l-[6px] border-l-[#990000] flex flex-col justify-center transition-all hover:-translate-y-1 hover:shadow-md min-h-[110px]">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <div className="w-[30px] h-[30px] rounded-full bg-[#990000] flex items-center justify-center shrink-0 shadow-sm shadow-red-900/20">
+                                            {card.icon}
+                                        </div>
+                                        <p className="text-[12px] font-bold text-gray-500 tracking-wider uppercase truncate">{card.title || card.label}</p>
+                                    </div>
+                                    <h3 className="text-2xl font-black text-gray-900 leading-tight truncate">{card.value}</h3>
+                                    {card.sub && <p className="text-[11px] mt-1 font-medium text-gray-400 truncate">{card.sub}</p>}
                                 </div>
                             ))}
                         </div>

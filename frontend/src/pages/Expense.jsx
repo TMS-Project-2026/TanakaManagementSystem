@@ -1,3 +1,5 @@
+import NotificationBell from '../components/NotificationBell';
+import { Bell } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { getExpenses, createExpense, deleteExpense } from '../api/financeApi';
 import { PlusCircle, Trash2, Search, UserCircle } from 'lucide-react';
@@ -73,6 +75,8 @@ const Expense = () => {
                     />
                   </div>
                   <div className="flex items-center gap-6">
+
+          <NotificationBell />
                     <div className="relative">
                       <div className="bg-white p-1.5 rounded-full shadow-sm cursor-pointer hover:shadow-md transition-all border border-gray-100" onClick={() => {}}>
                         <UserCircle size={32} className="text-gray-400 hover:text-[#990000] transition-colors" />

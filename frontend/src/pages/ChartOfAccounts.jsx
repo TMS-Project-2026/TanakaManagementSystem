@@ -1,3 +1,5 @@
+import NotificationBell from '../components/NotificationBell';
+import { Bell } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Power, AlertTriangle, FileText, UserCircle, Search } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
@@ -148,6 +150,8 @@ const ChartOfAccounts = () => {
             />
           </div>
           <div className="flex items-center gap-6">
+
+          <NotificationBell />
             <div className="relative">
               <div className="bg-white p-1.5 rounded-full shadow-sm cursor-pointer hover:shadow-md transition-all border border-gray-100" onClick={() => setShowProfile(!showProfile)}>
                 <UserCircle size={32} className="text-gray-400 hover:text-[#990000] transition-colors" />
@@ -169,8 +173,8 @@ const ChartOfAccounts = () => {
           <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100 flex flex-col">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
             <div className="flex flex-col items-start gap-1 w-full md:max-w-2xl">
-              <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-tight">
-                Chart of <span className="text-[#990000]">Accounts</span>
+              <h1 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                Chart of Accounts
               </h1>
               <p className="text-gray-500 font-medium mt-1">Manage company financial accounts</p>
             </div>
@@ -186,29 +190,29 @@ const ChartOfAccounts = () => {
           </div>
 
       <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-8">
-        <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 text-center">
-          <p className="text-xs font-bold text-blue-600 uppercase tracking-wide">Total Akun</p>
-          <h3 className="text-2xl font-black text-blue-900 mt-1">{stats.total}</h3>
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 border-l-[6px] border-l-blue-500 flex flex-col justify-center transition-all hover:-translate-y-0.5 hover:shadow-md">
+          <p className="text-[11px] text-gray-500 font-medium mb-1 truncate" title="Total Akun">Total Akun</p>
+          <h3 className="text-sm lg:text-base font-black text-gray-900 truncate" title={stats.total}>{stats.total}</h3>
         </div>
-        <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100 text-center">
-          <p className="text-xs font-bold text-indigo-600 uppercase tracking-wide">Aset</p>
-          <h3 className="text-2xl font-black text-indigo-900 mt-1">{stats.assets}</h3>
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 border-l-[6px] border-l-indigo-500 flex flex-col justify-center transition-all hover:-translate-y-0.5 hover:shadow-md">
+          <p className="text-[11px] text-gray-500 font-medium mb-1 truncate" title="Aset">Aset</p>
+          <h3 className="text-sm lg:text-base font-black text-gray-900 truncate" title={stats.assets}>{stats.assets}</h3>
         </div>
-        <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100 text-center">
-          <p className="text-xs font-bold text-orange-600 uppercase tracking-wide">Kewajiban</p>
-          <h3 className="text-2xl font-black text-orange-900 mt-1">{stats.liabilities}</h3>
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 border-l-[6px] border-l-orange-500 flex flex-col justify-center transition-all hover:-translate-y-0.5 hover:shadow-md">
+          <p className="text-[11px] text-gray-500 font-medium mb-1 truncate" title="Kewajiban">Kewajiban</p>
+          <h3 className="text-sm lg:text-base font-black text-gray-900 truncate" title={stats.liabilities}>{stats.liabilities}</h3>
         </div>
-        <div className="bg-green-50 p-4 rounded-2xl border border-green-100 text-center">
-          <p className="text-xs font-bold text-green-600 uppercase tracking-wide">Pendapatan</p>
-          <h3 className="text-2xl font-black text-green-900 mt-1">{stats.revenue}</h3>
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 border-l-[6px] border-l-emerald-500 flex flex-col justify-center transition-all hover:-translate-y-0.5 hover:shadow-md">
+          <p className="text-[11px] text-gray-500 font-medium mb-1 truncate" title="Pendapatan">Pendapatan</p>
+          <h3 className="text-sm lg:text-base font-black text-gray-900 truncate" title={stats.revenue}>{stats.revenue}</h3>
         </div>
-        <div className="bg-yellow-50 p-4 rounded-2xl border border-yellow-100 text-center">
-          <p className="text-xs font-bold text-yellow-600 uppercase tracking-wide">HPP</p>
-          <h3 className="text-2xl font-black text-yellow-900 mt-1">{stats.hpp}</h3>
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 border-l-[6px] border-l-amber-500 flex flex-col justify-center transition-all hover:-translate-y-0.5 hover:shadow-md">
+          <p className="text-[11px] text-gray-500 font-medium mb-1 truncate" title="HPP">HPP</p>
+          <h3 className="text-sm lg:text-base font-black text-gray-900 truncate" title={stats.hpp}>{stats.hpp}</h3>
         </div>
-        <div className="bg-red-50 p-4 rounded-2xl border border-red-100 text-center">
-          <p className="text-xs font-bold text-red-600 uppercase tracking-wide">Biaya</p>
-          <h3 className="text-2xl font-black text-red-900 mt-1">{stats.expenses}</h3>
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 border-l-[6px] border-l-red-500 flex flex-col justify-center transition-all hover:-translate-y-0.5 hover:shadow-md">
+          <p className="text-[11px] text-gray-500 font-medium mb-1 truncate" title="Biaya">Biaya</p>
+          <h3 className="text-sm lg:text-base font-black text-gray-900 truncate" title={stats.expenses}>{stats.expenses}</h3>
         </div>
       </div>
 

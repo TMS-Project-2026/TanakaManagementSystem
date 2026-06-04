@@ -1,7 +1,9 @@
+import NotificationBell from '../components/NotificationBell';
+import { Bell } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import { getAllPettyCash, getPettyCashSummary, createPettyCash, replenishPettyCash, voidPettyCash } from '../api/pettyCashApi';
-import { Plus, Search, Eye, Ban, Download, RefreshCw, X, AlertTriangle, DollarSign } from 'lucide-react';
+import { Plus, Search, Eye, Ban, Download, RefreshCw, X, AlertTriangle, DollarSign, UserCircle } from 'lucide-react';
 
 const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
 const today = () => new Date().toISOString().split('T')[0];
@@ -18,6 +20,7 @@ export default function PettyCash() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ search:'', cabang:'', startDate:'', endDate:'' });
+  const [showProfile, setShowProfile] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [replenishOpen, setReplenishOpen] = useState(false);
   const [detailItem, setDetailItem] = useState(null);
@@ -68,64 +71,91 @@ export default function PettyCash() {
     <div className="flex bg-gray-50 min-h-screen font-sans">
       <Sidebar />
       <main className="flex-1 flex flex-col pt-16 md:pt-0 h-screen overflow-hidden">
-        <div className="flex-1 overflow-y-auto px-4 sm:px-8 pb-10 pt-6">
+        {/* TOPBAR */}
+        <header className="h-auto flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-10 py-4 gap-4 sm:gap-0 mb-4">
+          <div className="relative w-full sm:w-96">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder="Cari transaksi petty cash..."
+              value={filters.search}
+              onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+              className="w-full pl-12 pr-4 py-2.5 bg-white rounded-full border border-gray-200 shadow-sm text-sm focus:outline-none focus:border-[#990000] focus:ring-2 focus:ring-red-100 transition-all"
+            />
+          </div>
+          <div className="flex items-center gap-6">
+
+          <NotificationBell />
+            <div className="relative">
+              <div className="bg-white p-1.5 rounded-full shadow-sm cursor-pointer hover:shadow-md transition-all border border-gray-100" onClick={() => setShowProfile(!showProfile)}>
+                <UserCircle size={32} className="text-gray-400 hover:text-[#990000] transition-colors" />
+              </div>
+              
+              {showProfile && (
+                <div className="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+                  <div className="p-4 bg-red-50/50">
+                    <p className="text-sm font-black text-gray-900">Admin</p>
+                    <p className="text-[10px] font-bold text-[#990000] uppercase tracking-wider mt-0.5">Finance</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
+
+        <div className="flex-1 overflow-y-auto px-4 sm:px-10 pb-10">
+          <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100 flex flex-col">
 
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
             <div>
-              <h1 className="text-2xl font-black text-gray-900">Petty <span className="text-[#990000]">Cash</span></h1>
-              <p className="text-sm text-gray-500 mt-0.5">Pengelolaan kas kecil per cabang</p>
+              <h1 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                Petty Cash
+              </h1>
+              <p className="text-gray-500 mt-2 text-sm font-medium">Pengelolaan kas kecil per cabang</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button onClick={exportCSV} className="bg-white border border-green-200 text-green-700 px-4 py-2 rounded-xl font-semibold flex items-center gap-2 text-sm shadow-sm hover:border-green-500 transition-all"><Download size={16}/> Export</button>
-              <button onClick={()=>{ setRepForm(emptyReplenish); setReplenishOpen(true); }} className="bg-white border border-blue-200 text-blue-700 px-4 py-2 rounded-xl font-semibold flex items-center gap-2 text-sm shadow-sm hover:border-blue-500 transition-all"><RefreshCw size={16}/> Isi Ulang</button>
+              <button onClick={exportCSV} className="bg-green-50 border border-green-100 hover:bg-green-100 hover:border-green-200 text-green-700 px-4 py-2 rounded-xl font-semibold flex items-center gap-2 text-sm shadow-sm transition-all"><Download size={16}/> Export</button>
+              <button onClick={()=>{ setRepForm(emptyReplenish); setReplenishOpen(true); }} className="bg-blue-50 border border-blue-100 hover:bg-blue-100 hover:border-blue-200 text-blue-700 px-4 py-2 rounded-xl font-semibold flex items-center gap-2 text-sm shadow-sm transition-all"><RefreshCw size={16}/> Isi Ulang</button>
               <button onClick={()=>{ setForm(emptyForm); setFormError(''); setModalOpen(true); }} className="bg-[#990000] hover:bg-red-800 text-white px-4 py-2 rounded-xl font-semibold flex items-center gap-2 text-sm shadow-lg shadow-red-900/20 transition-all hover:scale-105"><Plus size={16}/> Tambah</button>
             </div>
           </div>
 
-          {/* Saldo per Cabang */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
-            {CABANG.map(cab => {
+          {/* Summary Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+            {CABANG.map((cab, idx) => {
               const sData = saldoCabang.find(s=>s.cabang===cab);
               const saldo = sData ? parseFloat(sData.saldo||0) : 0;
               const isLow = saldo < 500000;
+              const borderColors = ['border-l-blue-500', 'border-l-indigo-500', 'border-l-emerald-500'];
+              const borderColor = isLow ? 'border-l-red-500 border-red-200' : `${borderColors[idx]} border-gray-100`;
               return (
-                <div key={cab} className={`bg-white rounded-2xl p-5 shadow-sm border ${isLow?'border-red-200':'border-gray-100'}`}>
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <p className="text-xs text-gray-500 font-medium">{CABANG_FULL[cab]}</p>
-                      <p className="text-sm font-bold text-gray-700 mt-0.5">{cab}</p>
-                    </div>
-                    {isLow && <span className="flex items-center gap-1 bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full"><AlertTriangle size={11}/> Rendah</span>}
+                <div key={cab} className={`bg-white rounded-2xl p-5 shadow-sm border flex flex-col justify-center transition-all hover:-translate-y-0.5 hover:shadow-md border-l-[6px] ${borderColor}`}>
+                  <div className="flex justify-between items-start mb-1">
+                    <p className="text-xs text-gray-500 font-medium">Saldo {cab}</p>
+                    {isLow && <span className="flex items-center gap-1 text-red-600 text-[10px] font-bold"><AlertTriangle size={12}/> Rendah</span>}
                   </div>
-                  <p className={`text-2xl font-black ${isLow?'text-red-600':'text-gray-900'}`}>{fmt(saldo)}</p>
-                  {isLow && <p className="text-xs text-red-500 mt-1">⚠️ Saldo di bawah minimum Rp 500.000</p>}
+                  <h3 className={`text-lg lg:text-xl font-black break-words ${isLow?'text-red-600':'text-gray-900'}`}>{fmt(saldo)}</h3>
                 </div>
               );
             })}
+            {summary && (
+              <>
+                <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 border-l-[6px] border-l-amber-500 flex flex-col justify-center transition-all hover:-translate-y-0.5 hover:shadow-md">
+                  <p className="text-xs text-gray-500 font-medium mb-1">Pengeluaran Bulan Ini</p>
+                  <h3 className="text-lg lg:text-xl font-black text-gray-900 break-words">{fmt(summary.total_approved||0)}</h3>
+                </div>
+                <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 border-l-[6px] border-l-[#990000] flex flex-col justify-center transition-all hover:-translate-y-0.5 hover:shadow-md">
+                  <p className="text-xs text-gray-500 font-medium mb-1">Pengeluaran Hari Ini</p>
+                  <h3 className="text-lg lg:text-xl font-black text-gray-900 break-words">{fmt(summary.total_today||0)}</h3>
+                </div>
+              </>
+            )}
           </div>
-
-          {/* Summary mini cards */}
-          {summary && (
-            <div className="grid grid-cols-2 gap-3 mb-5">
-              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-3">
-                <div className="w-10 h-10 bg-red-50 text-[#990000] rounded-xl flex items-center justify-center shrink-0"><DollarSign size={18}/></div>
-                <div><p className="text-xs text-gray-500">Total Pengeluaran Bulan Ini</p><p className="text-lg font-black text-gray-900">{fmt(summary.total_approved||0)}</p></div>
-              </div>
-              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center gap-3">
-                <div className="w-10 h-10 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center shrink-0"><DollarSign size={18}/></div>
-                <div><p className="text-xs text-gray-500">Pengeluaran Hari Ini</p><p className="text-lg font-black text-gray-900">{fmt(summary.total_today||0)}</p></div>
-              </div>
-            </div>
-          )}
 
           {/* Filters */}
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-4">
             <div className="flex flex-wrap gap-2">
-              <div className="relative flex-1 min-w-[180px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={15}/>
-                <input className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#990000]" placeholder="Cari..." value={filters.search} onChange={e=>setFilters(p=>({...p,search:e.target.value}))}/>
-              </div>
               <select className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#990000] bg-white" value={filters.cabang} onChange={e=>setFilters(p=>({...p,cabang:e.target.value}))}>
                 <option value="">Semua Cabang</option>{CABANG.map(c=><option key={c} value={c}>{CABANG_FULL[c]||c}</option>)}
               </select>
@@ -167,6 +197,7 @@ export default function PettyCash() {
                 </tbody>
               </table>
             </div>
+          </div>
           </div>
         </div>
       </main>

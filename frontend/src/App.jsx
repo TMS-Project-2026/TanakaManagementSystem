@@ -41,6 +41,7 @@ import BarangKeluar from './pages/BarangKeluar';
 import Mutasi from './pages/Mutasi';
 import WarningStok from './pages/WarningStok';
 import StokJalan from './pages/StokJalan';
+import PermintaanStok from './pages/PermintaanStok';
 
 // IT Pages
 import ITDashboard from './pages/ITDashboard';
@@ -189,6 +190,11 @@ function App() {
         <Route path="/stok-jalan" element={
           <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Gudang']}>
             <StokJalan />
+          </ProtectedRoute>
+        } />
+        <Route path="/permintaan-stok" element={
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Gudang']}>
+            <PermintaanStok />
           </ProtectedRoute>
         } />
         <Route path="/sparepart" element={

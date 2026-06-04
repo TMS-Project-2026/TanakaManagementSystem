@@ -1,6 +1,8 @@
+import NotificationBell from '../components/NotificationBell';
+import { Bell } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { getApprovals, getApprovalDetail, updateApprovalStatus, deleteApproval } from '../api/ownerApi';
-import { Check, X, Clock, Eye, Trash2, FileText, Download, ExternalLink } from 'lucide-react';
+import { Check, X, Clock, Eye, Trash2, FileText, Download, ExternalLink, Search, UserCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 
@@ -10,6 +12,8 @@ const ApprovalCenter = () => {
     const [approvals, setApprovals] = useState([]);
     const [selectedApproval, setSelectedApproval] = useState(null);
     const [showModal, setShowModal] = useState(false);
+    const [showProfile, setShowProfile] = useState(false);
+    const [search, setSearch] = useState('');
     const navigate = useNavigate();
 
     const fetchData = async () => {
@@ -81,17 +85,59 @@ const ApprovalCenter = () => {
         return item.quo_nama_pt || item.quo_customer_name || '-';
     };
 
-    return (
-        <div className="flex bg-[#f8fafc] min-h-screen font-sans">
-            <Sidebar />
-            <main className="flex-1 p-6 lg:p-8 overflow-y-auto h-screen">
-                <div className="max-w-7xl mx-auto">
-                    <div className="mb-8 border-l-4 border-[#990000] pl-4">
-                        <h1 className="text-3xl font-black text-gray-900 tracking-tight">Approval <span className="text-[#990000]">Center</span></h1>
-                        <p className="text-gray-500 font-medium mt-1">Pusat persetujuan khusus Finance (Pengeluaran, Pembelian, Refund, Quotation).</p>
-                    </div>
+    const filteredApprovals = approvals.filter(item => 
+        (item.no_quotation || '').toLowerCase().includes(search.toLowerCase()) || 
+        (getCustomerName(item) || '').toLowerCase().includes(search.toLowerCase())
+    );
 
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+    return (
+        <div className="flex bg-gray-50 min-h-screen font-sans">
+            <Sidebar />
+            <main className="flex-1 flex flex-col pt-16 md:pt-0 h-screen overflow-hidden">
+                {/* TOPBAR */}
+                <header className="h-auto flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-10 py-4 gap-4 sm:gap-0 mb-4">
+                  <div className="relative w-full sm:w-96">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <input
+                      type="text"
+                      placeholder="Cari No. Quotation / Customer..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="w-full pl-12 pr-4 py-2.5 bg-white rounded-full border border-gray-200 shadow-sm text-sm focus:outline-none focus:border-[#990000] focus:ring-2 focus:ring-red-100 transition-all"
+                    />
+                  </div>
+                  <div className="flex items-center gap-6">
+
+          <NotificationBell />
+                    <div className="relative">
+                      <div className="bg-white p-1.5 rounded-full shadow-sm cursor-pointer hover:shadow-md transition-all border border-gray-100" onClick={() => setShowProfile(!showProfile)}>
+                        <UserCircle size={32} className="text-gray-400 hover:text-[#990000] transition-colors" />
+                      </div>
+                      
+                      {showProfile && (
+                        <div className="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+                          <div className="p-4 bg-red-50/50">
+                            <p className="text-sm font-black text-gray-900">Admin</p>
+                            <p className="text-[10px] font-bold text-[#990000] uppercase tracking-wider mt-0.5">Finance</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </header>
+
+                <div className="flex-1 overflow-y-auto px-4 sm:px-10 pb-10">
+                    <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100 flex flex-col">
+                        <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <h1 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                                    Approval Center
+                                </h1>
+                                <p className="text-gray-500 font-medium mt-1 text-sm">Pusat persetujuan khusus Finance (Pengeluaran, Pembelian, Refund, Quotation).</p>
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse whitespace-nowrap">
                                 <thead>
@@ -107,7 +153,7 @@ const ApprovalCenter = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {approvals.map((item, index) => (
+                                    {filteredApprovals.map((item, index) => (
                                         <tr key={item.id} className="border-b border-gray-50 hover:bg-red-50/30 transition-colors">
                                             <td className="p-4 font-bold text-gray-500 text-sm">{String(index + 1).padStart(3, '0')}</td>
                                             <td className="p-4">
@@ -142,11 +188,12 @@ const ApprovalCenter = () => {
                                             </td>
                                         </tr>
                                     ))}
-                                    {approvals.length === 0 && <tr><td colSpan="8" className="p-8 text-center text-gray-500 font-bold">Tidak ada request approval</td></tr>}
+                                    {filteredApprovals.length === 0 && <tr><td colSpan="8" className="p-8 text-center text-gray-500 font-bold">Tidak ada request approval</td></tr>}
                                 </tbody>
                             </table>
                         </div>
                     </div>
+                  </div>
                 </div>
             </main>
 

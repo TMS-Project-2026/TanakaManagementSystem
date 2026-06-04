@@ -1,3 +1,5 @@
+import NotificationBell from '../components/NotificationBell';
+import { Bell } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import { 
@@ -267,6 +269,8 @@ const CashBank = () => {
                     />
                   </div>
                   <div className="flex items-center gap-6">
+
+          <NotificationBell />
                     <div className="relative">
                       <div className="bg-white p-1.5 rounded-full shadow-sm cursor-pointer hover:shadow-md transition-all border border-gray-100" onClick={() => setShowProfile(!showProfile)}>
                         <UserCircle size={32} className="text-gray-400 hover:text-[#990000] transition-colors" />
@@ -289,18 +293,18 @@ const CashBank = () => {
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                     <div>
-                        <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-tight">
-                            Cash In <span className="text-[#990000]">Bank</span>
+                        <h1 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                            Cash In Bank
                         </h1>
-                        <p className="text-gray-500 font-medium mt-1">Sistem Pencatatan Uang Masuk Perusahaan</p>
+                        <p className="text-gray-500 mt-2 text-sm font-medium">Sistem Pencatatan Uang Masuk Perusahaan</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
                         <button onClick={() => setShowLaporanKoran(true)}
-                            className="bg-white border border-gray-200 hover:border-[#990000] text-gray-700 hover:text-[#990000] px-4 py-2.5 rounded-xl font-semibold flex items-center gap-2 shadow-sm transition-all text-sm">
+                            className="bg-blue-50 border border-blue-100 hover:bg-blue-100 hover:border-blue-200 text-blue-700 px-4 py-2.5 rounded-xl font-semibold flex items-center gap-2 shadow-sm transition-all text-sm">
                             <FileText size={16} /> Laporan Koran
                         </button>
                         <button onClick={exportExcel}
-                            className="bg-white border border-green-200 hover:border-green-500 text-green-700 px-4 py-2.5 rounded-xl font-semibold flex items-center gap-2 shadow-sm transition-all text-sm">
+                            className="bg-green-50 border border-green-100 hover:bg-green-100 hover:border-green-200 text-green-700 px-4 py-2.5 rounded-xl font-semibold flex items-center gap-2 shadow-sm transition-all text-sm">
                             <Download size={16} /> Export Excel
                         </button>
                         <button onClick={() => handleOpenModal()}
@@ -312,36 +316,26 @@ const CashBank = () => {
 
                 {/* Summary Cards */}
                 {summary && (
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-                        <div className="bg-red-50 p-6 rounded-3xl shadow-md border border-red-100 flex items-center justify-between hover:shadow-lg transition-all duration-300">
-                            <div>
-                                <p className="text-sm font-bold text-red-800">Saldo Awal</p>
-                                <h3 className="text-base md:text-lg font-black text-red-900 mt-2 break-words">{formatRupiah(summary.saldo_awal)}</h3>
-                            </div>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+                        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 border-l-[6px] border-l-blue-500 flex flex-col justify-center transition-all hover:-translate-y-0.5 hover:shadow-md">
+                            <p className="text-xs text-gray-500 font-medium mb-1">Saldo Awal</p>
+                            <h3 className="text-lg lg:text-xl font-black text-gray-900 break-words">{formatRupiah(summary.saldo_awal)}</h3>
                         </div>
-                        <div className="bg-red-100 p-6 rounded-3xl shadow-md border border-red-200 flex items-center justify-between hover:shadow-lg transition-all duration-300">
-                            <div>
-                                <p className="text-sm font-bold text-red-800">Cash In Hari Ini</p>
-                                <h3 className="text-base md:text-lg font-black text-red-900 mt-2 break-words">{formatRupiah(summary.total_cash_in_today)}</h3>
-                            </div>
+                        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 border-l-[6px] border-l-indigo-500 flex flex-col justify-center transition-all hover:-translate-y-0.5 hover:shadow-md">
+                            <p className="text-xs text-gray-500 font-medium mb-1">Cash In Hari Ini</p>
+                            <h3 className="text-lg lg:text-xl font-black text-gray-900 break-words">{formatRupiah(summary.total_cash_in_today)}</h3>
                         </div>
-                        <div className="bg-red-500 p-6 rounded-3xl shadow-md flex items-center justify-between hover:shadow-lg transition-all duration-300">
-                            <div>
-                                <p className="text-sm font-bold text-white">Saldo Akhir</p>
-                                <h3 className="text-base md:text-lg font-black text-white mt-2 break-words">{formatRupiah(summary.saldo_akhir)}</h3>
-                            </div>
+                        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 border-l-[6px] border-l-emerald-500 flex flex-col justify-center transition-all hover:-translate-y-0.5 hover:shadow-md">
+                            <p className="text-xs text-gray-500 font-medium mb-1">Total Paid</p>
+                            <h3 className="text-lg lg:text-xl font-black text-gray-900 break-words">{formatRupiah(summary.total_paid)}</h3>
                         </div>
-                        <div className="bg-red-200 p-6 rounded-3xl shadow-md border border-red-300 flex items-center justify-between hover:shadow-lg transition-all duration-300">
-                            <div>
-                                <p className="text-sm font-bold text-red-900">Total Pending</p>
-                                <h3 className="text-base md:text-lg font-black text-red-900 mt-2 break-words">{formatRupiah(summary.total_pending)}</h3>
-                            </div>
+                        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 border-l-[6px] border-l-amber-500 flex flex-col justify-center transition-all hover:-translate-y-0.5 hover:shadow-md">
+                            <p className="text-xs text-gray-500 font-medium mb-1">Total Pending</p>
+                            <h3 className="text-lg lg:text-xl font-black text-gray-900 break-words">{formatRupiah(summary.total_pending)}</h3>
                         </div>
-                        <div className="bg-red-300 p-6 rounded-3xl shadow-md border border-red-400 flex items-center justify-between hover:shadow-lg transition-all duration-300">
-                            <div>
-                                <p className="text-sm font-bold text-red-950">Total Paid</p>
-                                <h3 className="text-base md:text-lg font-black text-red-950 mt-2 break-words">{formatRupiah(summary.total_paid)}</h3>
-                            </div>
+                        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 border-l-[6px] border-l-[#990000] flex flex-col justify-center transition-all hover:-translate-y-0.5 hover:shadow-md">
+                            <p className="text-xs text-gray-500 font-medium mb-1">Saldo Akhir</p>
+                            <h3 className="text-lg lg:text-xl font-black text-gray-900 break-words">{formatRupiah(summary.saldo_akhir)}</h3>
                         </div>
                     </div>
                 )}

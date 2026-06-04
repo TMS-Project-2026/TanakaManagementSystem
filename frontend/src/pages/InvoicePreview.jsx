@@ -56,7 +56,7 @@ const InvoicePreview = () => {
                         canvas.height = img.height;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0);
-                        resolve(canvas.toDataURL('image/png'));
+                        resolve({ dataUrl: canvas.toDataURL('image/png'), w: img.width, h: img.height });
                     };
                     img.onerror = () => resolve(null);
                     img.src = src;
@@ -80,27 +80,31 @@ const InvoicePreview = () => {
             if (invoice.cabang === 'Banua') {
                 const logoData = await loadImageBase64(LogoBanua);
                 if (logoData) {
-                    doc.addImage(logoData, 'PNG', 14, 6, 55, 22);
-                    doc.setFontSize(16);
+                    const desiredWidth = 28;
+                    const desiredHeight = desiredWidth / (logoData.w / logoData.h);
+                    doc.addImage(logoData.dataUrl, 'PNG', 14, 6, desiredWidth, desiredHeight);
+                    doc.setFontSize(12);
                     doc.setFont('helvetica', 'bold');
                     doc.setTextColor(30, 64, 175);
-                    doc.text("PT BANUA MITRA LESTARI", 72, 18);
-                    addressStartY = 30;
+                    doc.text("PT BANUA MITRA LESTARI", 14 + desiredWidth + 5, 16);
+                    addressStartY = Math.max(30, 6 + desiredHeight + 5);
                 }
             } else if (invoice.cabang === 'Tanaka') {
                 // Kop surat - full width banner, proper aspect ratio (871x190 = 4.58:1)
                 const logoData = await loadImageBase64(LogoTanaka);
                 if (logoData) {
-                    const kopHeight = 210 / 4.58; // ~46mm
-                    doc.addImage(logoData, 'PNG', 0, 0, 210, kopHeight);
+                    const kopHeight = 210 / (logoData.w / logoData.h);
+                    doc.addImage(logoData.dataUrl, 'PNG', 0, 0, 210, kopHeight);
                     yOffset = kopHeight - 10; // shift all content below kop
                     addressStartY = kopHeight + 4;
                 }
             } else if (invoice.cabang === 'Acestreet') {
                 const logoData = await loadImageBase64(LogoAcestreet);
                 if (logoData) {
-                    doc.addImage(logoData, 'PNG', 14, 2, 45, 50);
-                    addressStartY = 32;
+                    const desiredWidth = 35;
+                    const desiredHeight = desiredWidth / (logoData.w / logoData.h);
+                    doc.addImage(logoData.dataUrl, 'PNG', 14, 2, desiredWidth, desiredHeight);
+                    addressStartY = Math.max(32, 2 + desiredHeight + 5);
                 }
             } else {
                 doc.setFontSize(22);
@@ -228,7 +232,12 @@ const InvoicePreview = () => {
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(9);
             doc.setTextColor(80, 80, 80);
-            const noteText = invoice.note || "Terima kasih atas kerja samanya.";
+            const defaultNotes = {
+                Banua: `PAYMENT METHOD :\nBank                      : BANK RAKYAT INDONESIA (BRI)\nCabang                    : Yogyakarta\nNo. Rekening              : 2099 0100 0545 304\nAtas Nama                 : PT BANUA MITRA LESTARI`,
+                Tanaka: `PAYMENT METHOD :\nBank                      : BANK RAKYAT INDONESIA (BRI)\nCabang                    : Yogyakarta\nNo. Rekening              : 2099 0100 0495 305\nAtas Nama                 : PT TANAKA RIZQI BAROKAH`,
+                Acestreet: `PAYMENT METHOD :\nBank                      : BANK RAKYAT INDONESIA (BRI)\nCabang                    : Yogyakarta\nNo. Rekening              : 2099 0100 0545 304\nAtas Nama                 : ACESTREET`
+            };
+            const noteText = invoice.payment_note || defaultNotes[invoice.cabang] || '';
             const noteLines = noteText.split('\n');
             let noteY = finalY + 10;
             noteLines.forEach((line) => {
@@ -279,16 +288,17 @@ const InvoicePreview = () => {
                 // Marketing name defaults per branch
                 const isTanaka = invoice.cabang === 'Tanaka';
                 const marketingName = invoice.nama_accounting || (isBanua ? 'Aji Pangestu' : isTanaka ? 'M.Rangga Maulana' : '(.........................)');
+                const sigY = Math.max(noteY + 20, Math.max(currentY + 20, 200));
 
                 // Left Signature (Prepared by)
-                doc.text("Prepared by,", 40, finalY + 50, { align: 'center' });
+                doc.text("Prepared by,", 40, sigY, { align: 'center' });
                 doc.setFont('helvetica', 'bold');
-                doc.text(marketingName, 40, finalY + 80, { align: 'center' });
+                doc.text(marketingName, 40, sigY + 30, { align: 'center' });
                 doc.setFont('helvetica', 'normal');
-                doc.text("Marketing", 40, finalY + 85, { align: 'center' });
+                doc.text("Marketing", 40, sigY + 35, { align: 'center' });
 
                 // Right Signature (Approved by)
-                doc.text("Approved by,", 150, finalY + 50, { align: 'center' });
+                doc.text("Approved by,", 150, sigY, { align: 'center' });
                 
                 const approvedName = invoice.penanggung_jawab || ((isBanua || isTanaka || invoice.cabang === 'Acestreet') ? 'Hanifah Abdillah' : '(..........................)');
                 
@@ -296,9 +306,9 @@ const InvoicePreview = () => {
                 
                 doc.setFontSize(10);
                 doc.setFont('helvetica', 'bold');
-                doc.text(approvedName, 150, finalY + 80, { align: 'center' });
+                doc.text(approvedName, 150, sigY + 30, { align: 'center' });
                 doc.setFont('helvetica', 'normal');
-                doc.text(invoice.jabatan || "Accounting", 150, finalY + 85, { align: 'center' });
+                doc.text(invoice.jabatan || "Accounting", 150, sigY + 35, { align: 'center' });
             }
 
             doc.save(`${(invoice.no_invoice || 'invoice').replace(/\//g, '_')}.pdf`);
@@ -320,13 +330,13 @@ const InvoicePreview = () => {
     );
 
     return (
-        <div className="flex bg-gray-100 min-h-screen font-sans">
+        <div className="flex bg-gray-100 min-h-screen font-sans print:block print:min-h-0 print:h-auto print:bg-white">
             {/* Hide sidebar when printing */}
             <div className="print:hidden">
                 <Sidebar />
             </div>
 
-            <main className="flex-1 p-4 md:p-8 overflow-y-auto h-screen print:p-0 print:h-auto print:overflow-visible">
+            <main className="flex-1 p-4 md:p-8 overflow-y-auto h-screen print:block print:p-0 print:h-auto print:overflow-visible">
                 {/* Actions Header - Hidden in Print */}
                 <div className="max-w-4xl mx-auto mb-6 flex flex-col sm:flex-row justify-between items-center gap-4 print:hidden">
                     <button onClick={() => navigate(-1)} className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg shadow hover:bg-gray-50 border border-gray-200">
@@ -343,7 +353,7 @@ const InvoicePreview = () => {
                 </div>
 
                 {/* A4 Paper Container */}
-                <div className="max-w-4xl mx-auto bg-white min-h-[297mm] p-10 md:p-16 shadow-xl print:shadow-none print:p-0">
+                <div className="max-w-4xl mx-auto bg-white min-h-[297mm] p-10 md:p-16 shadow-xl print:shadow-none print:min-h-0 print:p-0">
 
                     {/* Header */}
                     {(() => {
@@ -365,16 +375,19 @@ const InvoicePreview = () => {
                                 {/* Other branches: Logo + INVOICE side by side */}
                                 {invoice.cabang !== 'Tanaka' && (
                                     <div className="flex justify-between items-start">
-                                        <div className="flex items-center gap-4">
-                                            {invoice.cabang === 'Banua' && (
-                                                <>
-                                                    <img src={LogoBanua} alt="Logo Banua" className="h-24 object-contain" />
-                                                    <span className="font-bold text-2xl text-blue-900 tracking-wide">PT Banua Mitra Lestari</span>
-                                                </>
-                                            )}
-                                            {invoice.cabang === 'Acestreet' && (
-                                                <img src={LogoAcestreet} alt="Logo Acestreet" className="h-32 object-contain" />
-                                            )}
+                                        <div className="flex flex-col">
+                                            <div className="flex items-center gap-4">
+                                                {invoice.cabang === 'Banua' && (
+                                                    <>
+                                                        <img src={LogoBanua} alt="Logo Banua" className="h-24 object-contain" />
+                                                        <span className="font-bold text-2xl text-blue-900 tracking-wide">PT Banua Mitra Lestari</span>
+                                                    </>
+                                                )}
+                                                {invoice.cabang === 'Acestreet' && (
+                                                    <img src={LogoAcestreet} alt="Logo Acestreet" className="h-32 object-contain" />
+                                                )}
+                                            </div>
+                                            <p className={`text-sm whitespace-pre-line mt-2 max-w-md ${isBanua ? 'text-blue-700/70' : 'text-gray-500'}`}>{addresses[invoice.cabang] || ''}</p>
                                         </div>
                                         <div className="text-right shrink-0 ml-8">
                                             <h1 className="text-4xl font-black text-gray-200 tracking-widest mb-2">INVOICE</h1>
@@ -390,7 +403,9 @@ const InvoicePreview = () => {
                                 {/* Tanaka: INVOICE info below kop surat */}
                                 {invoice.cabang === 'Tanaka' && (
                                     <div className="flex justify-between items-start">
-                                        <div></div>
+                                        <div>
+                                            <p className={`text-sm whitespace-pre-line mt-2 max-w-md ${isBanua ? 'text-blue-700/70' : 'text-gray-500'}`}>{addresses[invoice.cabang] || ''}</p>
+                                        </div>
                                         <div className="text-right">
                                             <h1 className="text-4xl font-black text-gray-200 tracking-widest mb-2">INVOICE</h1>
                                             <p className="font-bold text-gray-800 text-lg">{invoice.no_invoice}</p>
@@ -402,8 +417,6 @@ const InvoicePreview = () => {
                                         </div>
                                     </div>
                                 )}
-                                {/* Address */}
-                                <p className={`text-sm whitespace-pre-line mt-1 max-w-md ${isBanua ? 'text-blue-700/70' : 'text-gray-500'}`}>{addresses[invoice.cabang] || ''}</p>
                             </div>
                         );
                     })()}
@@ -514,7 +527,7 @@ const InvoicePreview = () => {
                     </div>
 
                     {/* Totals & Notes */}
-                    <div className="flex flex-col md:flex-row justify-between items-start gap-8">
+                    <div className="flex flex-col md:flex-row print:flex-row justify-between items-start gap-8">
                         <div className="flex-1">
                             <div className="border-l-4 border-gray-200 pl-3 space-y-3">
                                 {/* Payment Method block */}
@@ -569,7 +582,7 @@ const InvoicePreview = () => {
                                 )}
                             </div>
                         </div>
-                        <div className="w-full md:w-80">
+                        <div className="w-full md:w-80 print:w-80 shrink-0">
                             <table className="w-full text-sm">
                                 <tbody>
                                     <tr className="border-b border-gray-100">
@@ -612,7 +625,7 @@ const InvoicePreview = () => {
 
                     {/* Footer / Signature */}
                     {(invoice.ttd || invoice.nama_accounting || invoice.penanggung_jawab) && (
-                        <div className="mt-20 flex justify-between px-10">
+                        <div className="mt-20 print:mt-10 flex justify-between px-10 print:px-0">
                             {/* Left Signature: Prepared By */}
                             <div className="text-center w-48">
                                 <p className="text-gray-600 mb-4">Prepared by,</p>
@@ -643,8 +656,8 @@ const InvoicePreview = () => {
                 <style dangerouslySetInnerHTML={{
                     __html: `
                     @media print {
-                        body { background: white; }
-                        @page { size: auto; margin: 0mm; }
+                        body { background: white; -webkit-print-color-adjust: exact; color-adjust: exact; }
+                        @page { size: auto; margin: 10mm; }
                     }
                 `}} />
 
