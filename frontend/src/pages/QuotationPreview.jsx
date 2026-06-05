@@ -10,7 +10,7 @@ import LogoTanaka from '../assets/kop_tanaka.png';
 import LogoAcestreet from '../assets/logoacestreet.png';
 
 const addresses = {
-    Banua: 'Geblagan, Tamantirto, Kasihan, Bantul Regency,\nSpecial Region of Yogyakarta 55184\nMarketing: +62 888 8888 8888 | Finance: +62 857 2768 4722',
+    Banua: 'Geblagan, Tamantirto, Kasihan, Bantul Regency,\nSpecial Region of Yogyakarta 55184\nMarketing: +62 895-2912-2786 | Finance: +62 857 2768 4722',
     Tanaka: 'Jl. Demakan Jl. Wiratama No.50, Tegalrejo, Kec. Tegalrejo,\nKota Yogyakarta, Daerah Istimewa Yogyakarta 55244\nMarketing: +62 851 6975 9267 | Finance: +62 857 2768 4722',
     Acestreet: 'Jl. Ambarbinangun, Brajan, Tamantirto, Kec. Kasihan,\nKabupaten Bantul, Daerah Istimewa Yogyakarta 55184\nMarketing: +62 838 2236 7608 | Finance: +62 857 2768 4722'
 };
@@ -138,7 +138,19 @@ const QuotationPreview = () => {
             const noteText = quotation.payment_note || defaultNotes[quotation.cabang] || '';
             if (noteText) {
                 doc.setFontSize(9); doc.setTextColor(80);
-                noteText.split('\n').forEach((line, i) => doc.text(line, 14, finalY + (i * 5)));
+                noteText.split('\n').forEach((line, i) => {
+                    const colonIdx = line.indexOf(':');
+                    if (colonIdx > 0 && colonIdx < line.length - 1) {
+                        const label = line.substring(0, colonIdx).trim();
+                        const value = line.substring(colonIdx + 1).trim();
+                        doc.text(label, 14, finalY + (i * 5));
+                        doc.text(': ' + value, 42, finalY + (i * 5));
+                    } else {
+                        doc.setFont('helvetica', 'bold');
+                        doc.text(line.trim(), 14, finalY + (i * 5));
+                        doc.setFont('helvetica', 'normal');
+                    }
+                });
             }
             if (quotation.term_of_payment) {
                 const topLines = noteText ? noteText.split('\n').length : 0;
@@ -153,13 +165,13 @@ const QuotationPreview = () => {
             const pdfOngkir = Number(quotation.ongkos_kirim) > 0
                 ? Number(quotation.ongkos_kirim)
                 : Math.max(0, Number(quotation.grand_total_quo || 0) - Number(quotation.subtotal || 0) - Number(quotation.jumlah_ppn || 0));
-            doc.text('Subtotal:', 130, ty); doc.text(fmtRp(quotation.subtotal), 195, ty, { align: 'right' }); ty += 6;
-            doc.text(`PPN (${quotation.ppn_persen || 0}%):`, 130, ty); doc.text(fmtRp(quotation.jumlah_ppn), 195, ty, { align: 'right' }); ty += 6;
+            doc.text('Subtotal', 130, ty); doc.text(':', 158, ty); doc.text(fmtRp(quotation.subtotal), 195, ty, { align: 'right' }); ty += 6;
+            doc.text(`PPN (${quotation.ppn_persen || 0}%)`, 130, ty); doc.text(':', 158, ty); doc.text(fmtRp(quotation.jumlah_ppn), 195, ty, { align: 'right' }); ty += 6;
 
-            doc.text('Ongkos Kirim:', 130, ty); doc.text(fmtRp(pdfOngkir), 195, ty, { align: 'right' }); ty += 6;
+            doc.text('Ongkos Kirim', 130, ty); doc.text(':', 158, ty); doc.text(fmtRp(pdfOngkir), 195, ty, { align: 'right' }); ty += 6;
             ty += 4;
-            doc.setFontSize(12); doc.setTextColor(...headerColor); doc.setFont(undefined, 'bold');
-            doc.text('GRAND TOTAL:', 130, ty); doc.text(fmtRp(quotation.grand_total_quo), 195, ty, { align: 'right' });
+            doc.setFontSize(12); doc.setTextColor(...headerColor); doc.setFont('helvetica', 'bold');
+            doc.text('GRAND TOTAL', 130, ty); doc.text(':', 158, ty); doc.text(fmtRp(quotation.grand_total_quo), 195, ty, { align: 'right' });
 
             // Signatures
             const sigY = Math.max(ty + 30, 200);
@@ -206,10 +218,10 @@ const QuotationPreview = () => {
                     {/* Header */}
                     {(() => {
                         return (
-                            <div className="border-b-2 border-gray-100 pb-8 mb-8">
+                            <div className="border-b-2 border-gray-100 pb-8 mb-8 print:pb-4 print:mb-4">
                                 {quotation.cabang === 'Tanaka' && (
-                                    <div className="-mx-10 md:-mx-16 -mt-10 md:-mt-16 mb-6">
-                                        <img src={LogoTanaka} alt="Kop Surat Tanaka" className="w-full object-cover" />
+                                    <div className="-mx-10 md:-mx-16 -mt-10 md:-mt-16 print:mx-0 print:mt-0 mb-6 print:mb-2">
+                                        <img src={LogoTanaka} alt="Kop Surat Tanaka" className="w-full object-contain" />
                                     </div>
                                 )}
                                 {quotation.cabang !== 'Tanaka' && (

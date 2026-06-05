@@ -9,8 +9,8 @@ import LogoBanua from '../assets/logo  banua.svg';
 import LogoTanaka from '../assets/kop_tanaka.png';
 import LogoAcestreet from '../assets/logoacestreet.png';
 const addresses = {
-    Banua: 'Geblagan, Tamantirto, Kasihan, Bantul Regency,\nSpecial Region of Yogyakarta 55184\nMarketing: +62 888 8888 8888 | Finance: +62 857 2768 4722',
-    'PT BANUA MITRA LESTARI': 'Geblagan, Tamantirto, Kasihan, Bantul Regency,\nSpecial Region of Yogyakarta 55184\nMarketing: +62 888 8888 8888 | Finance: +62 857 2768 4722',
+    Banua: 'Geblagan, Tamantirto, Kasihan, Bantul Regency,\nSpecial Region of Yogyakarta 55184\nMarketing: +62 895-2912-2786 | Finance: +62 857 2768 4722',
+    'PT BANUA MITRA LESTARI': 'Geblagan, Tamantirto, Kasihan, Bantul Regency,\nSpecial Region of Yogyakarta 55184\nMarketing: +62 895-2912-2786 | Finance: +62 857 2768 4722',
     Tanaka: 'Jl. Demakan Jl. Wiratama No.50, Tegalrejo, Kec. Tegalrejo,\nKota Yogyakarta, Daerah Istimewa Yogyakarta 55244\nMarketing: +62 851 6975 9267 | Finance: +62 857 2768 4722',
     'PT TANAKA RIZQI BAROKAH': 'Jl. Demakan Jl. Wiratama No.50, Tegalrejo, Kec. Tegalrejo,\nKota Yogyakarta, Daerah Istimewa Yogyakarta 55244\nMarketing: +62 851 6975 9267 | Finance: +62 857 2768 4722',
     Acestreet: 'Jl. Ambarbinangun, Brajan, Tamantirto, Kec. Kasihan,\nKabupaten Bantul, Daerah Istimewa Yogyakarta 55184\nMarketing: +62 838 2236 7608 | Finance: +62 857 2768 4722'
@@ -246,7 +246,7 @@ const InvoicePreview = () => {
                     const label = line.substring(0, colonIdx).trim();
                     const value = line.substring(colonIdx + 1).trim();
                     doc.text(label, 14, noteY);
-                    doc.text(': ' + value, 55, noteY);
+                    doc.text(': ' + value, 42, noteY);
                 } else {
                     doc.setFont('helvetica', 'bold');
                     doc.text(line.trim(), 14, noteY);
@@ -365,11 +365,11 @@ const InvoicePreview = () => {
                         const cabangName = ptNames[invoice.cabang] || invoice.cabang;
                         const isBanua = invoice.cabang === 'Banua';
                         return (
-                            <div className="border-b-2 border-gray-100 pb-8 mb-8">
+                            <div className="border-b-2 border-gray-100 pb-8 mb-8 print:pb-4 print:mb-4">
                                 {/* Tanaka: Full-width kop surat */}
                                 {invoice.cabang === 'Tanaka' && (
-                                    <div className="-mx-10 md:-mx-16 -mt-10 md:-mt-16 mb-6">
-                                        <img src={LogoTanaka} alt="Kop Surat Tanaka" className="w-full object-cover" />
+                                    <div className="-mx-10 md:-mx-16 -mt-10 md:-mt-16 print:mx-0 print:mt-0 mb-6 print:mb-2">
+                                        <img src={LogoTanaka} alt="Kop Surat Tanaka" className="w-full object-contain" />
                                     </div>
                                 )}
                                 {/* Other branches: Logo + INVOICE side by side */}

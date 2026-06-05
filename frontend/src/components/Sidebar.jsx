@@ -176,7 +176,18 @@ const Sidebar = () => {
         { title: 'Order Marketplace', path: '/marketing-online/orders' },
         { title: 'Stok Inventory', path: '/marketing-online/inventory' },
         { title: 'Promo Online', path: '/marketing-online/promo' },
-        { title: 'Report', path: '/marketing-online/reports' }
+        { 
+          title: 'Report', 
+          path: '/marketing-online/reports',
+          subMenu: [
+            { title: 'Laporan Harian', path: '/marketing-online/reports/harian' },
+            { title: 'Laporan Harian Berjalan', path: '/marketing-online/reports/bulanan' },
+            { title: 'Laporan Bulanan', path: '/marketing-online/reports/bulanan-monthly' },
+            { title: 'Laporan Bulan Berjalan', path: '/marketing-online/reports/berjalan-monthly' },
+            { title: 'Laporan Tahunan', path: '/marketing-online/reports/tahunan' },
+            { title: 'Laporan Tahun Berjalan', path: '/marketing-online/reports/berjalan-tahunan' }
+          ]
+        }
       ]
     },
     {
@@ -190,7 +201,19 @@ const Sidebar = () => {
         { title: 'Stok Inventory', path: '/marketing-offline/inventory' },
         { title: 'Customer', path: '/marketing-offline/customers' },
         { title: 'Promo', path: '/marketing-offline/promo' },
-        { title: 'Report', path: '/marketing-offline/reports' }
+        { title: 'Pricelist Harga', path: '/pricelist' },
+        { 
+          title: 'Report', 
+          path: '/marketing-offline/reports',
+          subMenu: [
+            { title: 'Laporan Harian', path: '/marketing-offline/reports/harian' },
+            { title: 'Laporan Harian Berjalan', path: '/marketing-offline/reports/bulanan' },
+            { title: 'Laporan Bulanan', path: '/marketing-offline/reports/bulanan-monthly' },
+            { title: 'Laporan Bulan Berjalan', path: '/marketing-offline/reports/berjalan-monthly' },
+            { title: 'Laporan Tahunan', path: '/marketing-offline/reports/tahunan' },
+            { title: 'Laporan Tahun Berjalan', path: '/marketing-offline/reports/berjalan-tahunan' }
+          ]
+        }
       ]
     },
     {
@@ -218,8 +241,20 @@ const Sidebar = () => {
       group: 'Owner Dashboard',
       subMenu: [
         { title: 'Finance Dashboard', path: '/finance' },
-        { title: 'Cash In Bank', path: '/cash-in-bank' },
-        { title: 'Journal', path: '/journal' },
+        { title: 'Cash In Bank', path: '/cash-bank' },
+        { title: 'Petty Cash', path: '/petty-cash' },
+        { title: 'Accounts Receivable', path: '/piutang' },
+        { title: 'Accounts Payable', path: '/hutang' },
+        { 
+          title: 'Journal', 
+          path: '/journal',
+          subMenu: [
+            { title: 'Jurnal Penjualan', path: '/journal/sales' },
+            { title: 'Jurnal Pembelian', path: '/journal/purchase' },
+            { title: 'Jurnal Umum', path: '/journal/general' },
+            { title: 'Jurnal Biaya', path: '/journal/expense' }
+          ]
+        },
         { title: 'Chart of Accounts', path: '/chart-of-accounts' },
         { title: 'Invoice', path: '/invoice' },
         { title: 'Approval Center', path: '/finance/approval' },
@@ -389,26 +424,67 @@ const Sidebar = () => {
                   {item.subMenu && isExpanded && (
                     <ul className="ml-12 mt-2 space-y-2 border-l-2 border-red-200 pl-4 mb-3">
                       {item.subMenu.map(sub => {
-                        const isSubActive = location.pathname === (sub.path || '');
+                        const hasNestedActiveChild = sub.subMenu && sub.subMenu.some(nested => location.pathname === nested.path || location.pathname.startsWith(nested.path + '/'));
+                        const isSubActive = location.pathname === (sub.path || '') || hasNestedActiveChild || (sub.path && sub.path !== '/' && sub.path !== '/finance' && sub.path !== '/gudang' && location.pathname.startsWith(sub.path + '/'));
+                        const expandedKey = item.name + '_' + sub.title;
+                        const isSubExpanded = expandedMenus[expandedKey] || hasNestedActiveChild || (sub.path && location.pathname.startsWith(sub.path) && !sub.path.endsWith('/reports'));
+
                         return (
-                          <li
-                            key={sub.title || sub}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (sub.path) navigate(sub.path);
-                            }}
-                            className={`text-[13px] cursor-pointer py-2 px-4 rounded-xl transition-all duration-200 flex items-center justify-between ${isSubActive
-                              ? 'bg-red-800 text-white font-black shadow-sm'
-                              : 'text-gray-600 font-bold hover:bg-red-50 hover:text-red-800'
-                              }`}
-                          >
-                            <span className="flex items-center gap-2">{sub.title || sub}</span>
-                            {sub.hasPermintaanBadge && pendingPermintaanStok > 0 && (
-                                <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm">
-                                  {pendingPermintaanStok}
-                                </span>
+                          <div key={sub.title || sub}>
+                            <li
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (sub.subMenu) {
+                                  setExpandedMenus(prev => ({ ...prev, [expandedKey]: !prev[expandedKey] }));
+                                } else if (sub.path) {
+                                  navigate(sub.path);
+                                }
+                              }}
+                              className={`text-[13px] cursor-pointer py-2 px-4 rounded-xl transition-all duration-200 flex items-center justify-between ${isSubActive && !sub.subMenu
+                                ? 'bg-red-800 text-white font-black shadow-sm'
+                                : 'text-gray-600 font-bold hover:bg-red-50 hover:text-red-800'
+                                }`}
+                            >
+                              <span className="flex items-center gap-2">{sub.title || sub}</span>
+                              <div className="flex items-center gap-2">
+                                {sub.hasPermintaanBadge && pendingPermintaanStok > 0 && (
+                                    <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm">
+                                      {pendingPermintaanStok}
+                                    </span>
+                                )}
+                                {sub.subMenu && (
+                                  <ChevronDown
+                                    size={14}
+                                    className={`transition-transform duration-200 ${isSubExpanded ? 'rotate-180' : ''}`}
+                                  />
+                                )}
+                              </div>
+                            </li>
+                            
+                            {/* Nested Submenu */}
+                            {sub.subMenu && isSubExpanded && (
+                              <ul className="ml-6 mt-1 space-y-1 border-l-2 border-red-100 pl-3 mb-2">
+                                {sub.subMenu.map(nested => {
+                                  const isNestedActive = location.pathname === (nested.path || '');
+                                  return (
+                                    <li
+                                      key={nested.title || nested}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (nested.path) navigate(nested.path);
+                                      }}
+                                      className={`text-[12px] cursor-pointer py-1.5 px-3 rounded-lg transition-all duration-200 flex items-center justify-between ${isNestedActive
+                                        ? 'bg-red-800 text-white font-bold shadow-sm'
+                                        : 'text-gray-500 font-semibold hover:bg-red-50 hover:text-red-800'
+                                        }`}
+                                    >
+                                      <span className="flex items-center gap-2">{nested.title || nested}</span>
+                                    </li>
+                                  );
+                                })}
+                              </ul>
                             )}
-                          </li>
+                          </div>
                         );
                       })}
                     </ul>
