@@ -9,7 +9,7 @@ const UserManagement = () => {
     const [showModal, setShowModal] = useState(false);
     const [isEdit, setIsEdit] = useState(false);
     
-    const [form, setForm] = useState({ id: '', nama: '', username: '', password: '', role: 'marketing', status: 'aktif' });
+    const [form, setForm] = useState({ id: '', nama: '', username: '', password: '', role: 'marketing_online', status: 'aktif' });
 
     useEffect(() => {
         fetchUsers();
@@ -46,7 +46,7 @@ const UserManagement = () => {
     };
 
     const openCreate = () => {
-        setForm({ id: '', nama: '', username: '', password: '', role: 'marketing', status: 'aktif' });
+        setForm({ id: '', nama: '', username: '', password: '', role: 'marketing_online', status: 'aktif' });
         setIsEdit(false);
         setShowModal(true);
     };
@@ -68,13 +68,18 @@ const UserManagement = () => {
         const colors = {
             owner: 'bg-yellow-100 text-yellow-800 border-yellow-200',
             admin_it: 'bg-blue-100 text-blue-800 border-blue-200',
-            marketing: 'bg-purple-100 text-purple-800 border-purple-200',
+            marketing_online: 'bg-purple-100 text-purple-800 border-purple-200',
+            marketing_offline: 'bg-purple-100 text-purple-800 border-purple-200',
+            marketing_offline_tanaka: 'bg-purple-100 text-purple-800 border-purple-200',
+            marketing_accestret: 'bg-purple-100 text-purple-800 border-purple-200',
             finance: 'bg-green-100 text-green-800 border-green-200',
             gudang: 'bg-red-100 text-red-800 border-red-200',
-            produksi: 'bg-orange-100 text-orange-800 border-orange-200'
+            gudang_accestret: 'bg-red-100 text-red-800 border-red-200',
+            produksi: 'bg-orange-100 text-orange-800 border-orange-200',
+            produksi_accestret: 'bg-orange-100 text-orange-800 border-orange-200'
         };
         const color = colors[role] || 'bg-gray-100 text-gray-800 border-gray-200';
-        return <span className={`text-[10px] px-2 py-1 rounded border font-bold uppercase ${color}`}>{role.replace('_', ' ')}</span>;
+        return <span className={`text-[10px] px-2 py-1 rounded border font-bold uppercase ${color}`}>{role.replace(/_/g, ' ')}</span>;
     };
 
     return (
@@ -161,10 +166,15 @@ const UserManagement = () => {
                                     <select value={form.role} onChange={e => setForm({...form, role: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2">
                                         <option value="owner">Owner</option>
                                         <option value="admin_it">Admin IT</option>
-                                        <option value="marketing">Marketing</option>
+                                        <option value="marketing_online">Marketing Online</option>
+                                        <option value="marketing_offline">Marketing Offline</option>
+                                        <option value="marketing_offline_tanaka">Marketing Offline Tanaka</option>
+                                        <option value="marketing_accestret">Marketing Accestret</option>
                                         <option value="finance">Finance</option>
                                         <option value="gudang">Gudang</option>
+                                        <option value="gudang_accestret">Gudang Accestret</option>
                                         <option value="produksi">Produksi</option>
+                                        <option value="produksi_accestret">Produksi Accestret</option>
                                     </select>
                                 </div>
                                 <div>
