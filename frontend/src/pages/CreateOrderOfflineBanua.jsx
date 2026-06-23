@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../api/axios';
-import { createQuotation, getNextQuotationNumber } from '../api/quotationApi';
+import { createQuotation, getNextQuotationNumber, updateQuotation, getQuotationById } from '../api/quotationApi';
 import Sidebar from '../components/Sidebar';
 import { Save, X, ArrowLeft, ShoppingCart, Users, FileText, Upload, CreditCard, Settings, PenTool } from 'lucide-react';
 
@@ -65,11 +65,65 @@ const CreateOrderOfflineBanua = () => {
                 setCustomers(res.data);
             } catch (error) { console.error("Failed to fetch customers", error); }
         };
+        const getBrand = (prod) => {
+            const name = (prod.nama_produk || '').toUpperCase();
+            if (name.includes('YAMAHA')) return 'PRODUK YAMAHA MOTOR';
+            if (name.includes('HONDA MOBIL')) return 'PRODUK HONDA MOBIL';
+            if (name.includes('FLP') || name.includes('MEKANIK HONDA') || (name.includes('HONDA') && !name.includes('MOBIL'))) return 'PRODUK HONDA MOTOR';
+            if (name.includes('MITSUBISHI')) return 'PRODUK MITSUBISHI MOBIL';
+            if (name.includes('TOYOTA')) return 'PRODUK TOYOTA MOBIL';
+            if (name.includes('HYUNDAI')) return 'PRODUK HYUNDAI MOBIL';
+            if (name.includes('WULING')) return 'PRODUK WULING MOBIL';
+            if (name.includes('MAZDA')) return 'PRODUK MAZDA MOBIL';
+            if (name.includes('ALFAMART')) return 'PRODUK ALFAMART';
+            if (name.includes('INDOMARET')) return 'PRODUK INDOMARET';
+            if (name.includes('SATPAM') || name.includes('SAFARI HITAM') || name.includes('SAFARI KUNING')) return 'PRODUK SATPAM';
+            if (name.includes('SRS') || name.includes('RUMAH SAKIT') || name.includes('OKK')) return 'PRODUK SERAGAM RUMAH SAKIT';
+            if (name.includes('PERTAMINA')) return 'PRODUK PERTAMINA';
+            return 'PRODUK LAINNYA';
+        };
+
+        const BRAND_PREFIX = {
+            'PRODUK HONDA MOTOR':          'HM',
+            'PRODUK YAMAHA MOTOR':         'YM',
+            'PRODUK HONDA MOBIL':          'HMM',
+            'PRODUK MITSUBISHI MOBIL':     'MHM',
+            'PRODUK TOYOTA MOBIL':         'TM',
+            'PRODUK HYUNDAI MOBIL':        'HYM',
+            'PRODUK WULING MOBIL':         'WM',
+            'PRODUK MAZDA MOBIL':          'MM',
+            'PRODUK ALFAMART':             'AM',
+            'PRODUK INDOMARET':            'IM',
+            'PRODUK SATPAM':               'SP',
+            'PRODUK SERAGAM RUMAH SAKIT':  'SRS',
+            'PRODUK PERTAMINA':            'PT',
+            'PRODUK LAINNYA':              'PRD',
+        };
+
         const fetchProducts = async () => {
             try {
                 const res = await api.get('/produk');
                 if (res.data && res.data.data) {
-                    setProducts(res.data.data);
+                    const fetchedProducts = res.data.data;
+                    
+                    const grouped = fetchedProducts.reduce((acc, curr) => {
+                        const brand = getBrand(curr);
+                        if (!acc[brand]) acc[brand] = [];
+                        acc[brand].push(curr);
+                        return acc;
+                    }, {});
+                    
+                    const processedProducts = [];
+                    Object.keys(grouped).forEach(brand => {
+                        grouped[brand].forEach((prod, idx) => {
+                            if (!prod.kode) {
+                                const prefix = BRAND_PREFIX[brand] || 'PRD';
+                                prod.kode = `${prefix}${String(idx + 1).padStart(3, '0')}`;
+                            }
+                            processedProducts.push(prod);
+                        });
+                    });
+                    setProducts(processedProducts);
                 } else {
                     setProducts([]);
                 }
@@ -77,6 +131,36 @@ const CreateOrderOfflineBanua = () => {
         };
         fetchCustomers();
         fetchProducts();
+
+        if (editData && editData.quotation_id) {
+            const fetchQuo = async () => {
+                try {
+                    const res = await getQuotationById(editData.quotation_id);
+                    if (res.data?.status === 'success') {
+                        const q = res.data.data;
+                        setForm(prev => ({
+                            ...prev,
+                            tanggal_quotation: q.tanggal_quotation ? q.tanggal_quotation.split('T')[0] : prev.tanggal_quotation,
+                            tanggal_berlaku: q.tanggal_berlaku ? q.tanggal_berlaku.split('T')[0] : prev.tanggal_berlaku,
+                            deskripsi_pesanan: q.deskripsi_pesanan || prev.deskripsi_pesanan,
+                            jenis_pembayaran: q.jenis_pembayaran || prev.jenis_pembayaran,
+                            payment_note: q.payment_note || prev.payment_note,
+                            term_of_payment: q.term_of_payment || prev.term_of_payment,
+                            nama_marketing: q.nama_marketing || prev.nama_marketing,
+                            nama_client_ttd: q.nama_client_ttd || prev.nama_client_ttd,
+                            ongkos_kirim: q.ongkos_kirim !== undefined ? q.ongkos_kirim : prev.ongkos_kirim,
+                            ppn_persen: q.ppn_persen !== undefined ? q.ppn_persen : prev.ppn_persen,
+                            alamat_pt: q.alamat_pt || prev.alamat_pt,
+                            up_penagihan: q.up_penagihan || prev.up_penagihan,
+                            cp_penagihan: q.cp_penagihan || prev.cp_penagihan,
+                            email: q.email_customer || prev.email,
+                            bahan: q.bahan || prev.bahan
+                        }));
+                    }
+                } catch(e) { console.error("Failed to fetch quotation", e); }
+            };
+            fetchQuo();
+        }
     }, []);
 
     // Helper: check if item needs approval (harga_satuan < harga_spv)
@@ -239,18 +323,42 @@ const CreateOrderOfflineBanua = () => {
         setForm({ ...form, items: newItems });
     };
 
+    const getJenis = (prod) => {
+        const k = prod.kategori;
+        if (!k || k === 'Lainnya' || k === '') {
+            const n = (prod.nama_produk || '').toUpperCase();
+            if (n.includes('PDH')) return 'PDH';
+            if (n.includes('PDL')) return 'PDL';
+            if (n.includes('POLO')) return 'POLO';
+            if (n.includes('WEARPACK')) return 'WEARPACK';
+            if (n.includes('KEMEJA')) return 'KEMEJA';
+            if (n.includes('CELANA')) return 'CELANA';
+            if (n.includes('TOPI')) return 'TOPI';
+            if (n.includes('APRON')) return 'APRON';
+            if (n.includes('SERAGAM RS') || n.includes('OKK')) return 'SERAGAM RS';
+        }
+        return k || 'Lainnya';
+    };
+
     const filterProducts = (index, value) => {
         setActiveItemIndex(index);
         if (Array.isArray(products)) {
-            // Filter by selected bahan first, then by name
             let pool = products;
+            // Filter by selected bahan first
             if (form.bahan) {
                 pool = products.filter(p => p.bahan && p.bahan.toUpperCase() === form.bahan.toUpperCase());
             }
             if (value && value.length > 0) {
-                pool = pool.filter(p => p.nama_produk.toLowerCase().includes(value.toLowerCase()));
+                const q = value.toLowerCase();
+                pool = pool.filter(p => {
+                    const kd = (p.kode || '').toLowerCase();
+                    const nm = (p.nama_produk || p.nama || '').toLowerCase();
+                    const bh = (p.bahan || '').toLowerCase();
+                    const jn = (getJenis(p) || '').toLowerCase();
+                    return kd.includes(q) || nm.includes(q) || bh.includes(q) || jn.includes(q);
+                });
             }
-            setFilteredProducts(pool);
+            setFilteredProducts(pool.slice(0, 30));
         } else {
             setFilteredProducts([]);
         }
@@ -258,12 +366,9 @@ const CreateOrderOfflineBanua = () => {
 
     const selectProduct = (index, prod) => {
         const newItems = [...form.items];
-        // Use 'nama' (display name) if set, otherwise fall back to full nama_produk
-        let displayName = prod.nama || prod.nama_produk;
-        if (prod.nama && prod.variasi) {
-            displayName = `${prod.nama} ${prod.variasi}`;
-        }
-        newItems[index].rincian = displayName;
+        // Sesuai Juklak: gunakan nama_produk asli dari database
+        newItems[index].rincian = prod.nama_produk || prod.nama;
+        newItems[index].kode_produk = prod.kode || '';  // simpan kode untuk referensi
         
         const hJual = Number(prod.harga_jual || prod.hpp_satuan || 0);
         const hSpv = Number(prod.harga_spv || 0);
@@ -355,12 +460,12 @@ const CreateOrderOfflineBanua = () => {
                 orderId = res.data?.id;
             }
 
-            // Also create quotation if enabled and no existing quotation for this order
-            const hasExistingQuotation = Boolean(editData?.quotation_id || form.quotation_id);
-            if (createQuo && !isEditingOrder && !hasExistingQuotation) {
-                const noRes = await getNextQuotationNumber('Banua');
+            // Also create or update quotation
+            const qId = editData?.quotation_id || form.quotation_id;
+            const hasExistingQuotation = Boolean(qId);
+            
+            if (hasExistingQuotation || (createQuo && !isEditingOrder)) {
                 const quoData = {
-                    no_quotation: noRes.data.no_quotation,
                     cabang: 'Banua',
                     order_id: orderId || null,
                     tanggal_quotation: form.tanggal_quotation,
@@ -386,12 +491,24 @@ const CreateOrderOfflineBanua = () => {
                     nama_client_ttd: form.nama_client_ttd,
                     status: 'Draft'
                 };
-                const quoRes = await createQuotation(quoData);
-                // Upload files if any
-                if (quoFiles.length > 0 && quoRes.data?.id) {
-                    const fd = new FormData();
-                    quoFiles.forEach(f => fd.append('files', f));
-                    await api.post(`/quotation/${quoRes.data.id}/upload`, fd);
+
+                if (hasExistingQuotation && isEditingOrder) {
+                    await updateQuotation(qId, quoData);
+                    if (quoFiles.length > 0) {
+                        const fd = new FormData();
+                        quoFiles.forEach(f => fd.append('files', f));
+                        await api.post(`/quotation/${qId}/upload`, fd);
+                    }
+                } else if (createQuo && !isEditingOrder && !hasExistingQuotation) {
+                    const noRes = await getNextQuotationNumber('Banua');
+                    quoData.no_quotation = noRes.data.no_quotation;
+                    const quoRes = await createQuotation(quoData);
+                    // Upload files if any
+                    if (quoFiles.length > 0 && quoRes.data?.id) {
+                        const fd = new FormData();
+                        quoFiles.forEach(f => fd.append('files', f));
+                        await api.post(`/quotation/${quoRes.data.id}/upload`, fd);
+                    }
                 }
             }
 
@@ -557,11 +674,19 @@ const CreateOrderOfflineBanua = () => {
                                                 autoComplete="off" 
                                             />
                                             {activeItemIndex === index && filteredProducts.length > 0 && (
-                                                <ul className="absolute z-20 w-full bg-white border border-gray-200 mt-1 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                                                <ul className="absolute z-20 w-72 bg-white border border-gray-200 mt-1 rounded-lg shadow-xl max-h-60 overflow-y-auto">
                                                     {filteredProducts.map(prod => (
-                                                        <li key={prod.id} onClick={() => selectProduct(index, prod)} className="p-2 hover:bg-gray-50 cursor-pointer text-sm border-b border-gray-50 last:border-0 flex justify-between items-center">
-                                                                <span>[PRD-{prod.id}] {prod.nama_produk}</span>
-                                                                <span className="text-xs text-gray-400 font-mono">Rp {Number(prod.harga_jual || prod.hpp_satuan || 0).toLocaleString('id-ID')}</span>
+                                                        <li key={prod.id} onClick={() => selectProduct(index, prod)} className="p-2.5 hover:bg-red-50 cursor-pointer border-b border-gray-100 last:border-0">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-[10px] font-black text-white bg-[#990000] px-1.5 py-0.5 rounded font-mono shrink-0">
+                                                                    {prod.kode || `PRD-${prod.id}`}
+                                                                </span>
+                                                                <span className="text-xs font-semibold text-gray-800 truncate">{prod.nama_produk}</span>
+                                                            </div>
+                                                            <div className="flex justify-between mt-1">
+                                                                <span className="text-[10px] text-gray-400">{prod.bahan || '-'} {prod.variasi ? `| ${prod.variasi}` : ''}</span>
+                                                                <span className="text-[10px] font-bold text-[#990000]">Rp {Number(prod.harga_jual || prod.hpp_satuan || 0).toLocaleString('id-ID')}</span>
+                                                            </div>
                                                         </li>
                                                     ))}
                                                 </ul>

@@ -29,7 +29,7 @@ const Sidebar = () => {
           console.error('Error fetching pending approvals:', err);
         }
       };
-      
+
       const fetchPermintaanStokCount = async () => {
         try {
           const res = await axios.get('http://localhost:3000/api/permintaan-stok/pending/count', {
@@ -43,7 +43,7 @@ const Sidebar = () => {
 
       fetchPendingCount();
       fetchPermintaanStokCount();
-      
+
       const intervalId = setInterval(() => {
         fetchPendingCount();
         fetchPermintaanStokCount();
@@ -176,8 +176,8 @@ const Sidebar = () => {
         { title: 'Order Marketplace', path: '/marketing-online/orders' },
         { title: 'Stok Inventory', path: '/marketing-online/inventory' },
         { title: 'Promo Online', path: '/marketing-online/promo' },
-        { 
-          title: 'Report', 
+        {
+          title: 'Report',
           path: '/marketing-online/reports',
           subMenu: [
             { title: 'Laporan Harian', path: '/marketing-online/reports/harian' },
@@ -202,8 +202,8 @@ const Sidebar = () => {
         { title: 'Customer', path: '/marketing-offline/customers' },
         { title: 'Promo', path: '/marketing-offline/promo' },
         { title: 'Pricelist Harga', path: '/pricelist' },
-        { 
-          title: 'Report', 
+        {
+          title: 'Report',
           path: '/marketing-offline/reports',
           subMenu: [
             { title: 'Laporan Harian', path: '/marketing-offline/reports/harian' },
@@ -245,8 +245,8 @@ const Sidebar = () => {
         { title: 'Petty Cash', path: '/petty-cash' },
         { title: 'Accounts Receivable', path: '/piutang' },
         { title: 'Accounts Payable', path: '/hutang' },
-        { 
-          title: 'Journal', 
+        {
+          title: 'Journal',
           path: '/journal',
           subMenu: [
             { title: 'Jurnal Penjualan', path: '/journal/sales' },
@@ -299,12 +299,12 @@ const Sidebar = () => {
   let menuItems = allMenuItems.filter(item => {
     if (!item.name) return false;
     const hasRole = item.roles.some(r => r.toLowerCase() === userRole.trim().toLowerCase());
-    
+
     // Owner hanya melihat grup 'Owner Dashboard' di sidebar
     if (userRole.trim().toLowerCase() === 'owner' && item.group !== 'Owner Dashboard') {
       return false;
     }
-    
+
     return hasRole;
   });
   // Debug fallback: if no menu items match, show all to ensure visibility
@@ -448,9 +448,9 @@ const Sidebar = () => {
                               <span className="flex items-center gap-2">{sub.title || sub}</span>
                               <div className="flex items-center gap-2">
                                 {sub.hasPermintaanBadge && pendingPermintaanStok > 0 && (
-                                    <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm">
-                                      {pendingPermintaanStok}
-                                    </span>
+                                  <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm">
+                                    {pendingPermintaanStok}
+                                  </span>
                                 )}
                                 {sub.subMenu && (
                                   <ChevronDown
@@ -460,7 +460,7 @@ const Sidebar = () => {
                                 )}
                               </div>
                             </li>
-                            
+
                             {/* Nested Submenu */}
                             {sub.subMenu && isSubExpanded && (
                               <ul className="ml-6 mt-1 space-y-1 border-l-2 border-red-100 pl-3 mb-2">
@@ -511,11 +511,11 @@ const Sidebar = () => {
       {showLogoutModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-[340px] animate-in zoom-in-95 duration-200 flex flex-col relative border-t-[8px] border-t-[#990000]">
-            
+
             <div className="p-8 pb-6 text-center">
               <h3 className="text-xl font-black text-gray-900 m-0 tracking-wide">Yakin ingin logout?</h3>
             </div>
-            
+
             <div className="px-8 pb-8 flex justify-center gap-4">
               <button
                 onClick={() => setShowLogoutModal(false)}
@@ -530,7 +530,7 @@ const Sidebar = () => {
                 Yes
               </button>
             </div>
-            
+
           </div>
         </div>
       )}

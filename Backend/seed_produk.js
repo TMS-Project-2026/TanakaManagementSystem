@@ -1,111 +1,133 @@
-const db = require('./config/db');
+const db = require('./config/db.js');
 
 const products = [
-  { nama: 'Wearpack Mitsubishi', mgr: 213777.86, spv: 222328.97, jual: 239431.20 },
-  { nama: 'Baju Foreman', mgr: 115664.73, spv: 120291.32, jual: 129544.50 },
-  { nama: 'Baju SA Mitsubishi', mgr: 111321.70, spv: 115774.56, jual: 124680.30 },
-  { nama: 'Sales Mitsubishi Cowok', mgr: 109885.98, spv: 114281.42, jual: 123072.30 },
-  { nama: 'Sales Mitsubishi Cewek', mgr: 109885.98, spv: 114281.42, jual: 123072.30 },
-  { nama: 'Sales Fuso Cowok', mgr: 109024.55, spv: 113385.54, jual: 122107.50 },
-  { nama: 'Sales Fuso Cewek', mgr: 109024.55, spv: 113385.54, jual: 122107.50 },
-  { nama: 'Wearpack Toyota', mgr: 185637.86, spv: 193063.37, jual: 207914.40 },
-  { nama: 'Sales Toyota Merah', mgr: 117082.50, spv: 121765.80, jual: 131132.40 },
-  { nama: 'Sales Toyota Biru', mgr: 117082.50, spv: 121765.80, jual: 131132.40 },
-  { nama: 'Wearpack Suzuki Mobil', mgr: 218838.75, spv: 227592.30, jual: 245099.40 },
-  { nama: 'Wearpack Isuzu', mgr: 205809.64, spv: 214042.03, jual: 230506.80 },
-  { nama: 'Seragam Mekanik Hyundai', mgr: 197419.69, spv: 205316.48, jual: 221110.05 },
-  { nama: 'Kemeja Alfamart Cowok', mgr: 114803.30, spv: 119395.44, jual: 128579.70 },
-  { nama: 'Kemeja Alfamart Cewek', mgr: 114803.30, spv: 119395.44, jual: 128579.70 },
-  { nama: 'FLP Merah H', mgr: 117082.50, spv: 121765.80, jual: 131132.40 },
-  { nama: 'FLP Putih H', mgr: 117082.50, spv: 121765.80, jual: 131132.40 },
-  { nama: 'Seragam Mekanik Honda', mgr: 197419.69, spv: 205316.48, jual: 221110.05 },
-  { nama: 'Celana Mekanik H', mgr: 91401.16, spv: 95057.21, jual: 102369.30 },
-  { nama: 'Baju Mekanik H', mgr: 114067.50, spv: 118630.20, jual: 127755.60 },
-  { nama: 'FLP Merah Cewek H', mgr: 117082.50, spv: 121765.80, jual: 131132.40 },
-  { nama: 'FLP Putih Cewek H', mgr: 117082.50, spv: 121765.80, jual: 131132.40 },
-  { nama: 'FLP Merah Panjang Cewek', mgr: 126037.77, spv: 131079.28, jual: 141162.30 },
-  { nama: 'FLP Putih Panjang Cewek', mgr: 126037.77, spv: 131079.28, jual: 141162.30 },
-  { nama: 'Topi Honda Putih', mgr: 21984.38, spv: 22863.75, jual: 24622.50 },
-  { nama: 'Topi Honda Merah', mgr: 21984.38, spv: 22863.75, jual: 24622.50 },
-  { nama: 'Apron Honda', mgr: 21984.38, spv: 22863.75, jual: 24622.50 },
-  { nama: 'Wearpack Yamaha', mgr: 229911.70, spv: 239108.16, jual: 257501.10 },
-  { nama: 'Baju SA Yamaha', mgr: 117728.57, spv: 122437.71, jual: 131856.00 },
-  { nama: 'Baju Biru Yamaha', mgr: 153495.80, spv: 159635.64, jual: 171915.30 },
-  { nama: 'Wearpack Honda', mgr: 191497.37, spv: 199157.26, jual: 214477.05 },
-  { nama: 'Mekanik Honda Mobil New', mgr: 202920.27, spv: 211037.08, jual: 227270.70 },
-  { nama: 'Baju Mekanik Honda Mobil', mgr: 114067.50, spv: 118630.20, jual: 127755.60 },
-  { nama: 'Celana Mekanik Honda Mobil', mgr: 91401.16, spv: 95057.21, jual: 102369.30 },
-  { nama: 'Service Advisor (SA)', mgr: 112016.89, spv: 116497.57, jual: 125458.92 },
-  { nama: 'Sperpat', mgr: 116346.70, spv: 121000.56, jual: 130308.30 },
-  { nama: 'Topi Honda Mobil', mgr: 21984.38, spv: 22863.75, jual: 24622.50 },
-  { nama: 'Wearpack Mazda', mgr: 205809.64, spv: 214042.03, jual: 230506.80 },
-  { nama: 'Kemeja Indomaret Cowok', mgr: 114803.30, spv: 119395.44, jual: 128579.70 },
-  { nama: 'Kemeja Indomaret Cewek', mgr: 114803.30, spv: 119395.44, jual: 128579.70 },
-  { nama: 'Safari Hitam', mgr: 212324.20, spv: 220817.16, jual: 237803.10 },
-  { nama: 'Baju Safari', mgr: 118823.30, spv: 123576.24, jual: 133082.10 },
-  { nama: 'Celana Safari', mgr: 89014.29, spv: 92574.86, jual: 99696.00 },
-  { nama: 'PDL Kuning', mgr: 199366.88, spv: 207341.55, jual: 223290.90 },
-  { nama: 'Baju PDL', mgr: 104394.38, spv: 108570.15, jual: 116921.70 },
-  { nama: 'Celana PDL', mgr: 89014.29, spv: 92574.86, jual: 99696.00 },
-  { nama: 'Pertamina Operator (Merah)', mgr: 198596.97, spv: 206540.85, jual: 222428.61 },
-  { nama: 'Baju Pertamina Operator', mgr: 104394.38, spv: 108570.15, jual: 116921.70 },
-  { nama: 'Celana Pertamina Operator', mgr: 91903.66, spv: 95579.81, jual: 102932.10 },
-  { nama: 'Pertamina Teknisi (Biru)', mgr: 198596.97, spv: 206540.85, jual: 222428.61 },
-  { nama: 'Baju Pertamina Teknisi', mgr: 104394.38, spv: 108570.15, jual: 116921.70 },
-  { nama: 'Celana Pertamina Teknisi', mgr: 91903.66, spv: 95579.81, jual: 102932.10 },
-  { nama: 'Pertamina Supervisor (Hitam)', mgr: 198596.97, spv: 206540.85, jual: 222428.61 },
-  { nama: 'Baju Pertamina Supervisor', mgr: 104394.38, spv: 108570.15, jual: 116921.70 },
-  { nama: 'Celana Pertamina Supervisor', mgr: 91903.66, spv: 95579.81, jual: 102932.10 },
-  { nama: 'Pertamina OB (Hijau)', mgr: 198596.97, spv: 206540.85, jual: 222428.61 },
-  { nama: 'Baju Pertamina OB', mgr: 104394.38, spv: 108570.15, jual: 116921.70 },
-  { nama: 'Celana Pertamina OB', mgr: 91903.66, spv: 95579.81, jual: 102932.10 },
-  { nama: 'Topi Pertamina', mgr: 21984.38, spv: 22863.75, jual: 24622.50 }
+    // HONDA MOTOR
+    ['HM001', 'PDH', 'FLP MERAH COWOK', 'UNIONE', '', 128800, 135000, 140500],
+    ['HM002', 'PDH', 'FLP PUTIH COWOK', 'UNIONE', '', 128800, 135000, 140500],
+    ['HM003', 'PDH', 'FLP MERAH CEWEK', 'UNIONE', '', 129000, 135000, 141000],
+    ['HM004', 'PDH', 'FLP PUTIH CEWEK', 'UNIONE', '', 129000, 135000, 141000],
+    ['HM005', 'PDH', 'FLP MERAH PANJANG CEWEK', 'UNIONE', '', 138800, 145000, 151500],
+    ['HM006', 'PDH', 'FLP PUTIH PANJANG CEWEK', 'UNIONE', '', 138800, 145000, 151500],
+    ['HM007', 'PDH', 'BAJU CELANA MEKANIK HONDA', 'UNIONE', '', 217500, 227000, 240000],
+    ['HM008', 'PDH', 'BAJU MEKANIK HONDA', 'UNIONE', '', 125500, 131500, 137000],
+    ['HM009', 'CELANA', 'CELANA MEKANIK HONDA', 'UNIONE', '', 101000, 105000, 110000],
+    ['HM010', 'TOPI', 'TOPI HONDA PUTIH', '', '', 24300, 25500, 27000],
+    ['HM011', 'TOPI', 'TOPI HONDA MERAH', '', '', 24300, 25500, 27000],
+    ['HM012', 'APRON', 'APRON HONDA', '', '', 24300, 25500, 27000],
+    ['HM013', 'FULL SET', 'BAJU CELANA MEKANIK HONDA (INCLUDE TOPI APRON)', 'UNIONE', '', 250000, 260000, 270000],
+    ['HM014', 'PDH', 'POLO MERAH HONDA', 'PIQUE', '', 107000, 112000, 115000],
+    ['HM015', 'PDH', 'HRC HITAM HONDA', 'UNIONE', '', 128800, 135000, 140500],
+    ['HM016', 'PDH', 'HRC PUTIH HONDA', 'UNIONE', '', 128800, 135000, 140500],
+    ['HM017', 'PDH', 'HRC NAVY HONDA', 'UNIONE', '', 128800, 135000, 140500],
+    
+    // YAMAHA MOTOR
+    ['YM001', 'WEARPACK', 'WEARPACK YAMAHA', 'UNIONE', '', 237500, 257000, 278000],
+    ['YM004', 'PDH', 'BAJU SERVICE ADVISOR YAMAHA', 'UNIONE', '', 130000, 135500, 141500],
+    
+    // HONDA MOBIL
+    ['HMM001', 'WEARPACK', 'WEARPACK HONDA MOBIL', 'UNIONE', '', 237500, 257000, 278000],
+    ['HMM004', 'PDL', 'BAJU HONDA MOBIL', 'UNIONE', '', 129000, 135000, 141000],
+    ['HMM005', 'CELANA', 'CELANA HONDA MOBIL', 'UNIONE', '', 101000, 105000, 110000],
+    ['HMM006', 'PDL', 'BAJU CELANA HONDA MOBIL', 'UNIONE', '', 217500, 227000, 240000],
+    ['HMM007', 'PDL', 'BAJU SERVICE ADVISOR (SA) MOBIL', 'UNIONE', '', 130000, 135500, 141500],
+    ['HMM009', 'TOPI', 'TOPI HONDA MOBIL', 'UNIONE', '', 27500, 30000, 35000],
+    
+    // MITSUBISHI MOBIL
+    ['MHM001', 'WEARPACK', 'WEARPACK MITSUBISHI MOBIL', 'UNIONE', '', 237500, 257000, 278000],
+    ['MHM004', 'PDH', 'BAJU FOREMAN MITSUBISHI MOBIL', 'UNIONE', '', 127000, 133500, 139500],
+    ['MHM005', 'PDH', 'BAJU SERVICE ADVISOR MITSUBISHI MOBIL', 'UNIONE', '', 122500, 128500, 134500],
+    ['MHM006', 'PDH', 'BAJU SALES MITSUBISHI MOBIL COWOK', 'UNIONE', '', 121000, 126500, 132500],
+    ['MHM007', 'PDH', 'BAJU SALES MITSUBISHI MOBIL CEWEK', 'UNIONE', '', 121000, 126500, 132500],
+    ['MHM008', 'PDH', 'BAJU SALES FUSO MITSUBISHI COWOK', 'UNIONE', '', 121000, 126500, 132500],
+    ['MHM009', 'PDH', 'BAJU SALES FUSO MITSUBISHI CEWEK', 'UNIONE', '', 121000, 126500, 132500],
+
+    // TOYOTA MOBIL
+    ['TM001', 'WEARPACK', 'WEARPACK TOYOTA', 'UNIONE', '', 237500, 257000, 278000],
+    ['TM004', 'PDH', 'SALES TOYOTA MERAH', 'UNIONE', '', 128800, 134800, 140000],
+    ['TM005', 'PDH', 'SALES TOYOTA BIRU', 'UNIONE', '', 128800, 134800, 140000],
+    
+    // HYUNDAI MOBIL
+    ['HYM001', 'PDL', 'BAJU CELANA HYUNDAI BIRU MUDA', 'UNIONE', '', 217500, 228000, 245000],
+    ['HYM002', 'PDL', 'BAJU HYUNDAI BIRU MUDA', 'UNIONE', '', 127000, 133500, 139500],
+    ['HYM003', 'CELANA', 'CELANA HYUNDAI BIRU MUDA', 'UNIONE', '', 101000, 105000, 110000],
+    ['HYM004', 'PDL', 'BAJU CELANA HYUNDAI BIRU TUA', 'UNIONE', '', 217500, 228000, 245000],
+    ['HYM005', 'PDL', 'BAJU HYUNDAI BIRU TUA', 'UNIONE', '', 127000, 133500, 139500],
+    ['HYM006', 'CELANA', 'CELANA HYUNDAI BIRU TUA', 'UNIONE', '', 101000, 105000, 110000],
+
+    // WULING MOBIL
+    ['WM001', 'WEARPACK', 'WEARPACK WULING', 'UNIONE', '', 237500, 257000, 278000],
+    ['WM004', 'PDL', 'BAJU CELANA WULING', 'UNIONE', '', 223500, 233500, 245500],
+    ['WM005', 'PDL', 'BAJU WULING', 'UNIONE', '', 125500, 131500, 137000],
+    ['WM006', 'PDH', 'BAJU SALES WULING CEWEK', 'UNIONE', '', 125500, 131500, 137000],
+    ['WM007', 'PDH', 'BAJU SALES WULING COWOK', 'UNIONE', '', 125500, 131500, 137000],
+    ['WM008', 'CELANA', 'CELANA WULING', 'UNIONE', '', 100500, 105200, 110000],
+    ['WM009', 'PDH', 'BAJU SERVICE ADVISOR WULING', 'UNIONE', '', 123500, 129000, 135000],
+    ['WM010', 'PDL', 'BAJU CELANA PARTMAN WULING', 'UNIONE', '', 223500, 233500, 245500],
+    ['WM011', 'PDL', 'BAJU PARTMAN WULING', 'UNIONE', '', 128000, 134000, 140000],
+    ['WM012', 'CELANA', 'CELANA PARTMAN WULING', 'UNIONE', '', 100500, 105200, 110000],
+    ['WM013', 'TOPI', 'TOPI WULING', '', '', 24300, 25500, 27000],
+
+    // MAZDA MOBIL
+    ['MM001', 'WEARPACK', 'WEARPACK MAZDA', 'UNIONE', '', 237500, 257000, 278000],
+
+    // ALFAMART
+    ['AM001', 'KEMEJA', 'KEMEJA ALFAMART COWOK', 'UNIONE', '', 126500, 132000, 138000],
+    ['AM002', 'KEMEJA', 'KEMEJA ALFAMART CEWEK', 'UNIONE', '', 126500, 132000, 138000],
+
+    // INDOMARET
+    ['IDM001', 'KEMEJA', 'KEMEJA INDOMARET COWOK', 'UNIONE', '', 126500, 132000, 138000],
+    ['IDM002', 'KEMEJA', 'KEMEJA INDOMARET CEWEK', 'UNIONE', '', 126500, 132000, 138000],
+
+    // SATPAM
+    ['SP001', 'PDH', 'BAJU CELANA SAFARI HITAM', 'UNIONE', '', 234800, 245500, 254800],
+    ['SP002', 'PDH', 'BAJU SAFARI HITAM', 'UNIONE', '', 131000, 137000, 143000],
+    ['SP003', 'CELANA', 'CELANA SAFARI HITAM', 'UNIONE', '', 98000, 102500, 108000],
+    ['SP004', 'PDL', 'BAJU CELANA SATPAM PDL KUNING', 'UNIONE', '', 219500, 237500, 250000],
+    ['SP005', 'PDL', 'BAJU SATPAM PDL KUNING', 'UNIONE', '', 115000, 120000, 125500],
+    ['SP006', 'CELANA', 'CELANA PDL KUNING', 'UNIONE', '', 98000, 102500, 107000],
+    ['SP007', 'POLO', 'POLO SATPAM', 'PIQUE', '', 107000, 112000, 120000],
+
+    // SERAGAM RS
+    ['SRS001', 'SERAGAM RS', 'BAJU CELANA OKK SRS', 'UNIONE', '', 205000, 215000, 226000],
+    ['SRS002', 'SERAGAM RS', 'BAJU OKK SRS', 'UNIONE', '', 115000, 120000, 125500],
+    ['SRS003', 'CELANA', 'CELANA OKK SRS', 'UNIONE', '', 98000, 102500, 107000],
+
+    // PERTAMINA
+    ['PTA001', 'PDL', 'BAJU CELANA OPERATOR MERAH', 'UNIONE', '', 218500, 228000, 238500],
+    ['PTA002', 'PDL', 'BAJU PERTAMINA OPERATOR', 'UNIONE', '', 115000, 120000, 125500],
+    ['PTA003', 'CELANA', 'CELANA PERTAMINA OPERATOR', 'UNIONE', '', 101000, 106000, 110500],
+    ['PTA004', 'PDL', 'PERTAMINA TEKNISI BIRU', 'UNIONE', '', 218500, 228000, 238500],
+    ['PTA005', 'PDL', 'BAJU PERTAMINA TEKNISI', 'UNIONE', '', 115000, 120000, 125500],
+    ['PTA006', 'CELANA', 'CELANA PERTAMINA TEKNISI', 'UNIONE', '', 101000, 106000, 110500],
+    ['PTA007', 'PDL', 'PERTAMINA SUPERVISOR HITAM', 'UNIONE', '', 218500, 228000, 238500],
+    ['PTA008', 'PDL', 'BAJU PERTAMINA SUPERVISOR', 'UNIONE', '', 115000, 120000, 125500],
+    ['PTA009', 'CELANA', 'CELANA PERTAMINA SUPERVISOR', 'UNIONE', '', 101000, 106000, 110500],
+    ['PTA010', 'PDL', 'BAJU CELANA PERTAMINA OB HIJAU', 'UNIONE', '', 218500, 228000, 238500],
+    ['PTA011', 'PDL', 'BAJU PERTAMINA OB', 'UNIONE', '', 115000, 120000, 125500],
+    ['PTA012', 'CELANA', 'CELANA PERTAMINA OB', 'UNIONE', '', 101000, 106000, 110500],
+    ['PTA013', 'TOPI', 'TOPI PERTAMINA', 'UNIONE', '', 24500, 25500, 26500]
 ];
 
-const seed = async () => {
+const insertData = async () => {
     try {
-        // Alter table to add columns if they don't exist
-        const alters = [
-            "ALTER TABLE produk ADD COLUMN harga_manager DECIMAL(15,2) DEFAULT 0",
-            "ALTER TABLE produk ADD COLUMN harga_spv DECIMAL(15,2) DEFAULT 0",
-            "ALTER TABLE produk ADD COLUMN harga_jual DECIMAL(15,2) DEFAULT 0"
-        ];
-        
-        for (let q of alters) {
-            await new Promise((resolve) => {
-                db.query(q, (err) => {
-                    if (err) console.log("Column may already exist:", err.message);
-                    resolve();
+        let inserted = 0;
+        for (const p of products) {
+            const sql = 'INSERT INTO produk (kode, kategori, nama_produk, nama, bahan, variasi, harga_manager, harga_spv, harga_jual, hpp_satuan) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+            const hpp = 0; 
+            await new Promise((resolve, reject) => {
+                db.query(sql, [p[0], p[1], p[2], p[2], p[3], p[4], p[5], p[6], p[7], hpp], (err, res) => {
+                    if (err) reject(err);
+                    else resolve(res);
                 });
             });
+            inserted++;
         }
-
-        // Insert or update products
-        for (let p of products) {
-            await new Promise((resolve) => {
-                const q = "SELECT id FROM produk WHERE nama_produk = ?";
-                db.query(q, [p.nama], (err, res) => {
-                    if (res && res.length > 0) {
-                        db.query("UPDATE produk SET harga_manager=?, harga_spv=?, harga_jual=? WHERE id=?", 
-                            [p.mgr, p.spv, p.jual, res[0].id], 
-                            () => resolve()
-                        );
-                    } else {
-                        db.query("INSERT INTO produk (nama_produk, hpp_satuan, harga_manager, harga_spv, harga_jual) VALUES (?, 0, ?, ?, ?)", 
-                            [p.nama, p.mgr, p.spv, p.jual], 
-                            () => resolve()
-                        );
-                    }
-                });
-            });
-        }
-        
-        console.log("Seeding completed!");
+        console.log('Inserted ' + inserted + ' products successfully!');
         process.exit(0);
-    } catch (e) {
+    } catch(e) {
         console.error(e);
         process.exit(1);
     }
 };
 
-seed();
+insertData();

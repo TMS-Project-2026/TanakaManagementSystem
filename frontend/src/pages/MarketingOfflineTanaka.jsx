@@ -1733,7 +1733,16 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
                                 {q.status === 'draft' && (
                                   <>
                                     <button onClick={() => submitQuotation(q.id)} title="Submit ke Finance" className="p-2 text-gray-400 hover:text-emerald-600 bg-white border border-gray-200 rounded-xl shadow-sm transition-all"><Send size={15} /></button>
-                                    <button onClick={() => { setQuotationForm(q); setShowQuotationModal(true); }} className="p-2 text-gray-400 hover:text-[#990000] bg-white border border-gray-200 rounded-xl shadow-sm transition-all"><Edit size={15} /></button>
+                                    <button onClick={() => { 
+                                      let parsedItems = [];
+                                      try { if (q.items_detail) parsedItems = JSON.parse(q.items_detail); } catch(e) {}
+                                      setQuotationForm({
+                                        ...q, 
+                                        customer_name: q.customer_name || q.nama_pt || '', 
+                                        product_name: q.product_name || (parsedItems[0]?.rincian) || q.deskripsi_pesanan || ''
+                                      }); 
+                                      setShowQuotationModal(true); 
+                                    }} className="p-2 text-gray-400 hover:text-[#990000] bg-white border border-gray-200 rounded-xl shadow-sm transition-all"><Edit size={15} /></button>
                                     <button onClick={() => deleteQuotation(q.id)} className="p-2 text-gray-400 hover:text-red-600 bg-white border border-gray-200 rounded-xl shadow-sm transition-all"><Trash2 size={15} /></button>
                                   </>
                                 )}
@@ -2225,7 +2234,7 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
 
                       <div className="mb-10">
                         <p className="text-sm text-slate-500 font-bold mb-1">To:</p>
-                        <h3 className="text-xl font-black text-slate-800">{previewQuotation.customer_name}</h3>
+                        <h3 className="text-xl font-black text-slate-800">{previewQuotation.customer_name || previewQuotation.nama_pt || '-'}</h3>
                         <p className="text-sm text-slate-600 mt-1">Tanaka Branch</p>
                       </div>
 
@@ -2240,10 +2249,10 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
                         </thead>
                         <tbody className="divide-y divide-slate-200 border-b-2 border-slate-200">
                           <tr>
-                            <td className="py-4 px-4 text-slate-800 font-medium">{previewQuotation.product_name}</td>
-                            <td className="py-4 px-4 text-center">{previewQuotation.qty}</td>
-                            <td className="py-4 px-4 text-right">{formatRupiah(previewQuotation.price)}</td>
-                            <td className="py-4 px-4 text-right font-black">{formatRupiah(previewQuotation.qty * previewQuotation.price)}</td>
+                            <td className="py-4 px-4 text-slate-800 font-medium">{previewQuotation.product_name || previewQuotation.deskripsi_pesanan || (previewQuotation.items_detail ? (() => { try { return JSON.parse(previewQuotation.items_detail)[0]?.rincian || '-'; } catch(e) { return '-'; } })() : '-')}</td>
+                            <td className="py-4 px-4 text-center">{previewQuotation.qty || (previewQuotation.items_detail ? (() => { try { return JSON.parse(previewQuotation.items_detail).reduce((a,b)=>a+(parseInt(b.qty)||0),0); } catch(e) { return 0; } })() : 0)}</td>
+                            <td className="py-4 px-4 text-right">{formatRupiah(previewQuotation.price || (previewQuotation.items_detail ? (() => { try { return JSON.parse(previewQuotation.items_detail)[0]?.harga_satuan || 0; } catch(e) { return 0; } })() : 0))}</td>
+                            <td className="py-4 px-4 text-right font-black">{formatRupiah(previewQuotation.grand_total_quo || previewQuotation.total || (previewQuotation.qty * previewQuotation.price))}</td>
                           </tr>
                         </tbody>
                       </table>
@@ -2260,11 +2269,11 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
                         <div className="w-1/3">
                           <div className="flex justify-between items-center py-2 border-b border-slate-200">
                             <span className="font-bold text-slate-600">Subtotal</span>
-                            <span className="font-medium text-slate-800">{formatRupiah(previewQuotation.qty * previewQuotation.price)}</span>
+                            <span className="font-medium text-slate-800">{formatRupiah(previewQuotation.grand_total_quo || previewQuotation.total || (previewQuotation.qty * previewQuotation.price))}</span>
                           </div>
                           <div className="flex justify-between items-center py-3">
                             <span className="text-lg font-black text-[#990000]">GRAND TOTAL</span>
-                            <span className="text-xl font-black text-[#990000]">{formatRupiah(previewQuotation.qty * previewQuotation.price)}</span>
+                            <span className="text-xl font-black text-[#990000]">{formatRupiah(previewQuotation.grand_total_quo || previewQuotation.total || (previewQuotation.qty * previewQuotation.price))}</span>
                           </div>
                         </div>
                       </div>

@@ -15,6 +15,120 @@ const formatRupiah = (angka) => {
   }).format(angka || 0);
 };
 
+const getBrand = (prod) => {
+  if (prod.kode) {
+    const k = prod.kode.toUpperCase();
+    if (k.startsWith('HMM')) return 'PRODUK HONDA MOBIL';
+    if (k.startsWith('HM')) return 'PRODUK HONDA MOTOR';
+    if (k.startsWith('YM')) return 'PRODUK YAMAHA MOTOR';
+    if (k.startsWith('MHM')) return 'PRODUK MITSUBISHI MOBIL';
+    if (k.startsWith('TM')) return 'PRODUK TOYOTA MOBIL';
+    if (k.startsWith('HYM')) return 'PRODUK HYUNDAI MOBIL';
+    if (k.startsWith('WM')) return 'PRODUK WULING MOBIL';
+    if (k.startsWith('MM')) return 'PRODUK MAZDA MOBIL';
+    if (k.startsWith('AM')) return 'PRODUK ALFAMART';
+    if (k.startsWith('IDM')) return 'PRODUK INDOMARET';
+    if (k.startsWith('SP')) return 'PRODUK SATPAM';
+    if (k.startsWith('SRS')) return 'PRODUK SERAGAM RUMAH SAKIT';
+    if (k.startsWith('PTA')) return 'PRODUK PERTAMINA';
+  }
+
+  const name = (prod.nama_produk || '').toUpperCase();
+  if (name.includes('YAMAHA')) return 'PRODUK YAMAHA MOTOR';
+  if (name.includes('HONDA MOBIL')) return 'PRODUK HONDA MOBIL';
+  if (name.includes('FLP') || name.includes('MEKANIK HONDA') || (name.includes('HONDA') && !name.includes('MOBIL'))) return 'PRODUK HONDA MOTOR';
+  if (name.includes('MITSUBISHI')) return 'PRODUK MITSUBISHI MOBIL';
+  if (name.includes('TOYOTA')) return 'PRODUK TOYOTA MOBIL';
+  if (name.includes('HYUNDAI')) return 'PRODUK HYUNDAI MOBIL';
+  if (name.includes('WULING')) return 'PRODUK WULING MOBIL';
+  if (name.includes('MAZDA')) return 'PRODUK MAZDA MOBIL';
+  if (name.includes('ALFAMART')) return 'PRODUK ALFAMART';
+  if (name.includes('INDOMARET')) return 'PRODUK INDOMARET';
+  if (name.includes('SATPAM') || name.includes('SAFARI HITAM') || name.includes('SAFARI KUNING') || name.includes('PDL KUNING')) return 'PRODUK SATPAM';
+  if (name.includes('SRS') || name.includes('RUMAH SAKIT') || name.includes('OKK')) return 'PRODUK SERAGAM RUMAH SAKIT';
+  if (name.includes('PERTAMINA')) return 'PRODUK PERTAMINA';
+  return 'PRODUK LAINNYA';
+};
+
+// Daftar jenis yang valid sesuai juklak
+const VALID_JENIS = ['PDH', 'PDL', 'WEARPACK', 'CELANA', 'TOPI', 'APRON', 'FULL SET',
+  'POLO', 'KEMEJA', 'SERAGAM RS', 'SERAGAM', 'ROMPI', 'JAKET', 'DASI', 'KORSA'];
+
+const getJenis = (prod) => {
+  // Jika kategori sudah berupa jenis yang valid (dari import baru), langsung pakai
+  if (prod.kategori && VALID_JENIS.includes(prod.kategori.toUpperCase().trim())) {
+    return prod.kategori.toUpperCase().trim();
+  }
+  const name = (prod.nama_produk || '').toUpperCase();
+  if (name.includes('WEARPACK'))                                      return 'WEARPACK';
+  if (name.includes('BAJU CELANA') || name.includes('FULL SET'))     return 'FULL SET';
+  if (name.includes('CELANA') && !name.includes('BAJU'))             return 'CELANA';
+  if (name.includes('TOPI'))                                          return 'TOPI';
+  if (name.includes('APRON'))                                         return 'APRON';
+  if (name.includes('ROMPI'))                                         return 'ROMPI';
+  if (name.includes('JAKET'))                                         return 'JAKET';
+  if (name.includes('DASI'))                                          return 'DASI';
+  if (name.includes('PDL'))                                           return 'PDL';
+  if (name.includes('POLO'))                                          return 'POLO';
+  if (name.includes('KEMEJA'))                                        return 'KEMEJA';
+  if (name.includes('KORSA'))                                         return 'KORSA';
+  if (name.includes('SRS') || name.includes('RUMAH SAKIT'))          return 'SERAGAM RS';
+  // Default: sebagian besar seragam uniform adalah jenis PDH
+  return 'PDH';
+};
+
+const BRAND_ORDER = [
+  'PRODUK HONDA MOTOR',
+  'PRODUK YAMAHA MOTOR',
+  'PRODUK HONDA MOBIL',
+  'PRODUK MITSUBISHI MOBIL',
+  'PRODUK TOYOTA MOBIL',
+  'PRODUK HYUNDAI MOBIL',
+  'PRODUK WULING MOBIL',
+  'PRODUK MAZDA MOBIL',
+  'PRODUK ALFAMART',
+  'PRODUK INDOMARET',
+  'PRODUK SATPAM',
+  'PRODUK SERAGAM RUMAH SAKIT',
+  'PRODUK PERTAMINA',
+  'PRODUK LAINNYA',
+];
+
+const BRAND_COLORS = {
+  'PRODUK HONDA MOTOR':          'bg-gray-900',
+  'PRODUK YAMAHA MOTOR':         'bg-[#990000]',
+  'PRODUK HONDA MOBIL':          'bg-gray-900',
+  'PRODUK MITSUBISHI MOBIL':     'bg-[#990000]',
+  'PRODUK TOYOTA MOBIL':         'bg-gray-900',
+  'PRODUK HYUNDAI MOBIL':        'bg-[#990000]',
+  'PRODUK WULING MOBIL':         'bg-gray-900',
+  'PRODUK MAZDA MOBIL':          'bg-[#990000]',
+  'PRODUK ALFAMART':             'bg-gray-900',
+  'PRODUK INDOMARET':            'bg-[#990000]',
+  'PRODUK SATPAM':               'bg-gray-900',
+  'PRODUK SERAGAM RUMAH SAKIT':  'bg-[#990000]',
+  'PRODUK PERTAMINA':            'bg-gray-900',
+  'PRODUK LAINNYA':              'bg-[#990000]',
+};
+
+// Prefix kode sesuai juklak: HM=Honda Motor, YM=Yamaha, HMM=Honda Mobil, dst.
+const BRAND_PREFIX = {
+  'PRODUK HONDA MOTOR':          'HM',
+  'PRODUK YAMAHA MOTOR':         'YM',
+  'PRODUK HONDA MOBIL':          'HMM',
+  'PRODUK MITSUBISHI MOBIL':     'MHM',
+  'PRODUK TOYOTA MOBIL':         'TM',
+  'PRODUK HYUNDAI MOBIL':        'HYM',
+  'PRODUK WULING MOBIL':         'WM',
+  'PRODUK MAZDA MOBIL':          'MM',
+  'PRODUK ALFAMART':             'AM',
+  'PRODUK INDOMARET':            'IM',
+  'PRODUK SATPAM':               'SP',
+  'PRODUK SERAGAM RUMAH SAKIT':  'SRS',
+  'PRODUK PERTAMINA':            'PT',
+  'PRODUK LAINNYA':              'PRD',
+};
+
 const Pricelist = () => {
   const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -30,9 +144,12 @@ const Pricelist = () => {
   const canCrud = ['finance', 'owner', 'admin'].includes(userRole.toLowerCase());
 
   const initialForm = {
+    kode: '',
     nama_produk: '',
     nama: '',
     kategori: 'Lainnya',
+    bahan: '',
+    variasi: '',
     hpp_satuan: 0,
     margin: '',
     harga_jual: 0,
@@ -98,9 +215,12 @@ const Pricelist = () => {
 
   const openEditModal = (prod) => {
     setForm({
+      kode: prod.kode || '',
       nama_produk: prod.nama_produk || '',
       nama: prod.nama || '',
       kategori: prod.kategori || 'Lainnya',
+      bahan: prod.bahan || '',
+      variasi: prod.variasi || '',
       hpp_satuan: prod.hpp_satuan || 0,
       margin: prod.margin || '',
       harga_jual: prod.harga_jual || 0,
@@ -163,55 +283,62 @@ const Pricelist = () => {
         const ws = wb.Sheets[wsname];
         const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
 
-        // Parse data starting from row index where NAMA is found, or assume row 3/4 based on the image format
-        // The image has a complex header. Let's do a simple mapping by looking for rows with actual data.
-        // Or better yet, expect a flat CSV/Excel format for import or try to map columns based on index if format is strict.
-        // Let's do a robust parsing: find the row containing 'NAMA' or 'nama' in the first cell, and map following rows.
-        
+        // Cari baris header: baris yang kolom pertamanya berisi 'KODE'
         let headerRowIdx = -1;
         for (let i = 0; i < data.length; i++) {
-          if (data[i][0] && typeof data[i][0] === 'string' && data[i][0].toUpperCase().includes('NAMA')) {
+          const cell = data[i][0];
+          if (cell && typeof cell === 'string' && cell.toUpperCase().trim() === 'KODE') {
             headerRowIdx = i;
             break;
           }
         }
+        // Kalau tidak ketemu 'KODE', cari baris yang ada kode produk (misal HM001)
+        let startRow = headerRowIdx > -1 ? headerRowIdx + 1 : 1;
 
-        let startRow = headerRowIdx > -1 ? headerRowIdx + 2 : 1; // Skip the multi-line header
+        // Parse currency: "Rp128.800" -> 128800
+        const parseRupiah = (val) => {
+          if (!val) return 0;
+          if (typeof val === 'number') return val;
+          const clean = String(val).replace(/Rp/gi, '').replace(/\./g, '').replace(/,/g, '.').trim();
+          return Number(clean) || 0;
+        };
 
         const payload = [];
-        let lastKategori = '';
+        // Struktur kolom juklak harga uniform:
+        // col0: KODE | col1: JENIS/KATEGORI | col2: NAMA PRODUK | col3: BAHAN | col4: VARIASI
+        // col5: SALES MANAGER(10%) | col6: SALES SPV(15%) | col7: HARGA JUAL OFFLINE
+        // col8: HARGA JUAL ONLINE | col9: HPP | col10: POT.SHOPEE | col11: MARGIN | col12: PROFIT MARGIN
 
         for (let i = startRow; i < data.length; i++) {
           const row = data[i];
-          if (!row || row.length < 5) continue;
+          if (!row || row.length < 3) continue;
 
-          // Handle merged cells in NAMA column (if cell is empty, use previous NAMA)
-          let nama_produk = row[0] ? String(row[0]).trim() : lastKategori;
-          if (row[0]) lastKategori = nama_produk;
+          const kode = row[0] ? String(row[0]).trim() : '';
+          const kategori = row[1] ? String(row[1]).trim() : '';
+          const nama_produk = row[2] ? String(row[2]).trim() : '';
+          const bahan = row[3] ? String(row[3]).trim() : '';
+          const variasi = row[4] ? String(row[4]).trim() : '';
 
-          if (!nama_produk) continue;
-
-          // Parse currency strings like "Rp88.799,46" -> 88799.46
-          const parseRupiah = (val) => {
-            if (!val) return 0;
-            if (typeof val === 'number') return val;
-            const clean = val.replace(/Rp/g, '').replace(/\./g, '').replace(/,/g, '.').trim();
-            return Number(clean) || 0;
-          };
-
-          let bahan = row[1] ? String(row[1]).trim() : '';
-          let variasi = row[2] ? String(row[2]).trim() : '';
-          let fullNama = [nama_produk, bahan, variasi].filter(Boolean).join(' ');
+          // Skip baris section header (tidak ada kode atau nama produk)
+          if (!nama_produk && !kode) continue;
+          // Skip baris total/sub-header
+          if (String(nama_produk).toUpperCase().includes('TOTAL') || 
+              String(kode).toUpperCase().includes('KODE')) continue;
 
           payload.push({
-            nama_produk: fullNama,
-            hpp_satuan: parseRupiah(row[3]),
-            harga_direktur: parseRupiah(row[4]),
-            harga_gm: parseRupiah(row[5]),
-            harga_manager: parseRupiah(row[6]),
-            harga_spv: parseRupiah(row[7]),
-            harga_jual: parseRupiah(row[8]),
-            keterangan: row[9] ? String(row[9]).trim() : ''
+            kode: kode || null,
+            nama_produk: nama_produk || kode,
+            kategori: kategori || 'Lainnya',
+            bahan: bahan,
+            variasi: variasi,
+            harga_manager: parseRupiah(row[5]),   // SALES MANAGER 10%
+            harga_spv:     parseRupiah(row[6]),   // SALES SPV 15%
+            harga_jual:    parseRupiah(row[7]),   // HARGA JUAL OFFLINE
+            harga_direktur:parseRupiah(row[8]),   // HARGA JUAL ONLINE
+            hpp_satuan:    parseRupiah(row[9]),   // HPP
+            harga_gm:      parseRupiah(row[10]),  // POT.SHOPEE
+            margin:        row[11] ? String(row[11]).trim() : '',  // MARGIN
+            keterangan:    row[12] ? String(row[12]).trim() : '',  // PROFIT MARGIN / catatan
           });
         }
 
@@ -220,64 +347,28 @@ const Pricelist = () => {
           alert(res.data.message || 'Import berhasil!');
           fetchProducts();
         } else {
-          alert('Tidak ada data produk yang valid untuk diimport.');
+          alert('Tidak ada data produk yang valid untuk diimport. Pastikan format Excel sesuai juklak (KODE di kolom A).');
         }
       } catch (error) {
         console.error('Error importing file', error);
         alert('Gagal import file: ' + error.message);
       } finally {
         setLoading(false);
-        e.target.value = ''; // Reset file input
+        e.target.value = '';
       }
     };
     reader.readAsBinaryString(file);
   };
 
-  const filteredProducts = products.filter(p => 
-    p.nama_produk?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.bahan?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const getCategory = (prod) => {
-    if (prod.kategori && prod.kategori !== 'Lainnya') return prod.kategori;
-    const name = (prod.nama_produk || '').toLowerCase();
+  const filteredProducts = products.filter(p => {
+    const q = searchTerm.toLowerCase();
+    const nm = (p.nama_produk || p.nama || '').toLowerCase();
+    const bh = (p.bahan || '').toLowerCase();
+    const jn = (getJenis(p) || '').toLowerCase();
+    const kd = (p.kode || '').toLowerCase();
     
-    if (name.includes('mekanik') || name.includes('wearpack') || name.includes('flp') || name.includes('sales')) return 'Seragam Mekanik';
-    if (name.includes('sekolah') || name.includes('sd') || name.includes('smp') || name.includes('sma') || name.includes('pramuka')) return 'Seragam Sekolah';
-    if (name.includes('pdh')) return 'PDH';
-    if (name.includes('pdl')) return 'PDL';
-    if (name.includes('korsa')) return 'Korsa';
-    if (name.includes('jas') || name.includes('almamater')) return 'Jas';
-    if (name.includes('spg') || name.includes('sppg')) return 'Seragam SPG';
-    if (name.includes('topi') || name.includes('dasi') || name.includes('kaos kaki') || name.includes('sabuk') || name.includes('bet') || name.includes('lokasi')) return 'Aksesoris';
-    if (name.includes('kerja') || name.includes('kemeja') || name.includes('wangky')) return 'Seragam Kerja';
-    
-    return 'Lainnya';
-  };
-
-  const categoryOrder = [
-    'Seragam Mekanik',
-    'Seragam Sekolah',
-    'Seragam Kerja',
-    'PDH',
-    'PDL',
-    'Korsa',
-    'Jas',
-    'Seragam SPG',
-    'Aksesoris',
-    'Lainnya'
-  ];
-
-  const groupedProducts = {};
-  categoryOrder.forEach(cat => groupedProducts[cat] = []);
-  
-  filteredProducts.forEach(prod => {
-    const cat = getCategory(prod);
-    if (!groupedProducts[cat]) groupedProducts[cat] = [];
-    groupedProducts[cat].push(prod);
+    return nm.includes(q) || bh.includes(q) || jn.includes(q) || kd.includes(q);
   });
-
-  const categoriesToRender = categoryOrder.filter(cat => groupedProducts[cat] && groupedProducts[cat].length > 0);
 
   return (
     <div className="flex bg-gray-50 min-h-screen font-sans">
@@ -317,129 +408,222 @@ const Pricelist = () => {
 
         <div className="flex-1 overflow-y-auto px-4 sm:px-10 pb-10">
           <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100 flex flex-col">
-          {/* Header */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-            <div>
-              <h1 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
-                Pricelist Harga
-              </h1>
-              <p className="text-gray-500 font-medium mt-1 text-sm">Kelola data harga produk untuk direktur, manager, spv, dan harga jual.</p>
+
+            {/* Header */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+              <div>
+                <h1 className="text-3xl font-black text-gray-900 tracking-tight">Pricelist Harga</h1>
+                <p className="text-gray-500 font-medium mt-1 text-sm">Kelola juklak harga produk berdasarkan kategori dokumen.</p>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              {canCrud && (
-                <>
-                  <div>
-                    <input 
-                      type="file" 
-                      id="importExcel" 
-                      accept=".xlsx, .xls, .csv" 
-                      className="hidden" 
-                      onChange={handleFileUpload} 
-                    />
-                    <label 
-                      htmlFor="importExcel"
-                      className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all shadow-sm cursor-pointer ${loading ? 'bg-gray-400 text-white' : 'bg-green-600 text-white hover:bg-green-700'}`}
-                    >
-                      {loading ? <Loader2 size={20} className="animate-spin" /> : <UploadCloud size={20} />}
-                      Import Excel
-                    </label>
+
+            {/* ===================== SECTION: JUKLAK HARGA UNIFORM ===================== */}
+            <h2 className="text-2xl font-black text-[#990000] mb-4 mt-4 uppercase tracking-widest">JUKLAK HARGA UNIFORM</h2>
+            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                  <div className="text-sm text-gray-500 font-medium flex items-center gap-2 bg-gray-50 px-4 py-2 rounded-xl border border-gray-200">
+                    <Package size={16}/> Total: <span className="font-bold text-gray-900">{filteredProducts.length} Produk</span>
                   </div>
-                </>
-              )}
-              <button 
-                onClick={handleDownload}
-                className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-sm"
-              >
-                <Download size={20} />
-                Download
-              </button>
-              {canCrud && (
-                <button 
-                    onClick={openAddModal}
-                    className="flex items-center gap-2 bg-[#990000] text-white px-5 py-2.5 rounded-xl font-bold hover:bg-red-800 transition-all shadow-sm"
-                  >
-                    <Plus size={20} />
-                    Tambah Produk
-                  </button>
-              )}
-            </div>
-          </div>
+                  <div className="flex items-center gap-3">
+                    {canCrud && (
+                      <div>
+                        <input
+                          type="file"
+                          id="importExcel"
+                          accept=".xlsx, .xls, .csv"
+                          className="hidden"
+                          onChange={handleFileUpload}
+                        />
+                        <label
+                          htmlFor="importExcel"
+                          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all shadow-sm cursor-pointer ${
+                            loading ? 'bg-gray-400 text-white' : 'bg-green-600 text-white hover:bg-green-700'
+                          }`}
+                        >
+                          {loading ? <Loader2 size={20} className="animate-spin" /> : <UploadCloud size={20} />}
+                          Import Excel
+                        </label>
+                      </div>
+                    )}
+                    <button
+                      onClick={handleDownload}
+                      className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-sm"
+                    >
+                      <Download size={20} />
+                      Download
+                    </button>
+                    {canCrud && (
+                      <button
+                        onClick={openAddModal}
+                        className="flex items-center gap-2 bg-[#990000] text-white px-5 py-2.5 rounded-xl font-bold hover:bg-red-800 transition-all shadow-sm"
+                      >
+                        <Plus size={20} />
+                        Tambah Produk
+                      </button>
+                    )}
+                  </div>
+                </div>
 
-          {/* Total Info */}
-          <div className="mb-6 flex justify-end">
-            <div className="text-sm text-gray-500 font-medium flex items-center gap-2 bg-gray-50 px-4 py-2 rounded-xl border border-gray-200">
-               <Package size={16}/> Total: <span className="font-bold text-gray-900">{filteredProducts.length} Produk</span>
-            </div>
-          </div>
+                {/* Table */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-300 overflow-x-auto">
+                  <table className="w-full text-left text-sm whitespace-nowrap border-collapse">
 
-          {/* Table */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-300 overflow-x-auto">
-            <table className="w-full text-left text-sm whitespace-nowrap border-collapse">
-              <thead className="bg-gray-900 text-white uppercase text-[11px] tracking-wider font-bold text-center">
-                <tr>
-                  <th rowSpan="2" className="p-3 border border-gray-700 align-middle">KODE PRODUK</th>
-                  <th rowSpan="2" className="p-3 border border-gray-700 align-middle">JENIS PRODUK</th>
-                  <th rowSpan="2" className="p-3 border border-gray-700 align-middle">NAMA PRODUK (Lengkap)</th>
-                  <th rowSpan="2" className="p-3 border border-gray-700 align-middle">NAMA ORDER <span className="text-yellow-300">(tampil di order)</span></th>
-                  <th rowSpan="2" className="p-3 border border-gray-700 align-middle">HPP</th>
-                  <th colSpan="4" className="p-2 border border-gray-700 align-middle">MARGIN</th>
-                  <th rowSpan="2" className="p-3 border border-gray-700 align-middle">HARGA JUAL</th>
-                  <th rowSpan="2" className="p-3 border border-gray-700 align-middle">KETERANGAN</th>
-                  {canCrud && <th rowSpan="2" className="p-3 border border-gray-700 align-middle">AKSI</th>}
-                </tr>
-                <tr>
-                  <th className="p-2 border border-gray-700 align-middle">DIREKTUR</th>
-                  <th className="p-2 border border-gray-700 align-middle">GENERAL MANEGER</th>
-                  <th className="p-2 border border-gray-700 align-middle">SALES MANEGER</th>
-                  <th className="p-2 border border-gray-700 align-middle">SALES SPV</th>
-                </tr>
-              </thead>
-              <tbody>
-                {categoriesToRender.map(cat => (
-                  <React.Fragment key={cat}>
-                    <tr>
-                      <td colSpan="14" className="p-3 font-black text-[#990000] border border-gray-400 bg-red-50 text-left text-sm">
-                        {cat.toUpperCase()} ({groupedProducts[cat].length})
-                      </td>
-                    </tr>
-                    {groupedProducts[cat].map((prod, index) => (
-                      <tr key={prod.id} className="hover:bg-red-50/50 transition-colors">
-                        <td className="p-3 font-bold text-gray-800 border border-gray-400 text-center">PRD-{prod.id}</td>
-                        <td className="p-3 font-medium text-gray-800 border border-gray-400 text-center">{prod.kategori || 'Lainnya'}</td>
-                        <td className="p-3 font-bold text-gray-800 border border-gray-400">{prod.nama_produk}</td>
-                        <td className="p-3 border border-gray-400">
-                          {prod.nama
-                            ? <span className="font-semibold text-[#990000]">{prod.nama}</span>
-                            : <span className="text-gray-300 italic text-xs">-</span>
-                          }
-                        </td>
-                        <td className="p-3 text-right text-gray-800 font-medium border border-gray-400">{formatRupiah(prod.hpp_satuan)}</td>
-                        <td className="p-3 text-right text-gray-700 font-medium border border-gray-400">{formatRupiah(prod.harga_direktur)}</td>
-                        <td className="p-3 text-right text-gray-700 font-medium border border-gray-400">{formatRupiah(prod.harga_gm)}</td>
-                        <td className="p-3 text-right text-gray-700 font-medium border border-gray-400">{formatRupiah(prod.harga_manager)}</td>
-                        <td className="p-3 text-right text-gray-700 font-medium border border-gray-400">{formatRupiah(prod.harga_spv)}</td>
-                        <td className="p-3 text-right font-black text-gray-900 border border-gray-400 bg-gray-50">{formatRupiah(prod.harga_jual)}</td>
-                        <td className="p-3 text-gray-600 text-xs max-w-[150px] truncate border border-gray-400">{prod.keterangan || '-'}</td>
-                        {canCrud && (
-                          <td className="p-2 text-center border border-gray-400">
-                            <div className="flex justify-center gap-1.5">
-                              <button onClick={() => openEditModal(prod)} className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-600 hover:text-white rounded transition-colors"><Edit size={14}/></button>
-                              <button onClick={() => handleDelete(prod.id)} className="p-1.5 text-red-600 bg-red-50 hover:bg-red-600 hover:text-white rounded transition-colors"><Trash2 size={14}/></button>
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </React.Fragment>
-                ))}
-                  {filteredProducts.length === 0 && (
-                    <tr>
-                      <td colSpan="14" className="p-8 text-center text-gray-500 font-medium">Belum ada data pricelist.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                    <tbody>
+                      {(() => {
+                        // Group by brand section
+                        const grouped = {};
+                        BRAND_ORDER.forEach(b => { grouped[b] = []; });
+                        filteredProducts.forEach(prod => {
+                          const brand = getBrand(prod);
+                          if (!grouped[brand]) grouped[brand] = [];
+                          grouped[brand].push(prod);
+                        });
+                        const toRender = BRAND_ORDER.filter(b => grouped[b].length > 0);
+                        const totalCols = canCrud ? 9 : 8;
+
+                        if (toRender.length === 0) {
+                          return (
+                            <tr>
+                              <td colSpan={totalCols} className="p-8 text-center text-gray-500 font-medium">Belum ada data pricelist uniform.</td>
+                            </tr>
+                          );
+                        }
+
+                        return toRender.map(brand => (
+                          <React.Fragment key={brand}>
+                            {/* Brand Section Header (Red) */}
+                            <tr>
+                              <td colSpan={totalCols} className="bg-[#990000] text-white font-black text-sm uppercase px-4 py-3 tracking-widest border border-gray-600 text-left">
+                                {brand}
+                              </td>
+                            </tr>
+                            {/* Column Headers (Black) */}
+                            <tr className="bg-gray-900 text-white uppercase text-[11px] tracking-wider font-bold text-center">
+                              <th rowSpan="2" className="p-3 border border-gray-700 align-middle min-w-[80px]">KODE</th>
+                              <th rowSpan="2" className="p-3 border border-gray-700 align-middle min-w-[120px]">JENIS / KATEGORI PRODUK</th>
+                              <th rowSpan="2" className="p-3 border border-gray-700 align-middle min-w-[200px]">NAMA PRODUK</th>
+                              <th rowSpan="2" className="p-3 border border-gray-700 align-middle min-w-[90px]">BAHAN</th>
+                              <th rowSpan="2" className="p-3 border border-gray-700 align-middle min-w-[80px]">VARIASI</th>
+                              <th className="p-2 border border-gray-700 align-middle">
+                                <span className="text-yellow-300">10%</span>
+                              </th>
+                              <th className="p-2 border border-gray-700 align-middle">
+                                <span className="text-yellow-300">15%</span>
+                              </th>
+                              <th rowSpan="2" className="p-3 border border-gray-700 align-middle min-w-[130px]">HARGA JUAL OFFLINE</th>
+                              {canCrud && <th rowSpan="2" className="p-3 border border-gray-700 align-middle">AKSI</th>}
+                            </tr>
+                            <tr className="bg-gray-900 text-white uppercase text-[11px] tracking-wider font-bold text-center">
+                              <th className="p-2 border border-gray-700 align-middle min-w-[120px]">SALES MANAGER</th>
+                              <th className="p-2 border border-gray-700 align-middle min-w-[110px]">SALES SPV</th>
+                            </tr>
+                            {grouped[brand].map((prod, idx) => {
+                              const prefix = BRAND_PREFIX[brand] || 'PRD';
+                              const autoKode = `${prefix}${String(idx + 1).padStart(3, '0')}`;
+                              const displayKode = prod.kode || autoKode;
+                              return (
+                                <tr key={prod.id} className="hover:bg-red-50/50 transition-colors">
+                                  <td className="p-2.5 font-bold text-gray-800 border border-gray-300 text-center text-xs">{displayKode}</td>
+                                  <td className="p-2.5 text-center border border-gray-300 text-xs font-semibold text-gray-700">{getJenis(prod)}</td>
+                                  <td className="p-2.5 font-bold text-gray-900 border border-gray-300">{prod.nama_produk}</td>
+                                  <td className="p-2.5 text-center border border-gray-300 text-xs text-gray-600">{prod.bahan || 'UNIONE'}</td>
+                                  <td className="p-2.5 text-center border border-gray-300 text-xs text-gray-500">{prod.variasi || '-'}</td>
+                                  <td className="p-2.5 text-right border border-gray-300 text-xs font-medium text-gray-700">{formatRupiah(prod.harga_manager)}</td>
+                                  <td className="p-2.5 text-right border border-gray-300 text-xs font-medium text-gray-700">{formatRupiah(prod.harga_spv)}</td>
+                                  <td className="p-2.5 text-right border border-gray-300 text-xs font-bold text-gray-900 bg-gray-50">{formatRupiah(prod.harga_jual)}</td>
+                                  {canCrud && (
+                                    <td className="p-2 text-center border border-gray-300">
+                                      <div className="flex justify-center gap-1.5">
+                                        <button onClick={() => openEditModal(prod)} className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-600 hover:text-white rounded transition-colors"><Edit size={13}/></button>
+                                        <button onClick={() => handleDelete(prod.id)} className="p-1.5 text-red-600 bg-red-50 hover:bg-red-600 hover:text-white rounded transition-colors"><Trash2 size={13}/></button>
+                                      </div>
+                                    </td>
+                                  )}
+                                </tr>
+                              );
+                            })}
+                          </React.Fragment>
+                        ));
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+
+            {/* ===================== SECTION: JUKLAK HARGA UMUM ===================== */}
+            <div className="mt-16 border-t-2 border-gray-100 pt-10">
+              <h2 className="text-2xl font-black text-[#990000] mb-8 uppercase tracking-widest">JUKLAK HARGA UMUM</h2>
+              <div className="flex flex-col items-center justify-center py-10 gap-6">
+                <div className="relative">
+                  <div className="w-28 h-28 rounded-3xl bg-gradient-to-br from-yellow-100 to-orange-100 flex items-center justify-center shadow-lg border border-yellow-200">
+                    <span className="text-5xl">🏷️</span>
+                  </div>
+                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center shadow-md">
+                    <span className="text-white text-xs font-black">!</span>
+                  </div>
+                </div>
+                <div className="text-center max-w-md">
+                  <h2 className="text-2xl font-black text-gray-800 mb-2">Juklak Harga Umum</h2>
+                  <p className="text-gray-500 font-medium text-sm leading-relaxed">
+                    Dokumen juklak harga umum sedang dalam proses penyusunan. 
+                    Halaman ini akan diaktifkan setelah data harga umum tersedia.
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 mt-2">
+                  <div className="flex items-center gap-2 px-5 py-3 bg-yellow-50 border border-yellow-200 rounded-2xl">
+                    <span className="text-yellow-500 text-lg">📋</span>
+                    <div>
+                      <p className="text-xs font-black text-gray-700">Status</p>
+                      <p className="text-xs text-yellow-600 font-bold">Menunggu data juklak</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 px-5 py-3 bg-blue-50 border border-blue-200 rounded-2xl">
+                    <span className="text-blue-500 text-lg">🗓️</span>
+                    <div>
+                      <p className="text-xs font-black text-gray-700">Estimasi</p>
+                      <p className="text-xs text-blue-600 font-bold">Segera hadir</p>
+                    </div>
+                  </div>
+                </div>
+                </div>
+              </div>
+
+            {/* ===================== SECTION: JUKLAK HARGA SERAGAM SEKOLAH ===================== */}
+            <div className="mt-16 border-t-2 border-gray-100 pt-10">
+              <h2 className="text-2xl font-black text-[#990000] mb-8 uppercase tracking-widest">JUKLAK HARGA SERAGAM SEKOLAH</h2>
+              <div className="flex flex-col items-center justify-center py-10 gap-6">
+                <div className="relative">
+                  <div className="w-28 h-28 rounded-3xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center shadow-lg border border-blue-200">
+                    <span className="text-5xl">🎒</span>
+                  </div>
+                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center shadow-md">
+                    <span className="text-white text-xs font-black">!</span>
+                  </div>
+                </div>
+                <div className="text-center max-w-md">
+                  <h2 className="text-2xl font-black text-gray-800 mb-2">Juklak Harga Seragam Sekolah</h2>
+                  <p className="text-gray-500 font-medium text-sm leading-relaxed">
+                    Dokumen juklak harga seragam sekolah (SD, SMP, SMA, Pramuka, dll) 
+                    sedang dalam proses penyusunan. Halaman ini akan diaktifkan setelah data tersedia.
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 mt-2">
+                  <div className="flex items-center gap-2 px-5 py-3 bg-blue-50 border border-blue-200 rounded-2xl">
+                    <span className="text-blue-500 text-lg">📋</span>
+                    <div>
+                      <p className="text-xs font-black text-gray-700">Status</p>
+                      <p className="text-xs text-blue-600 font-bold">Menunggu data juklak</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 px-5 py-3 bg-indigo-50 border border-indigo-200 rounded-2xl">
+                    <span className="text-indigo-500 text-lg">🎓</span>
+                    <div>
+                      <p className="text-xs font-black text-gray-700">Kategori</p>
+                      <p className="text-xs text-indigo-600 font-bold">SD, SMP, SMA, Pramuka</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
+
           </div>
         </div>
       </main>
@@ -462,8 +646,12 @@ const Pricelist = () => {
                   <h3 className="text-sm font-bold text-gray-800 border-b pb-2 mb-3">INFORMASI DASAR</h3>
                 </div>
                 <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Kode Produk <span className="text-gray-400 font-normal">(sesuai juklak, misal: HM001)</span></label>
+                  <input type="text" name="kode" value={form.kode || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none text-sm font-bold uppercase tracking-widest" placeholder="HM001" />
+                </div>
+                <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Nama Produk Lengkap * <span className="text-gray-400 font-normal">(digunakan untuk pencarian)</span></label>
-                  <input type="text" name="nama_produk" value={form.nama_produk} onChange={handleInputChange} required className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#990000]/20 outline-none text-sm" placeholder="Contoh: KEMEJA UNIONE PENDEK" />
+                  <input type="text" name="nama_produk" value={form.nama_produk} onChange={handleInputChange} required className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#990000]/20 outline-none text-sm" placeholder="Contoh: FLP MERAH COWOK" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Nama Order <span className="text-[#990000]">(tampil di deskripsi order)</span></label>

@@ -10,7 +10,7 @@ exports.getAllProduk = (req, res) => {
 
 exports.tambahProduk = (req, res) => {
     const { 
-        nama_produk, nama, kategori, bahan, variasi, hpp_satuan, margin, harga_jual, keterangan, 
+        kode, nama_produk, nama, kategori, bahan, variasi, hpp_satuan, margin, harga_jual, keterangan, 
         harga_direktur, harga_gm, harga_manager, harga_spv 
     } = req.body;
 
@@ -19,10 +19,10 @@ exports.tambahProduk = (req, res) => {
     }
 
     const sql = `INSERT INTO produk 
-        (nama_produk, nama, kategori, bahan, variasi, hpp_satuan, margin, harga_jual, keterangan, harga_direktur, harga_gm, harga_manager, harga_spv) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+        (kode, nama_produk, nama, kategori, bahan, variasi, hpp_satuan, margin, harga_jual, keterangan, harga_direktur, harga_gm, harga_manager, harga_spv) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
     const values = [
-        nama_produk, nama || null, kategori || 'Lainnya', bahan, variasi, hpp_satuan, margin, harga_jual || 0, keterangan, 
+        kode || null, nama_produk, nama || null, kategori || 'Lainnya', bahan, variasi, hpp_satuan, margin, harga_jual || 0, keterangan, 
         harga_direktur || 0, harga_gm || 0, harga_manager || 0, harga_spv || 0
     ];
     
@@ -35,16 +35,16 @@ exports.tambahProduk = (req, res) => {
 exports.updateProduk = (req, res) => {
     const { id } = req.params;
     const { 
-        nama_produk, nama, kategori, bahan, variasi, hpp_satuan, margin, harga_jual, keterangan, 
+        kode, nama_produk, nama, kategori, bahan, variasi, hpp_satuan, margin, harga_jual, keterangan, 
         harga_direktur, harga_gm, harga_manager, harga_spv 
     } = req.body;
 
     const sql = `UPDATE produk SET 
-        nama_produk=?, nama=?, kategori=?, bahan=?, variasi=?, hpp_satuan=?, margin=?, harga_jual=?, keterangan=?, 
+        kode=?, nama_produk=?, nama=?, kategori=?, bahan=?, variasi=?, hpp_satuan=?, margin=?, harga_jual=?, keterangan=?, 
         harga_direktur=?, harga_gm=?, harga_manager=?, harga_spv=? 
         WHERE id=?`;
     const values = [
-        nama_produk, nama || null, kategori || 'Lainnya', bahan, variasi, hpp_satuan, margin, harga_jual || 0, keterangan, 
+        kode || null, nama_produk, nama || null, kategori || 'Lainnya', bahan, variasi, hpp_satuan, margin, harga_jual || 0, keterangan, 
         harga_direktur || 0, harga_gm || 0, harga_manager || 0, harga_spv || 0, id
     ];
 
@@ -71,10 +71,11 @@ exports.importProduk = (req, res) => {
     }
 
     const sql = `INSERT INTO produk 
-        (nama_produk, nama, bahan, variasi, hpp_satuan, margin, harga_jual, keterangan, harga_direktur, harga_gm, harga_manager, harga_spv) 
+        (kode, nama_produk, nama, bahan, variasi, hpp_satuan, margin, harga_jual, keterangan, harga_direktur, harga_gm, harga_manager, harga_spv) 
         VALUES ?`;
         
     const values = data.map(item => [
+        item.kode || null,
         item.nama_produk || '', 
         item.nama || null,
         item.bahan || '', 

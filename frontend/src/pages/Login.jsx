@@ -10,8 +10,39 @@ const Login = () => {
     const [rememberMe, setRememberMe] = useState(false);
     const navigate = useNavigate();
 
-    // Load saved credentials on mount
+    const redirectUser = (role) => {
+        const userRole = role ? role.toLowerCase() : '';
+        if (userRole === 'finance') navigate('/finance');
+        else if (userRole === 'gudang') navigate('/gudang');
+        else if (userRole === 'admin_it') navigate('/it/dashboard');
+        else if (userRole === 'owner') navigate('/marketing-online/dashboard');
+        else if (userRole === 'marketing_online') navigate('/marketing-online/dashboard');
+        else if (userRole === 'marketing_offline') navigate('/marketing-offline/dashboard');
+        else if (userRole === 'marketing_offline_tanaka') navigate('/marketing-offline-tanaka/dashboard');
+        else if (userRole === 'marketing_accestret') navigate('/accestret/marketing/dashboard');
+        else if (userRole === 'gudang_accestret') navigate('/accestret/gudang/dashboard');
+        else if (userRole === 'produksi_accestret') navigate('/accestret/produksi/dashboard');
+        else if (userRole === 'marketing') navigate('/marketing');
+        else navigate('/dashboard');
+    };
+
+    // Auto-login jika token sudah ada, atau load credential jika remember me aktif
     useEffect(() => {
+        const token = localStorage.getItem('token');
+        const userStr = localStorage.getItem('user');
+
+        if (token && userStr) {
+            try {
+                const user = JSON.parse(userStr);
+                if (user && user.role) {
+                    redirectUser(user.role);
+                    return;
+                }
+            } catch (e) {
+                console.error("Error parsing user data", e);
+            }
+        }
+
         const savedNip = localStorage.getItem('savedNip');
         const savedPassword = localStorage.getItem('savedPassword');
         if (savedNip && savedPassword) {
@@ -19,7 +50,7 @@ const Login = () => {
             setPassword(savedPassword);
             setRememberMe(true);
         }
-    }, []);
+    }, [navigate]);
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -42,33 +73,7 @@ const Login = () => {
             }
 
             // Navigasi ke dashboard yang sesuai
-            const userRole = res.data.user.role ? res.data.user.role.toLowerCase() : '';
-            if (userRole === 'finance') {
-                navigate('/finance');
-            } else if (userRole === 'gudang') {
-                navigate('/gudang');
-            } else if (userRole === 'admin_it') {
-                navigate('/it/dashboard');
-            } else if (userRole === 'owner') {
-                // Owner is now redirected to the main dashboard of their first menu group
-                navigate('/marketing-online/dashboard');
-            } else if (userRole === 'marketing_online') {
-                navigate('/marketing-online/dashboard');
-            } else if (userRole === 'marketing_offline') {
-                navigate('/marketing-offline/dashboard');
-            } else if (userRole === 'marketing_offline_tanaka') {
-                navigate('/marketing-offline-tanaka/dashboard');
-            } else if (userRole === 'marketing_accestret') {
-                navigate('/accestret/marketing/dashboard');
-            } else if (userRole === 'gudang_accestret') {
-                navigate('/accestret/gudang/dashboard');
-            } else if (userRole === 'produksi_accestret') {
-                navigate('/accestret/produksi/dashboard');
-            } else if (userRole === 'marketing') {
-                navigate('/marketing');
-            } else {
-                navigate('/dashboard');
-            }
+            redirectUser(res.data.user.role);
         } catch (err) {
             console.error(err);
             alert('Login Gagal: ' + (err.response?.data?.message || 'Server mati/Masalah koneksi'));
