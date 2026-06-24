@@ -1,0 +1,15 @@
+-- Buat tabel pricelist_online
+CREATE TABLE IF NOT EXISTS pricelist_online (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  kode        VARCHAR(20)  NOT NULL UNIQUE,
+  grup_produk VARCHAR(100) NOT NULL DEFAULT '',
+  jenis       VARCHAR(50)  NOT NULL DEFAULT '',
+  nama_produk VARCHAR(255) NOT NULL,
+  bahan       VARCHAR(100) NOT NULL DEFAULT '-',
+  harga_jual  DECIMAL(15,2) NOT NULL DEFAULT 0,
+  hpp         DECIMAL(15,2) NOT NULL DEFAULT 0,
+  pot_shopee  DECIMAL(15,2) NOT NULL DEFAULT 0,
+  margin      DECIMAL(15,2) NOT NULL DEFAULT 0,
+  created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
