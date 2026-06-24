@@ -168,7 +168,8 @@ const AccestretMarketingDashboardPrototype = () => {
           </div>
         </div>
       </div>
-    );
+    </div>
+  );
 };
 
 const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => {
