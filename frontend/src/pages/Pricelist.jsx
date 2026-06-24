@@ -91,7 +91,6 @@ const BRAND_ORDER = [
   'PRODUK SATPAM',
   'PRODUK SERAGAM RUMAH SAKIT',
   'PRODUK PERTAMINA',
-  'PRODUK LAINNYA',
 ];
 
 const BRAND_COLORS = {
@@ -547,82 +546,6 @@ const Pricelist = () => {
                     </tbody>
                   </table>
                 </div>
-
-            {/* ===================== SECTION: JUKLAK HARGA UMUM ===================== */}
-            <div className="mt-16 border-t-2 border-gray-100 pt-10">
-              <h2 className="text-2xl font-black text-[#990000] mb-8 uppercase tracking-widest">JUKLAK HARGA UMUM</h2>
-              <div className="flex flex-col items-center justify-center py-10 gap-6">
-                <div className="relative">
-                  <div className="w-28 h-28 rounded-3xl bg-gradient-to-br from-yellow-100 to-orange-100 flex items-center justify-center shadow-lg border border-yellow-200">
-                    <span className="text-5xl">🏷️</span>
-                  </div>
-                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center shadow-md">
-                    <span className="text-white text-xs font-black">!</span>
-                  </div>
-                </div>
-                <div className="text-center max-w-md">
-                  <h2 className="text-2xl font-black text-gray-800 mb-2">Juklak Harga Umum</h2>
-                  <p className="text-gray-500 font-medium text-sm leading-relaxed">
-                    Dokumen juklak harga umum sedang dalam proses penyusunan. 
-                    Halaman ini akan diaktifkan setelah data harga umum tersedia.
-                  </p>
-                </div>
-                <div className="flex flex-col sm:flex-row gap-3 mt-2">
-                  <div className="flex items-center gap-2 px-5 py-3 bg-yellow-50 border border-yellow-200 rounded-2xl">
-                    <span className="text-yellow-500 text-lg">📋</span>
-                    <div>
-                      <p className="text-xs font-black text-gray-700">Status</p>
-                      <p className="text-xs text-yellow-600 font-bold">Menunggu data juklak</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 px-5 py-3 bg-blue-50 border border-blue-200 rounded-2xl">
-                    <span className="text-blue-500 text-lg">🗓️</span>
-                    <div>
-                      <p className="text-xs font-black text-gray-700">Estimasi</p>
-                      <p className="text-xs text-blue-600 font-bold">Segera hadir</p>
-                    </div>
-                  </div>
-                </div>
-                </div>
-              </div>
-
-            {/* ===================== SECTION: JUKLAK HARGA SERAGAM SEKOLAH ===================== */}
-            <div className="mt-16 border-t-2 border-gray-100 pt-10">
-              <h2 className="text-2xl font-black text-[#990000] mb-8 uppercase tracking-widest">JUKLAK HARGA SERAGAM SEKOLAH</h2>
-              <div className="flex flex-col items-center justify-center py-10 gap-6">
-                <div className="relative">
-                  <div className="w-28 h-28 rounded-3xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center shadow-lg border border-blue-200">
-                    <span className="text-5xl">🎒</span>
-                  </div>
-                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center shadow-md">
-                    <span className="text-white text-xs font-black">!</span>
-                  </div>
-                </div>
-                <div className="text-center max-w-md">
-                  <h2 className="text-2xl font-black text-gray-800 mb-2">Juklak Harga Seragam Sekolah</h2>
-                  <p className="text-gray-500 font-medium text-sm leading-relaxed">
-                    Dokumen juklak harga seragam sekolah (SD, SMP, SMA, Pramuka, dll) 
-                    sedang dalam proses penyusunan. Halaman ini akan diaktifkan setelah data tersedia.
-                  </p>
-                </div>
-                <div className="flex flex-col sm:flex-row gap-3 mt-2">
-                  <div className="flex items-center gap-2 px-5 py-3 bg-blue-50 border border-blue-200 rounded-2xl">
-                    <span className="text-blue-500 text-lg">📋</span>
-                    <div>
-                      <p className="text-xs font-black text-gray-700">Status</p>
-                      <p className="text-xs text-blue-600 font-bold">Menunggu data juklak</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 px-5 py-3 bg-indigo-50 border border-indigo-200 rounded-2xl">
-                    <span className="text-indigo-500 text-lg">🎓</span>
-                    <div>
-                      <p className="text-xs font-black text-gray-700">Kategori</p>
-                      <p className="text-xs text-indigo-600 font-bold">SD, SMP, SMA, Pramuka</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
 
           </div>
         </div>

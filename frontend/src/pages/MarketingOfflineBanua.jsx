@@ -204,19 +204,20 @@ export default function MarketingOfflineBanua({ embedded = false }) {
     try {
       const res = await getStok();
       const rawData = (res.data?.data || res.data || []);
-      // Grouping identik dengan Stok Gudang: per Brand + Nama Barang + Cabang
       const sizesArray = ['XS','S','M','L','XL','XXL','XXXL','XXXXL','XXXXXL','All Size'];
       const grouped = {};
       rawData.forEach(item => {
-        const brand  = (item.nama_brand || '').trim().toLowerCase();
+        const kode   = (item.kode_produk || '').trim().toLowerCase();
         const nama   = (item.nama_barang || item.product_name || '').trim().toLowerCase();
         const cabang = (item.cabang_id || '').trim().toLowerCase();
-        const key = `${brand}|${nama}|${cabang}`;
+        const key = `${kode}|${nama}|${cabang}`;
         if (!grouped[key]) {
           grouped[key] = {
             id: item.id,
+            kode_produk: item.kode_produk || '-',
             nama_brand: item.nama_brand || '-',
             nama_barang: item.nama_barang || item.product_name || '-',
+            bahan: item.bahan || '-',
             kategori: item.kategori || '-',
             cabang_id: item.cabang_id || '-',
             kode_rak: item.kode_rak || '-',
@@ -1871,9 +1872,10 @@ export default function MarketingOfflineBanua({ embedded = false }) {
         <table className="w-full text-left border-collapse">
           <thead className="bg-gray-900 text-xs text-white uppercase tracking-wider font-semibold sticky top-0 z-10">
             <tr>
-              <th className="p-4 font-semibold">Brand</th>
-              <th className="p-4 font-semibold">Nama Barang</th>
+              <th className="p-4 font-semibold">Kode</th>
               <th className="p-4 font-semibold">Kategori</th>
+              <th className="p-4 font-semibold">Nama Produk</th>
+              <th className="p-4 font-semibold">Bahan</th>
               <th className="p-4 font-semibold">Cabang</th>
               {sizesArray.map(size => (
                 <th key={size} className="p-4 font-semibold text-center w-20">{size}</th>
@@ -1886,15 +1888,16 @@ export default function MarketingOfflineBanua({ embedded = false }) {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={7 + sizesArray.length} className="p-10 text-center"><Loader2 className="w-10 h-10 animate-spin text-[#990000] mx-auto" /></td></tr>
+              <tr><td colSpan={8 + sizesArray.length} className="p-10 text-center"><Loader2 className="w-10 h-10 animate-spin text-[#990000] mx-auto" /></td></tr>
             ) : filteredInventory.length === 0 ? (
-              <tr><td colSpan={7 + sizesArray.length} className="p-10 text-center text-gray-400 font-bold italic">Stok barang tidak ditemukan.</td></tr>
+              <tr><td colSpan={8 + sizesArray.length} className="p-10 text-center text-gray-400 font-bold italic">Stok barang tidak ditemukan.</td></tr>
             ) : (
               filteredInventory.map((item, idx) => (
                 <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50 text-sm">
-                  <td className="p-4 font-medium text-gray-600">{item.nama_brand}</td>
-                  <td className="p-4 font-bold text-gray-800">{item.nama_barang}</td>
+                  <td className="p-4 font-bold text-[#990000]">{item.kode_produk}</td>
                   <td className="p-4"><span className={`px-2 py-0.5 rounded text-[11px] font-bold ${item.kategori === 'Utama' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-gray-100 text-gray-600'}`}>{item.kategori}</span></td>
+                  <td className="p-4 font-bold text-gray-800">{item.nama_barang}</td>
+                  <td className="p-4 text-gray-500">{item.bahan}</td>
                   <td className="p-4">{item.cabang_id}</td>
                   {sizesArray.map(size => {
                     const qty = item.sizes[size]?.qty || 0;

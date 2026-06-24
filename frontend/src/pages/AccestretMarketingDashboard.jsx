@@ -1869,15 +1869,17 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
 
             // Grouping stok identik dengan Stok.jsx
             const groupedStok = Object.values(inventory.reduce((acc, curr) => {
-              const brand = (curr.nama_brand || '').trim().toLowerCase();
-              const nama  = (curr.nama_barang || '').trim().toLowerCase();
+              const kode   = (curr.kode_produk || '').trim().toLowerCase();
+              const nama   = (curr.nama_barang || '').trim().toLowerCase();
               const cabang = (curr.cabang_id || '').trim().toLowerCase();
-              const key = `${brand}|${nama}|${cabang}`;
+              const key = `${kode}|${nama}|${cabang}`;
               if (!acc[key]) {
                 acc[key] = {
                   id: curr.id,
+                  kode_produk: curr.kode_produk || '-',
                   nama_brand: curr.nama_brand || '-',
                   nama_barang: curr.nama_barang || '-',
+                  bahan: curr.bahan || '-',
                   kategori: curr.kategori || '-',
                   cabang_id: curr.cabang_id || '-',
                   kode_rak: curr.kode_rak || '-',
@@ -1925,9 +1927,10 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                     <table className="w-full text-left border-collapse">
                       <thead className="bg-gray-900 text-xs text-white uppercase tracking-wider font-semibold sticky top-0 z-10">
                         <tr>
-                          <th className="p-4">Brand</th>
-                          <th className="p-4">Nama Barang</th>
+                          <th className="p-4">Kode</th>
                           <th className="p-4">Kategori</th>
+                          <th className="p-4">Nama Produk</th>
+                          <th className="p-4">Bahan</th>
                           <th className="p-4">Cabang</th>
                           {sizesArray.map(size => (
                             <th key={size} className="p-4 text-center w-14">{size}</th>
@@ -1953,13 +1956,14 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                                 ? 'bg-amber-50/60 hover:bg-amber-100/60'
                                 : 'hover:bg-gray-50'
                             }`}>
-                              <td className="p-4 font-medium text-gray-600">{item.nama_brand}</td>
-                              <td className="p-4 font-bold text-gray-800">{item.nama_barang}</td>
+                              <td className="p-4 font-bold text-[#990000]">{item.kode_produk}</td>
                               <td className="p-4">
                                 <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${
                                   item.kategori === 'Utama' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-gray-100 text-gray-600'
                                 }`}>{item.kategori}</span>
                               </td>
+                              <td className="p-4 font-bold text-gray-800">{item.nama_barang}</td>
+                              <td className="p-4 text-gray-500">{item.bahan}</td>
                               <td className="p-4 text-gray-700 font-medium">{item.cabang_id}</td>
                               {sizesArray.map(size => {
                                 const qty = item.sizes[size]?.qty || 0;
