@@ -75,6 +75,7 @@ import AccestretQuotation from './pages/AccestretQuotation';
 import AccestretQuotationForm from './pages/AccestretQuotationForm';
 
 import Pricelist from './pages/Pricelist';
+import PricelistOnline from './pages/PricelistOnline';
 
 // 🔒 Protected Route (Pengaman Halaman dengan Role Middleware)
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -178,22 +179,22 @@ function App() {
           </ProtectedRoute>
         } />
         <Route path="/stok" element={
-          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Gudang']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Gudang', 'gudang_accestret']}>
             <Stok />
           </ProtectedRoute>
         } />
         <Route path="/stok/detail" element={
-          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Gudang']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Gudang', 'gudang_accestret']}>
             <StokDetail />
           </ProtectedRoute>
         } />
         <Route path="/stok-jalan" element={
-          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Gudang']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Gudang', 'gudang_accestret']}>
             <StokJalan />
           </ProtectedRoute>
         } />
         <Route path="/permintaan-stok" element={
-          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Gudang']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Gudang', 'gudang_accestret']}>
             <PermintaanStok />
           </ProtectedRoute>
         } />
@@ -203,22 +204,22 @@ function App() {
           </ProtectedRoute>
         } />
         <Route path="/barang-masuk" element={
-          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Gudang']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Gudang', 'gudang_accestret']}>
             <BarangMasuk />
           </ProtectedRoute>
         } />
         <Route path="/barang-keluar" element={
-          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Gudang']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Gudang', 'gudang_accestret']}>
             <BarangKeluar />
           </ProtectedRoute>
         } />
         <Route path="/mutasi" element={
-          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Gudang']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Gudang', 'gudang_accestret']}>
             <Mutasi />
           </ProtectedRoute>
         } />
         <Route path="/warning-stok" element={
-          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Gudang']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Gudang', 'gudang_accestret']}>
             <WarningStok />
           </ProtectedRoute>
         } />
@@ -230,6 +231,11 @@ function App() {
         <Route path="/pricelist" element={
           <ProtectedRoute allowedRoles={['Admin', 'Manager', 'owner', 'Finance', 'marketing_offline', 'marketing_offline_tanaka']}>
             <Pricelist />
+          </ProtectedRoute>
+        } />
+        <Route path="/pricelist-online" element={
+          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'owner', 'marketing_online', 'Marketing']}>
+            <PricelistOnline />
           </ProtectedRoute>
         } />
         <Route path="/sales-online" element={
@@ -384,14 +390,14 @@ function App() {
         <Route path="/produksi/riwayat" element={<ProtectedRoute allowedRoles={['produksi', 'owner', 'Manager', 'Admin']}><RiwayatProduksi /></ProtectedRoute>} />
 
         {/* ACCESTRET ROUTES */}
+        <Route path="/accestret/marketing" element={<Navigate to="/accestret/marketing/dashboard" replace />} />
         <Route path="/accestret/marketing/dashboard" element={<ProtectedRoute allowedRoles={['marketing_accestret', 'owner', 'Manager', 'Admin']}><AccestretMarketingDashboard /></ProtectedRoute>} />
+        <Route path="/accestret/marketing/:tab/:subtab?" element={<ProtectedRoute allowedRoles={['marketing_accestret', 'owner', 'Manager', 'Admin']}><AccestretMarketingDashboard /></ProtectedRoute>} />
         
         {/* Accestret Quotation */}
         <Route path="/accestret/marketing/quotation" element={<ProtectedRoute allowedRoles={['marketing_accestret', 'owner', 'Manager', 'Admin']}><AccestretQuotation /></ProtectedRoute>} />
         <Route path="/accestret/marketing/quotation/create" element={<ProtectedRoute allowedRoles={['marketing_accestret', 'owner', 'Manager', 'Admin']}><AccestretQuotationForm /></ProtectedRoute>} />
         <Route path="/accestret/marketing/quotation/edit/:id" element={<ProtectedRoute allowedRoles={['marketing_accestret', 'owner', 'Manager', 'Admin']}><AccestretQuotationForm /></ProtectedRoute>} />
-        
-        <Route path="/accestret/marketing/*" element={<ProtectedRoute allowedRoles={['marketing_accestret', 'owner', 'Manager', 'Admin']}><AccestretMarketingDashboard /></ProtectedRoute>} />
         <Route path="/accestret/gudang/*" element={<ProtectedRoute allowedRoles={['gudang_accestret', 'owner', 'Manager', 'Admin']}><AccestretGudangDashboard /></ProtectedRoute>} />
         <Route path="/accestret/produksi/*" element={<ProtectedRoute allowedRoles={['produksi_accestret', 'owner', 'Manager', 'Admin']}><AccestretProduksiDashboard /></ProtectedRoute>} />
 

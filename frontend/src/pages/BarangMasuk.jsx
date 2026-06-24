@@ -3,10 +3,13 @@ import { getBarangMasuk, createBarangMasuk, updateBarangMasuk, deleteBarangMasuk
 import { CheckCircle, Plus, X, Search, UserCircle, Download, Upload, Edit, Trash2 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import * as XLSX from 'xlsx';
+import api from '../api/axios';
+
 
 const BarangMasuk = () => {
     const [history, setHistory] = useState([]);
     const [stokList, setStokList] = useState([]);
+    const [pricelist, setPricelist] = useState([]);
     const [successMsg, setSuccessMsg] = useState('');
     const [showAddModal, setShowAddModal] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
@@ -15,11 +18,14 @@ const BarangMasuk = () => {
     const [showEditModal, setShowEditModal] = useState(false);
     const [editForm, setEditForm] = useState(null);
 
+    const userRole = (JSON.parse(localStorage.getItem('user')) || {}).role || '';
+
     // Form state
+    const [kodeProduk, setKodeProduk] = useState('');
     const [namaBrand, setNamaBrand] = useState('');
     const [namaBarang, setNamaBarang] = useState('');
-    const [kategori, setKategori] = useState('Reguler'); // Reguler / Utama
-    const [cabangId, setCabangId] = useState('Banua'); // Banua / Tanaka / Acestreet
+    const [kategori, setKategori] = useState('Reguler');
+    const [cabangId, setCabangId] = useState(userRole === 'gudang_accestret' ? 'Acestreet' : 'Banua');
     const [kodeRak, setKodeRak] = useState('');
     const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
     const [minimumStok, setMinimumStok] = useState('5'); // Default minimal stok untuk transaksi ini
@@ -40,15 +46,42 @@ const BarangMasuk = () => {
 
     useEffect(() => {
         fetchData();
+        fetchPricelist();
     }, []);
+
+    const fetchPricelist = async () => {
+        try {
+            const res = await api.get('/pricelist-online');
+            setPricelist(res.data.data || []);
+        } catch (e) { console.error(e); }
+    };
+
+    // Autofill saat kode dipilih
+    const handleKodeChange = (kode) => {
+        setKodeProduk(kode.toUpperCase());
+        const found = pricelist.find(p => p.kode === kode.toUpperCase());
+        if (found) {
+            setNamaBarang(found.nama_produk);
+            setNamaBrand(found.grup_produk);
+            setKategori(found.jenis || 'Reguler');
+        }
+    };
 
     const fetchData = async () => {
         try {
             const resBM = await getBarangMasuk();
-            if (resBM.data.status === 'success') setHistory(resBM.data.data);
+            if (resBM.data.status === 'success') {
+                let data = resBM.data.data;
+                if (userRole === 'gudang_accestret') data = data.filter(d => ['Accestret', 'Acestreet'].includes(d.cabang_id));
+                setHistory(data);
+            }
             
             const resStok = await getStok();
-            if (resStok.data.status === 'success') setStokList(resStok.data.data);
+            if (resStok.data.status === 'success') {
+                let data = resStok.data.data;
+                if (userRole === 'gudang_accestret') data = data.filter(d => ['Accestret', 'Acestreet'].includes(d.cabang_id));
+                setStokList(data);
+            }
         } catch (error) {
             console.error("Gagal memuat data", error);
         }
@@ -75,11 +108,11 @@ const BarangMasuk = () => {
                 cabang_id: cabangId,
                 kode_rak: kodeRak.trim() || null,
                 tanggal,
-                supplier: null, // supplier dihapus
+                supplier: null,
                 items: validItems.map(item => ({
                     ukuran: item.ukuran,
                     jumlah: Number(item.jumlah),
-                    minimum_stok: Number(minimumStok) || 5 // Menggunakan minimal stok global tunggal
+                    minimum_stok: Number(minimumStok) || 5
                 }))
             });
 
@@ -89,10 +122,11 @@ const BarangMasuk = () => {
             setShowAddModal(false);
             
             // Reset form
+            setKodeProduk('');
             setNamaBrand('');
             setNamaBarang('');
             setKategori('Reguler');
-            setCabangId('Banua');
+            setCabangId(userRole === 'gudang_accestret' ? 'Acestreet' : 'Banua');
             setKodeRak('');
             setMinimumStok('5');
             setSizeItems(initialSizes);
@@ -338,8 +372,10 @@ const BarangMasuk = () => {
                 id: curr.id,
                 transaksi_id: curr.transaksi_id,
                 tanggal: curr.tanggal,
+                kode_produk: curr.kode_produk || '-',
                 nama_brand: curr.nama_brand || '-',
                 nama_barang: curr.nama_barang,
+                bahan: curr.bahan || '-',
                 kategori: curr.kategori || '-',
                 cabang_id: curr.cabang_id,
                 total_jumlah: 0,
@@ -370,7 +406,8 @@ const BarangMasuk = () => {
         const q = searchTerm.toLowerCase();
         return (
             item.nama_barang.toLowerCase().includes(q) ||
-            (item.nama_brand || '').toLowerCase().includes(q) ||
+            (item.kode_produk || '').toLowerCase().includes(q) ||
+            (item.bahan || '').toLowerCase().includes(q) ||
             item.cabang_id.toLowerCase().includes(q) ||
             (item.kategori || '').toLowerCase().includes(q)
         );
@@ -402,7 +439,7 @@ const BarangMasuk = () => {
                       <div className="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
                         <div className="p-4 bg-red-50/50">
                           <p className="text-sm font-black text-gray-900">Admin</p>
-                          <p className="text-[10px] font-bold text-red-600 uppercase tracking-wider mt-0.5">Gudang</p>
+                          <p className="text-[10px] font-bold text-red-600 uppercase tracking-wider mt-0.5">{userRole === 'gudang_accestret' ? 'Gudang Accestret' : 'Gudang'}</p>
                         </div>
                       </div>
                     )}
@@ -435,6 +472,7 @@ const BarangMasuk = () => {
                                 onClick={() => {
                                     setNamaBrand('');
                                     setNamaBarang('');
+                                    setKodeProduk('');
                                     setKategori('Reguler');
                                     setCabangId('Banua');
                                     setKodeRak('');
@@ -469,40 +507,50 @@ const BarangMasuk = () => {
                                 
                                 <form onSubmit={handleCreate}>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Barang</label>
-                                            <select 
-                                                required 
-                                                value={namaBarang} 
-                                                onChange={e => {
-                                                    const selected = e.target.value;
-                                                    setNamaBarang(selected);
-                                                    const existing = stokList.find(s => s.nama_barang === selected);
-                                                    if (existing) {
-                                                        setNamaBrand(existing.nama_brand || '');
-                                                        setKategori(existing.kategori || 'Reguler');
-                                                        setKodeRak(existing.kode_rak || '');
-                                                        setCabangId(existing.cabang_id || 'Banua');
-                                                        setMinimumStok(existing.minimum_stok || '5');
-                                                    }
-                                                }} 
-                                                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-green-100 focus:border-green-600 outline-none transition-all bg-white"
-                                            >
-                                                <option value="">-- Pilih Barang --</option>
-                                                {uniqueBarang.sort().map(b => (
-                                                    <option key={b} value={b}>{b}</option>
-                                                ))}
-                                            </select>
+                                        {/* KODE PRODUK — autofill */}
+                                        <div className="md:col-span-2">
+                                            <label className="block text-sm font-semibold text-gray-700 mb-1">
+                                                Kode Produk
+                                                <span className="ml-2 text-xs text-gray-400 font-normal">(pilih untuk autofill nama barang)</span>
+                                            </label>
+                                            <div className="flex gap-2">
+                                                <select
+                                                    value={kodeProduk}
+                                                    onChange={e => handleKodeChange(e.target.value)}
+                                                    className="flex-1 border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-green-100 focus:border-green-600 outline-none bg-white text-sm"
+                                                >
+                                                    <option value="">-- Pilih Kode Produk --</option>
+                                                    {pricelist.map(p => (
+                                                        <option key={p.kode} value={p.kode}>
+                                                            {p.kode} — {p.nama_produk}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
                                         </div>
+
+                                        {/* Info autofill — readonly */}
+                                        {namaBarang && (
+                                            <div className="md:col-span-2 bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex flex-wrap gap-4 text-sm">
+                                                <div><span className="text-gray-500 text-xs font-semibold">NAMA PRODUK</span><p className="font-bold text-gray-800 mt-0.5">{namaBarang}</p></div>
+                                                <div><span className="text-gray-500 text-xs font-semibold">GRUP / BRAND</span><p className="font-bold text-gray-800 mt-0.5">{namaBrand}</p></div>
+                                                <div><span className="text-gray-500 text-xs font-semibold">JENIS</span><p className="font-bold text-gray-800 mt-0.5">{kategori}</p></div>
+                                            </div>
+                                        )}
+
                                         <div>
                                             <label className="block text-sm font-semibold text-gray-700 mb-1">Tanggal Masuk</label>
-                                            <input 
-                                                type="date" 
-                                                required 
-                                                value={tanggal} 
-                                                onChange={e => setTanggal(e.target.value)} 
-                                                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-green-100 focus:border-green-600 outline-none transition-all" 
-                                            />
+                                            <input type="date" required value={tanggal} onChange={e => setTanggal(e.target.value)}
+                                                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-green-100 focus:border-green-600 outline-none transition-all" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-1">Cabang Tujuan</label>
+                                            <select required value={cabangId} onChange={e => setCabangId(e.target.value)}
+                                                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-green-100 focus:border-green-600 outline-none bg-white">
+                                                <option value="Banua">Banua</option>
+                                                <option value="Tanaka">Tanaka</option>
+                                                <option value="Acestreet">Acestreet</option>
+                                            </select>
                                         </div>
                                     </div>
 
@@ -579,79 +627,66 @@ const BarangMasuk = () => {
                     <h3 className="text-xl font-bold text-gray-800 mb-4">Riwayat Barang Masuk</h3>
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                         <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
-                                <thead className="bg-gray-900 text-xs text-white uppercase tracking-wider font-semibold sticky top-0 z-10 shadow-sm">
+                            <table className="w-full text-left border-collapse text-sm">
+                                <thead className="bg-gray-900 text-white text-[11px] uppercase tracking-wider sticky top-0 z-10">
                                     <tr>
-                                        <th className="p-4 font-semibold">Tanggal</th>
-                                        <th className="p-4 font-semibold">Brand</th>
-                                        <th className="p-4 font-semibold">Nama Barang</th>
-                                        <th className="p-4 font-semibold">Kategori</th>
-                                        <th className="p-4 font-semibold">Cabang</th>
-                                        {sizesArray.map(size => (
-                                            <th key={size} className="p-4 font-semibold text-center w-20">{size}</th>
+                                        <th className="px-3 py-3 border-r border-gray-700 whitespace-nowrap">TANGGAL</th>
+                                        <th className="px-3 py-3 border-r border-gray-700">KODE</th>
+                                        <th className="px-3 py-3 border-r border-gray-700">JENIS</th>
+                                        <th className="px-3 py-3 border-r border-gray-700">NAMA PRODUK</th>
+                                        <th className="px-3 py-3 border-r border-gray-700">BAHAN</th>
+                                        <th className="px-3 py-3 border-r border-gray-700">CABANG</th>
+                                        {sizesArray.map(sz => (
+                                            <th key={sz} className="px-2 py-3 text-center border-r border-gray-700 w-14">{sz}</th>
                                         ))}
-                                        <th className="p-4 font-semibold text-center w-28">Total Masuk</th>
-                                        <th className="p-4 font-semibold text-center w-32">Minimal Stok</th>
-                                        <th className="p-4 font-semibold text-center">Aksi</th>
+                                        <th className="px-3 py-3 text-center border-r border-gray-700">TOTAL MASUK</th>
+                                        <th className="px-3 py-3 text-center">AKSI</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {filteredHistory.map((item) => {
-                                        // Cari minimal stok dari salah satu ukuran yang aktif di transaksi ini
-                                        const activeMin = Object.values(item.sizes).find(data => data.jumlah > 0)?.min || 5;
-
-                                        return (
-                                            <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50 text-sm">
-                                                <td className="p-4 whitespace-nowrap">{new Date(item.tanggal).toLocaleDateString('id-ID')}</td>
-                                                <td className="p-4 font-medium text-gray-600">{item.nama_brand}</td>
-                                                <td className="p-4 font-bold text-gray-800">{item.nama_barang}</td>
-                                                <td className="p-4">
-                                                    <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${item.kategori === 'Utama' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-gray-100 text-gray-600'}`}>
-                                                        {item.kategori}
-                                                    </span>
-                                                </td>
-                                                <td className="p-4">{item.cabang_id}</td>
-                                                {sizesArray.map(size => {
-                                                    const sizeData = item.sizes[size] || { jumlah: 0, min: 0 };
-                                                    return (
-                                                        <td key={size} className="p-4 text-center bg-gray-50/10 border-x border-gray-100 font-extrabold text-gray-800">
-                                                            {sizeData.jumlah > 0 ? (
-                                                                sizeData.jumlah
-                                                            ) : (
-                                                                <span className="text-gray-300 font-normal">-</span>
-                                                            )}
-                                                        </td>
-                                                    );
-                                                })}
-                                                <td className="p-4 text-center font-extrabold text-green-600 text-base">+{item.total_jumlah}</td>
-                                                <td className="p-4 text-center bg-gray-50/10 border-l border-gray-100">
-                                                    <span className="bg-red-50 border border-red-100 text-red-700 px-2.5 py-1 rounded-full text-xs font-bold">
-                                                        {activeMin} Pcs
-                                                    </span>
-                                                </td>
-                                                <td className="p-4 text-center">
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <button 
-                                                            onClick={() => handleEdit(item)}
-                                                            className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-colors"
-                                                            title="Edit Transaksi"
-                                                        >
-                                                            <Edit size={14} />
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => handleDelete(item.transaksi_id)}
-                                                            className="w-8 h-8 rounded-xl bg-red-50 text-red-600 hover:bg-red-600 hover:text-white flex items-center justify-center transition-colors"
-                                                            title="Hapus Transaksi"
-                                                        >
-                                                            <Trash2 size={14} />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
+                                    {filteredHistory.map((item, idx) => (
+                                        <tr key={item.id} className={`border-b border-gray-100 hover:bg-green-50/30 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
+                                            <td className="px-3 py-2.5 whitespace-nowrap text-gray-600 border-r border-gray-100">
+                                                {new Date(item.tanggal).toLocaleDateString('id-ID')}
+                                            </td>
+                                            <td className="px-3 py-2.5 font-bold text-[#990000] border-r border-gray-100 whitespace-nowrap">
+                                                {item.kode_produk}
+                                            </td>
+                                            <td className="px-3 py-2.5 border-r border-gray-100">
+                                                <span className="bg-gray-100 text-gray-700 text-[11px] font-bold px-2 py-0.5 rounded-full">{item.kategori}</span>
+                                            </td>
+                                            <td className="px-3 py-2.5 font-semibold text-gray-800 border-r border-gray-100 whitespace-nowrap">{item.nama_barang}</td>
+                                            <td className="px-3 py-2.5 text-gray-500 border-r border-gray-100">{item.bahan}</td>
+                                            <td className="px-3 py-2.5 text-gray-600 border-r border-gray-100">{item.cabang_id}</td>
+                                            {sizesArray.map(sz => {
+                                                const qty = item.sizes[sz]?.jumlah || 0;
+                                                return (
+                                                    <td key={sz} className="px-2 py-2.5 text-center border-r border-gray-100 font-bold text-gray-800">
+                                                        {qty > 0 ? <span className="text-green-600">+{qty}</span> : <span className="text-gray-300 font-normal">-</span>}
+                                                    </td>
+                                                );
+                                            })}
+                                            <td className="px-3 py-2.5 text-center font-black text-green-600 text-base border-r border-gray-100">
+                                                +{item.total_jumlah}
+                                            </td>
+                                            <td className="px-3 py-2.5 text-center">
+                                                <div className="flex items-center justify-center gap-1.5">
+                                                    <button onClick={() => handleEdit(item)}
+                                                        className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-colors"
+                                                        title="Edit">
+                                                        <Edit size={14} />
+                                                    </button>
+                                                    <button onClick={() => handleDelete(item.transaksi_id)}
+                                                        className="w-8 h-8 rounded-xl bg-red-50 text-red-600 hover:bg-red-600 hover:text-white flex items-center justify-center transition-colors"
+                                                        title="Hapus">
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
                                     {filteredHistory.length === 0 && (
-                                        <tr><td colSpan={8 + sizesArray.length} className="p-6 text-center text-gray-500">Barang masuk tidak ditemukan</td></tr>
+                                        <tr><td colSpan={7 + sizesArray.length + 2} className="p-8 text-center text-gray-400">Tidak ada riwayat barang masuk.</td></tr>
                                     )}
                                 </tbody>
                             </table>

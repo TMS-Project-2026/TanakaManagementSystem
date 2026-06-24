@@ -4,7 +4,7 @@ exports.getAllBarangMasuk = async (req, res) => {
     try {
         const promiseDb = db.promise();
         const sql = `
-            SELECT bm.*, s.nama_brand, s.nama_barang, s.cabang_id, s.ukuran, s.kategori, s.minimum_stok 
+            SELECT bm.*, s.kode_produk, s.nama_brand, s.nama_barang, s.bahan, s.cabang_id, s.ukuran, s.kategori, s.minimum_stok 
             FROM barang_masuk bm
             JOIN stok s ON bm.barang_id = s.id
             ORDER BY bm.tanggal DESC, bm.id DESC
@@ -51,16 +51,22 @@ exports.createBarangMasuk = async (req, res) => {
 
                 if (existing.length > 0) {
                     stockId = existing[0].id;
-                    // Update stok (akumulasi kuantitas, set minimal stok terbaru, dan metadata lainnya)
                     await promiseDb.query(
                         "UPDATE stok SET jumlah = jumlah + ?, minimum_stok = ?, nama_brand = ?, kategori = ?, kode_rak = ? WHERE id = ?",
                         [qty, minStok, nama_brand || null, kategori, kode_rak || null, stockId]
                     );
                 } else {
-                    // Create stok baru jika belum pernah ada
+                    // Create stok baru — ambil kode_produk & bahan dari pricelist_online jika ada
+                    const [pl] = await promiseDb.query(
+                        "SELECT kode, bahan FROM pricelist_online WHERE TRIM(UPPER(nama_produk)) = TRIM(UPPER(?)) LIMIT 1",
+                        [nama_barang]
+                    );
+                    const kodeProduk = pl.length > 0 ? pl[0].kode : null;
+                    const bahanProduk = pl.length > 0 ? pl[0].bahan : null;
+
                     const [insertRes] = await promiseDb.query(
-                        "INSERT INTO stok (nama_brand, nama_barang, jumlah, kategori, cabang_id, minimum_stok, kode_rak, ukuran) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                        [nama_brand || null, nama_barang, qty, kategori, cabang_id, minStok, kode_rak || null, size]
+                        "INSERT INTO stok (kode_produk, nama_brand, nama_barang, bahan, jumlah, kategori, cabang_id, minimum_stok, kode_rak, ukuran) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        [kodeProduk, nama_brand || null, nama_barang, bahanProduk, qty, kategori, cabang_id, minStok, kode_rak || null, size]
                     );
                     stockId = insertRes.insertId;
                 }
@@ -136,9 +142,16 @@ exports.updateBarangMasuk = async (req, res) => {
                         [qty, minStok, nama_brand || null, kategori, kode_rak || null, stockId]
                     );
                 } else {
+                    const [pl] = await promiseDb.query(
+                        "SELECT kode, bahan FROM pricelist_online WHERE TRIM(UPPER(nama_produk)) = TRIM(UPPER(?)) LIMIT 1",
+                        [nama_barang]
+                    );
+                    const kodeProduk = pl.length > 0 ? pl[0].kode : null;
+                    const bahanProduk = pl.length > 0 ? pl[0].bahan : null;
+
                     const [insertRes] = await promiseDb.query(
-                        "INSERT INTO stok (nama_brand, nama_barang, jumlah, kategori, cabang_id, minimum_stok, kode_rak, ukuran) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                        [nama_brand || null, nama_barang, qty, kategori, cabang_id, minStok, kode_rak || null, size]
+                        "INSERT INTO stok (kode_produk, nama_brand, nama_barang, bahan, jumlah, kategori, cabang_id, minimum_stok, kode_rak, ukuran) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        [kodeProduk, nama_brand || null, nama_barang, bahanProduk, qty, kategori, cabang_id, minStok, kode_rak || null, size]
                     );
                     stockId = insertRes.insertId;
                 }

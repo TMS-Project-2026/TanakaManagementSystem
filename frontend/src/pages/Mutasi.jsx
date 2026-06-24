@@ -12,10 +12,12 @@ const Mutasi = () => {
     const [showProfile, setShowProfile] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
+    const userRole = (JSON.parse(localStorage.getItem('user')) || {}).role || '';
+
     // Form header inputs (Tulis Manual)
     const [form, setForm] = useState({
         nama_barang: '',
-        dari_cabang: '',
+        dari_cabang: userRole === 'gudang_accestret' ? 'Acestreet' : '',
         ke_cabang: '',
         tanggal: new Date().toISOString().split('T')[0]
     });
@@ -34,10 +36,18 @@ const Mutasi = () => {
     const fetchData = async () => {
         try {
             const resMutasi = await getMutasi();
-            if (resMutasi.data.status === 'success') setHistory(resMutasi.data.data);
+            if (resMutasi.data.status === 'success') {
+                let data = resMutasi.data.data;
+                if (userRole === 'gudang_accestret') data = data.filter(d => ['Accestret', 'Acestreet'].includes(d.dari_cabang) || ['Accestret', 'Acestreet'].includes(d.ke_cabang));
+                setHistory(data);
+            }
             
             const resStok = await getStok();
-            if (resStok.data.status === 'success') setStokList(resStok.data.data);
+            if (resStok.data.status === 'success') {
+                let data = resStok.data.data;
+                if (userRole === 'gudang_accestret') data = data.filter(d => ['Accestret', 'Acestreet'].includes(d.cabang_id));
+                setStokList(data);
+            }
         } catch (error) {
             console.error("Gagal memuat data", error);
         }
@@ -127,7 +137,7 @@ const Mutasi = () => {
             fetchData();
             
             // Reset form
-            setForm({ nama_barang: '', dari_cabang: '', ke_cabang: '', tanggal: new Date().toISOString().split('T')[0] });
+            setForm({ nama_barang: '', dari_cabang: userRole === 'gudang_accestret' ? 'Acestreet' : '', ke_cabang: '', tanggal: new Date().toISOString().split('T')[0] });
             setFormItems([{ ukuran: 'S', jumlah: 1 }]);
             setShowAddModal(false);
         } catch (error) {
@@ -172,7 +182,7 @@ const Mutasi = () => {
                       <div className="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
                         <div className="p-4 bg-red-50/50">
                           <p className="text-sm font-black text-gray-900">Admin</p>
-                          <p className="text-[10px] font-bold text-red-600 uppercase tracking-wider mt-0.5">Gudang</p>
+                          <p className="text-[10px] font-bold text-red-600 uppercase tracking-wider mt-0.5">{userRole === 'gudang_accestret' ? 'Gudang Accestret' : 'Gudang'}</p>
                         </div>
                       </div>
                     )}

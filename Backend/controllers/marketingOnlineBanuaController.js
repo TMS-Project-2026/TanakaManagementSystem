@@ -73,7 +73,7 @@ exports.getDashboard = (req, res) => {
 
 // GET ORDERS
 exports.getOrders = (req, res) => {
-    const sql = `SELECT * FROM marketing_orders_online WHERE type = 'online' AND branch = 'Banua' ORDER BY order_date DESC`;
+    const sql = `SELECT id, branch, type, customer_name, akun_toko, kode_produk, product_name, qty, price_unit, address, total_price, potongan_shopee, hpp_aktual, hpp, total_hpp_aktual, actual_satuan, actual, profit, order_date, status, catatan FROM marketing_orders_online WHERE type = 'online' AND branch = 'Banua' ORDER BY order_date DESC`;
     db.query(sql, [], (err, results) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json(results);
@@ -84,7 +84,7 @@ exports.getOrders = (req, res) => {
 exports.updateOrder = (req, res) => {
     const { id } = req.params;
     const {
-        akun_toko, product_name, qty, price_unit,
+        akun_toko, kode_produk, product_name, qty, price_unit,
         potongan_shopee, hpp_aktual, order_date, status, catatan
     } = req.body;
 
@@ -103,14 +103,14 @@ exports.updateOrder = (req, res) => {
 
     const sql = `
         UPDATE marketing_orders_online SET
-            akun_toko = ?, product_name = ?, qty = ?, price_unit = ?,
+            akun_toko = ?, kode_produk = ?, product_name = ?, qty = ?, price_unit = ?,
             total_price = ?, potongan_shopee = ?, hpp_aktual = ?,
             hpp = ?, total_hpp_aktual = ?, actual_satuan = ?,
             actual = ?, profit = ?, order_date = ?, status = ?, catatan = ?
         WHERE id = ?
     `;
     const values = [
-        akun_toko, product_name, q, pu,
+        akun_toko, kode_produk || null, product_name, q, pu,
         total_price, ps, hpp,
         hpp_total, total_hpp_aktual, actual_satuan,
         actual, profit, order_date, status, catatan || null,
@@ -196,6 +196,7 @@ exports.importShopee = async (req, res) => {
                 'online',
                 order.customer_name || '-',
                 order.akun_toko || '-',
+                order.kode_produk || null,
                 productName,
                 qty,
                 price_unit,
@@ -215,7 +216,7 @@ exports.importShopee = async (req, res) => {
         }
 
         const sqlOrders = `INSERT INTO marketing_orders_online 
-                     (branch, type, customer_name, akun_toko, product_name, qty, price_unit, address, total_price, potongan_shopee, hpp_aktual, hpp, total_hpp_aktual, actual_satuan, actual, profit, order_date, status, catatan) 
+                     (branch, type, customer_name, akun_toko, kode_produk, product_name, qty, price_unit, address, total_price, potongan_shopee, hpp_aktual, hpp, total_hpp_aktual, actual_satuan, actual, profit, order_date, status, catatan) 
                      VALUES ?`;
         const [resultOrders] = await promiseDb.query(sqlOrders, [values]);
 

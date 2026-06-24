@@ -64,9 +64,17 @@ const RolePermission = () => {
             <Sidebar />
             <main className="flex-1 p-6 overflow-y-auto h-screen">
                 <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100">
-                    <h1 className="text-3xl font-bold text-gray-800 mb-6 border-l-4 border-blue-600 pl-4 flex items-center gap-2">
-                        <Shield className="text-blue-600" /> Role & Permission
-                    </h1>
+                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
+                        <div>
+                            <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                                <div className="bg-red-50 border border-red-100 p-2 rounded-lg shadow-sm">
+                                    <Shield className="text-[#990000]" size={20} />
+                                </div>
+                                Role & Permission
+                            </h1>
+                            <p className="text-sm text-gray-500 mt-2 font-medium">Atur hak akses Create, Read, Update, Delete untuk setiap role dalam sistem.</p>
+                        </div>
+                    </div>
 
                     <div className="flex gap-4 mb-6 border-b border-gray-200 pb-4">
                         {['owner', 'admin_it', 'marketing', 'finance', 'gudang', 'produksi'].map(role => (

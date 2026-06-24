@@ -67,6 +67,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
   const [promoStock, setPromoStock] = useState([]);
   const [reports, setReports] = useState({ harian: [], bulanan: [] });
   const [dbProducts, setDbProducts] = useState([]);
+  const [pricelistOnlineData, setPricelistOnlineData] = useState([]);
   // Import & Manual State
   const [importPreview, setImportPreview] = useState([]);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -126,7 +127,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editOrder, setEditOrder] = useState(null);
   const [manualOrder, setManualOrder] = useState({
-    customer_name: '', akun_toko: '', product_name: '', qty: '', price_unit: '',
+    customer_name: '', akun_toko: '', kode_produk: '', product_name: '', qty: '', price_unit: '',
     potongan_shopee: '', hpp_aktual: '', order_date: new Date().toISOString().split('T')[0],
     address: '', status: 'Pesanan Selesai'
   });
@@ -679,6 +680,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
     setEditOrder({
       id: order.id,
       akun_toko: order.akun_toko || '',
+      kode_produk: order.kode_produk || '',
       product_name: order.product_name || '',
       qty: order.qty || '',
       price_unit: order.price_unit || '',
@@ -735,6 +737,20 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
     }
   };
 
+  const fetchPricelistOnline = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get('http://localhost:3000/api/pricelist-online', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data && res.data.data) {
+        setPricelistOnlineData(res.data.data);
+      }
+    } catch (err) {
+      console.error("Gagal mengambil pricelist online:", err);
+    }
+  };
+
   // Fetch marketing targets dari database
   const fetchTargets = async () => {
     try {
@@ -774,6 +790,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
 
   useEffect(() => {
     fetchDbProducts();
+    fetchPricelistOnline();
     fetchTargets();
   }, []);
 
@@ -991,15 +1008,26 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
           };
 
           const qty = parseInt(getField(['qty', 'jumlah', 'quantity', 'kuantitas', 'jumlah produk yang dipesan', 'jumlah produk'])) || 1;
-          const productName = getField(['product', 'produk', 'barang', 'nama produk', 'product name', 'nama barang']) || 'Produk Tidak Diketahui';
+          const productNameRaw = getField(['product', 'produk', 'barang', 'nama produk', 'product name', 'nama barang']);
+          const kodeProdukVal = getField(['kode', 'kode produk', 'item code', 'product code', 'kode item', 'sku']);
 
-          // Attempt to find matching product in our master DB to automatically populate HPP
+          let finalProductName = productNameRaw || 'Produk Tidak Diketahui';
           let matchedHpp = 0;
-          if (dbProducts && dbProducts.length > 0 && productName !== 'Produk Tidak Diketahui') {
-            // Find if the Shopee product name contains the DB product name, or vice versa (case-insensitive substring match)
+          let matchedPrice = 0;
+          let matchedPotongan = 0;
+
+          if (kodeProdukVal && pricelistOnlineData && pricelistOnlineData.length > 0) {
+            const match = pricelistOnlineData.find(p => p.kode.toLowerCase() === kodeProdukVal.toLowerCase());
+            if (match) {
+              finalProductName = finalProductName === 'Produk Tidak Diketahui' || !productNameRaw ? match.nama_produk : finalProductName;
+              matchedHpp = parseFloat(match.hpp) || 0;
+              matchedPrice = parseFloat(match.harga_jual) || 0;
+              matchedPotongan = parseFloat(match.pot_shopee) || 0;
+            }
+          } else if (dbProducts && dbProducts.length > 0 && finalProductName !== 'Produk Tidak Diketahui') {
             const match = dbProducts.find(p => {
               const dbName = (p.nama_produk || '').toLowerCase().trim();
-              const excelName = productName.toLowerCase().trim();
+              const excelName = finalProductName.toLowerCase().trim();
               return excelName.includes(dbName) || dbName.includes(excelName);
             });
             if (match) {
@@ -1007,7 +1035,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
             }
           }
 
-          const priceUnit = parseNum(getField(['price', 'harga satuan', 'unit price', 'harga awal', 'deal price', 'harga asli', 'harga jualan'], ['total price']));
+          const priceUnit = parseNum(getField(['price', 'harga satuan', 'unit price', 'harga awal', 'deal price', 'harga asli', 'harga jualan'], ['total price'])) || matchedPrice;
           const totalPrice = parseNum(getField(['total price', 'total harga', 'subtotal', 'total bayar', 'total pembayaran', 'total real', 'total penghasilan'])) || (qty * priceUnit);
 
           // HPP fields - use excludeKeys to prevent "HPP" from matching "HPP ACTUAL" or "TOTAL HPP"
@@ -1019,7 +1047,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
           const finalHppUnit = hppActual || hppUnit;
           const finalTotalHpp = totalHpp || (qty * finalHppUnit);
 
-          const discount = parseNum(getField(['potongan shopee', 'potongan', 'diskon shopee', 'shopee discount', 'diskon dari shopee', 'voucher shopee', 'harga potongan shopee', 'diskon'], ['total']));
+          const discount = parseNum(getField(['potongan shopee', 'potongan', 'diskon shopee', 'shopee discount', 'diskon dari shopee', 'voucher shopee', 'harga potongan shopee', 'diskon'], ['total'])) || matchedPotongan;
           const satuan = parseNum(getField(['satuan']));
 
           // Parse actual and actual_satuan fields correctly
@@ -1031,8 +1059,9 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
 
           const result = {
             customer_name: getField(['nama', 'pembeli', 'username', 'customer', 'username pembeli', 'nama customer']) || 'Anonim',
-            akun_toko: getField(['item code', 'item_code', 'kode item', 'akun', 'toko', 'shop', 'account', 'username penjual', 'akun toko']) || '-',
-            product_name: productName,
+            akun_toko: getField(['akun', 'toko', 'shop', 'account', 'username penjual', 'akun toko']) || '-',
+            kode_produk: kodeProdukVal || '',
+            product_name: finalProductName,
             qty: qty,
             price_unit: priceUnit || satuan || 0,
             total_price: totalPrice,
@@ -1143,6 +1172,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
     const finalOrder = {
       customer_name: manualOrder.customer_name || '-',
       akun_toko: manualOrder.akun_toko || '-',
+      kode_produk: manualOrder.kode_produk || null,
       product_name: manualOrder.product_name || '-',
       stok_id: manualOrder.stok_id || null,
       address: manualOrder.address || '-',
@@ -1170,7 +1200,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
       alert("Pesanan manual berhasil disimpan!");
       setShowManualModal(false);
       setManualOrder({
-        customer_name: '', akun_toko: '', product_name: '', qty: '', price_unit: '',
+        customer_name: '', akun_toko: '', kode_produk: '', product_name: '', qty: '', price_unit: '',
         potongan_shopee: '', hpp_aktual: '', order_date: new Date().toISOString().split('T')[0],
         address: '', status: 'Pesanan Selesai', stok_id: null
       });
@@ -1224,8 +1254,8 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
               {showProfile && (
                 <div className="absolute right-10 top-16 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                   <div className="p-4 bg-red-50/50">
-                    <p className="text-sm font-black text-gray-900">Admin</p>
-                    <p className="text-[10px] font-bold text-[#990000] uppercase tracking-wider mt-0.5">Marketing Online</p>
+                    <p className="text-sm font-black text-gray-900">{JSON.parse(localStorage.getItem('user'))?.nama || JSON.parse(localStorage.getItem('user'))?.username || 'Admin'}</p>
+                    <p className="text-[10px] font-bold text-[#990000] uppercase tracking-wider mt-0.5">{(JSON.parse(localStorage.getItem('user'))?.role || '').replace('_', ' ')}</p>
                   </div>
                 </div>
               )}
@@ -1308,7 +1338,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                 <button
                   onClick={() => {
                     setManualOrder({
-                      customer_name: '', akun_toko: '', product_name: '', qty: '', price_unit: '',
+                      customer_name: '', akun_toko: '', kode_produk: '', product_name: '', qty: '', price_unit: '',
                       potongan_shopee: '', hpp_aktual: '', order_date: new Date().toISOString().split('T')[0],
                       address: '', status: 'Pesanan Selesai'
                     });
@@ -1561,6 +1591,12 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                           <ChevronDown size={10} className="text-red-400" />
                         </div>
                       </th>
+                      <th className="py-3 px-3 font-semibold border-r border-gray-800 text-left min-w-[100px]">
+                        <div className="flex items-center justify-between gap-1">
+                          <span>KODE</span>
+                          <ChevronDown size={10} className="text-indigo-400" />
+                        </div>
+                      </th>
                       <th className="py-3 px-3 font-semibold border-r border-gray-800 text-left min-w-[200px]">
                         <div className="flex items-center justify-between gap-1">
                           <span>PRODUCT</span>
@@ -1639,14 +1675,14 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                   <tbody className="text-xs text-gray-800 font-sans">
                     {loading ? (
                       <tr>
-                        <td colSpan="15" className="text-center py-24 bg-white">
+                        <td colSpan="16" className="text-center py-24 bg-white">
                           <Loader2 className="w-10 h-10 animate-spin text-red-600 mx-auto" />
                           <p className="text-gray-500 font-black text-sm mt-3 uppercase tracking-wider">Memuat lembar data Excel...</p>
                         </td>
                       </tr>
                     ) : filteredOrders.length === 0 ? (
                       <tr>
-                        <td colSpan="15" className="text-center py-24 bg-white text-gray-400 font-bold italic">
+                        <td colSpan="16" className="text-center py-24 bg-white text-gray-400 font-bold italic">
                           Belum ada data order online. Silakan import file Shopee atau tambah manual.
                         </td>
                       </tr>
@@ -1673,6 +1709,13 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                             <td className="py-2.5 px-3 border-r border-gray-100 text-center text-gray-300 text-[10px] select-none font-bold"></td>
                             <td className="py-2.5 px-3 border-r border-gray-100 font-bold text-gray-900 whitespace-nowrap">{formatIndoLongDate(order.order_date)}</td>
                             <td className="py-2.5 px-3 border-r border-gray-100 font-black text-gray-800 uppercase text-[10px] tracking-wide whitespace-nowrap">{order.akun_toko || '-'}</td>
+                            <td className="py-2.5 px-3 border-r border-gray-100 whitespace-nowrap">
+                              {order.kode_produk ? (
+                                <span className="inline-block bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-black px-2 py-0.5 rounded-md tracking-wide">{order.kode_produk}</span>
+                              ) : (
+                                <span className="text-gray-300 text-[10px]">—</span>
+                              )}
+                            </td>
                             <td
                               className={`py-2.5 px-3 border-r border-gray-100 font-bold text-gray-900 cursor-pointer select-none transition-all ${expandedProduct === (order.id || idx) ? 'max-w-none whitespace-normal text-[#990000]' : 'max-w-[200px] truncate hover:text-[#990000]'}`}
                               onClick={() => setExpandedProduct(expandedProduct === (order.id || idx) ? null : (order.id || idx))}
@@ -1714,15 +1757,14 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
 
             // Grouping stok identik dengan Stok.jsx
             const groupedStok = Object.values(inventory.reduce((acc, curr) => {
-              const brand = (curr.nama_brand || '').trim().toLowerCase();
-              const nama  = (curr.nama_barang || '').trim().toLowerCase();
-              const cabang = (curr.cabang_id || '').trim().toLowerCase();
-              const key = `${brand}|${nama}|${cabang}`;
+              const key = `${(curr.kode_produk||'').toLowerCase()}|${(curr.nama_barang||'').toLowerCase()}|${(curr.cabang_id||'').toLowerCase()}`;
               if (!acc[key]) {
                 acc[key] = {
                   id: curr.id,
+                  kode_produk: curr.kode_produk || '-',
                   nama_brand: curr.nama_brand || '-',
                   nama_barang: curr.nama_barang || '-',
+                  bahan: curr.bahan || '-',
                   kategori: curr.kategori || '-',
                   cabang_id: curr.cabang_id || '-',
                   kode_rak: curr.kode_rak || '-',
@@ -1744,8 +1786,10 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
             const filteredStok = groupedStok.filter(item => {
               const q = stokSearch.toLowerCase();
               return (
-                item.nama_barang.toLowerCase().includes(q) ||
-                item.nama_brand.toLowerCase().includes(q) ||
+                item.nama_barang?.toLowerCase().includes(q) ||
+                item.kode_produk?.toLowerCase().includes(q) ||
+                item.nama_brand?.toLowerCase().includes(q) ||
+                item.bahan?.toLowerCase().includes(q) ||
                 item.cabang_id.toLowerCase().includes(q) ||
                 item.kategori.toLowerCase().includes(q)
               );
@@ -1770,16 +1814,16 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                     <table className="w-full text-left border-collapse">
                       <thead className="bg-gray-900 text-xs text-white uppercase tracking-wider font-semibold sticky top-0 z-10">
                         <tr>
-                          <th className="p-4">Brand</th>
-                          <th className="p-4">Nama Barang</th>
-                          <th className="p-4">Kategori</th>
+                          <th className="p-4 text-[#990000]">Kode</th>
+                          <th className="p-4">Jenis / Kategori</th>
+                          <th className="p-4">Nama Produk</th>
+                          <th className="p-4">Bahan</th>
                           <th className="p-4">Cabang</th>
                           {sizesArray.map(size => (
                             <th key={size} className="p-4 text-center w-14">{size}</th>
                           ))}
                           <th className="p-4 text-center w-28">Total Stok</th>
                           <th className="p-4 text-center w-28">Min. Stok</th>
-                          <th className="p-4">Rak</th>
                           <th className="p-4 text-center w-36">Aksi</th>
                         </tr>
                       </thead>
@@ -1798,13 +1842,14 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                                 ? 'bg-amber-50/60 hover:bg-amber-100/60'
                                 : 'hover:bg-gray-50'
                             }`}>
-                              <td className="p-4 font-medium text-gray-600">{item.nama_brand}</td>
-                              <td className="p-4 font-bold text-gray-800">{item.nama_barang}</td>
+                              <td className="p-4 font-bold text-[#990000]">{item.kode_produk}</td>
                               <td className="p-4">
-                                <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${
-                                  item.kategori === 'Utama' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-gray-100 text-gray-600'
-                                }`}>{item.kategori}</span>
+                                <span className="bg-gray-100 text-gray-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                                  {item.kategori}
+                                </span>
                               </td>
+                              <td className="p-4 font-bold text-gray-800">{item.nama_barang}</td>
+                              <td className="p-4 text-gray-500">{item.bahan}</td>
                               <td className="p-4 text-gray-700 font-medium">{item.cabang_id}</td>
                               {sizesArray.map(size => {
                                 const qty = item.sizes[size]?.qty || 0;
@@ -1820,7 +1865,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                                   {item.minimum_stok}
                                 </span>
                               </td>
-                              <td className="p-4 font-semibold text-gray-600">{item.kode_rak}</td>
+                              
                               <td className="p-4 text-center">
                                 <div className="flex flex-col gap-1.5">
                                   <button
@@ -2865,6 +2910,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
         loading={loading}
         formatRupiah={formatRupiah}
         inventory={inventory}
+        pricelistOnlineData={pricelistOnlineData}
         availableAccounts={[...new Set([...Object.keys(dailyTargets), ...Object.keys(bulananTargets), ...Object.keys(tahunanTargets)])].sort()}
       />
 
@@ -2898,11 +2944,18 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                 </div>
               </div>
 
-              {/* Nama Produk */}
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Nama Produk</label>
-                <input type="text" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-medium text-sm"
-                  value={editOrder.product_name} onChange={e => setEditOrder({ ...editOrder, product_name: e.target.value })} placeholder="Nama produk" />
+              {/* Kode Produk & Nama Produk */}
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-indigo-500 uppercase mb-2">Kode Produk</label>
+                  <input type="text" className="w-full p-3 bg-indigo-50 border border-indigo-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-100 font-bold text-sm text-indigo-700 tracking-wide"
+                    value={editOrder.kode_produk || ''} onChange={e => setEditOrder({ ...editOrder, kode_produk: e.target.value })} placeholder="Mis: TK-001" />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Nama Produk</label>
+                  <input type="text" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-medium text-sm"
+                    value={editOrder.product_name} onChange={e => setEditOrder({ ...editOrder, product_name: e.target.value })} placeholder="Nama produk" />
+                </div>
               </div>
 
               {/* Baris 2: Qty & Harga Satuan */}
@@ -3056,7 +3109,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
 };
 
 // Sub-component for Manual Order Modal
-const ManualOrderModal = ({ show, onClose, onSave, order, setOrder, loading, formatRupiah, inventory, availableAccounts }) => {
+const ManualOrderModal = ({ show, onClose, onSave, order, setOrder, loading, formatRupiah, inventory, availableAccounts, pricelistOnlineData }) => {
   if (!show) return null;
   return (
     <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -3089,34 +3142,72 @@ const ManualOrderModal = ({ show, onClose, onSave, order, setOrder, loading, for
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Nama Produk (Sesuai Stok Gudang)</label>
-            <select 
-              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-100 outline-none font-medium text-gray-800" 
-              value={order.stok_id || ''} 
+            <label className="block text-xs font-bold text-indigo-500 uppercase mb-2">Kode Produk <span className="font-normal text-gray-400 normal-case">(opsional)</span></label>
+            <select
+              className="w-full p-3 bg-indigo-50 border border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-100 outline-none font-bold text-indigo-700 tracking-wide text-sm"
+              value={order.kode_produk || ''}
               onChange={e => {
-                const selectedId = e.target.value;
-                if (!selectedId) {
-                  setOrder({ ...order, stok_id: null, product_name: '' });
-                  return;
-                }
-                const selectedItem = inventory.find(item => item.id.toString() === selectedId);
-                if (selectedItem) {
-                  const sizeText = selectedItem.ukuran && selectedItem.ukuran !== '-' ? ` - ${selectedItem.ukuran}` : '';
-                  const fullName = `${selectedItem.nama_barang}${sizeText}`;
-                  setOrder({ ...order, stok_id: selectedItem.id, product_name: fullName });
+                const kode = e.target.value;
+                setOrder({ ...order, kode_produk: kode });
+                if (!kode) return;
+                const matched = pricelistOnlineData?.find(p => p.kode === kode);
+                if (matched) {
+                  setOrder(prev => ({ 
+                    ...prev,
+                    kode_produk: kode,
+                    product_name: matched.nama_produk || prev.product_name,
+                    hpp_aktual: matched.hpp || prev.hpp_aktual,
+                    price_unit: matched.harga_jual || prev.price_unit,
+                    potongan_shopee: matched.pot_shopee || prev.potongan_shopee
+                  }));
                 }
               }}
             >
-              <option value="">-- Pilih Produk & Ukuran --</option>
-              {inventory && inventory.map(item => {
-                const sizeText = item.ukuran && item.ukuran !== '-' ? ` (Ukuran: ${item.ukuran})` : '';
-                return (
-                  <option key={item.id} value={item.id} disabled={item.jumlah <= 0}>
-                    {item.nama_barang}{sizeText} - Stok: {item.jumlah}
-                  </option>
-                );
-              })}
+              <option value="">-- Pilih Kode Produk --</option>
+              {pricelistOnlineData?.map(item => (
+                <option key={item.id} value={item.kode}>{item.kode} - {item.nama_produk}</option>
+              ))}
             </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Nama Produk (Sesuai Stok Gudang)</label>
+            <div className="flex flex-col gap-2">
+              <input 
+                type="text" 
+                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none font-bold text-gray-900 text-sm"
+                value={order.product_name || ''} 
+                onChange={e => setOrder({ ...order, product_name: e.target.value })}
+                placeholder="Nama Produk"
+              />
+              <select 
+                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-100 outline-none font-medium text-gray-800 text-sm" 
+                value={order.stok_id || ''} 
+                onChange={e => {
+                  const selectedId = e.target.value;
+                  if (!selectedId) {
+                    setOrder({ ...order, stok_id: null });
+                    return;
+                  }
+                  const selectedItem = inventory.find(item => item.id.toString() === selectedId);
+                  if (selectedItem) {
+                    const sizeText = selectedItem.ukuran && selectedItem.ukuran !== '-' ? ` - ${selectedItem.ukuran}` : '';
+                    const fullName = `${selectedItem.nama_barang}${sizeText}`;
+                    setOrder({ ...order, stok_id: selectedItem.id, product_name: fullName });
+                  }
+                }}
+              >
+                <option value="">-- Autolink ke Stok Gudang (Opsional) --</option>
+                {inventory && inventory.map(item => {
+                  const sizeText = item.ukuran && item.ukuran !== '-' ? ` (Ukuran: ${item.ukuran})` : '';
+                  return (
+                    <option key={item.id} value={item.id} disabled={item.jumlah <= 0}>
+                      {item.nama_barang}{sizeText} - Stok: {item.jumlah}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

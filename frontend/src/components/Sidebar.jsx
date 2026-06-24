@@ -101,6 +101,7 @@ const Sidebar = () => {
     { name: 'Order Marketplace', path: '/marketing-online/orders', icon: <ShoppingBag size={20} />, roles: ['marketing_online', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE BANUA' },
     { name: 'Stok Inventory', path: '/marketing-online/inventory', icon: <Package size={20} />, roles: ['marketing_online', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE BANUA' },
     { name: 'Promo Online', path: '/marketing-online/promo', icon: <Gift size={20} />, roles: ['marketing_online', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE BANUA' },
+    { name: 'Pricelist Harga', path: '/pricelist-online', icon: <Tag size={20} />, roles: ['marketing_online', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE BANUA' },
     {
       name: 'Report',
       path: '/marketing-online/reports',
@@ -274,18 +275,36 @@ const Sidebar = () => {
     { name: 'Deadline', path: '/produksi/deadline', icon: <Clock size={20} />, roles: ['produksi', 'owner', 'Manager', 'Admin'], group: 'Produksi' },
     { name: 'Riwayat Produksi', path: '/produksi/riwayat', icon: <Activity size={20} />, roles: ['produksi', 'owner', 'Manager', 'Admin'], group: 'Produksi' },
 
-    // MENU ACCESTRET - MARKETING CREATIVE
-    { name: 'Dashboard Mkt', path: '/accestret/marketing/dashboard', icon: <TrendingUp size={20} />, roles: ['marketing_accestret', 'owner', 'Manager', 'Admin'], group: 'Marketing Accestret' },
-    { name: 'Klien & Customer', path: '/accestret/marketing/customers', icon: <Users size={20} />, roles: ['marketing_accestret', 'owner', 'Manager', 'Admin'], group: 'Marketing Accestret' },
-    { name: 'Quotation', path: '/accestret/marketing/quotation', icon: <FileText size={20} />, roles: ['marketing_accestret', 'owner', 'Manager', 'Admin'], group: 'Marketing Accestret' },
-    { name: 'Order / SPK', path: '/accestret/marketing/spk', icon: <ShoppingBag size={20} />, roles: ['marketing_accestret', 'owner', 'Manager', 'Admin'], group: 'Marketing Accestret' },
-    { name: 'Katalog Desain', path: '/accestret/marketing/katalog', icon: <Layers size={20} />, roles: ['marketing_accestret', 'owner', 'Manager', 'Admin'], group: 'Marketing Accestret' },
+    // MENU ACCESTRET - MARKETING MARKETPLACE
+    { name: 'Dashboard Online', path: '/accestret/marketing/dashboard', icon: <LayoutDashboard size={20} />, roles: ['marketing_accestret', 'owner', 'Manager', 'Admin'], group: 'Marketing Accestret' },
+    { name: 'Order Marketplace', path: '/accestret/marketing/orders', icon: <ShoppingBag size={20} />, roles: ['marketing_accestret', 'owner', 'Manager', 'Admin'], group: 'Marketing Accestret' },
+    { name: 'Stok Inventory', path: '/accestret/marketing/inventory', icon: <Package size={20} />, roles: ['marketing_accestret', 'owner', 'Manager', 'Admin'], group: 'Marketing Accestret' },
+    { name: 'Promo Online', path: '/accestret/marketing/promo', icon: <Gift size={20} />, roles: ['marketing_accestret', 'owner', 'Manager', 'Admin'], group: 'Marketing Accestret' },
+    {
+      name: 'Report',
+      path: '/accestret/marketing/reports',
+      icon: <FileText size={20} />,
+      roles: ['marketing_accestret', 'owner', 'Manager', 'Admin'],
+      group: 'Marketing Accestret',
+      subMenu: [
+        { title: 'Laporan Harian', path: '/accestret/marketing/reports/harian' },
+        { title: 'Laporan Harian Berjalan', path: '/accestret/marketing/reports/bulanan' },
+        { title: 'Laporan Bulanan', path: '/accestret/marketing/reports/bulanan-monthly' },
+        { title: 'Laporan Bulan Berjalan', path: '/accestret/marketing/reports/berjalan-monthly' },
+        { title: 'Laporan Tahunan', path: '/accestret/marketing/reports/tahunan' },
+        { title: 'Laporan Tahun Berjalan', path: '/accestret/marketing/reports/berjalan-tahunan' }
+      ]
+    },
 
-    // MENU ACCESTRET - GUDANG
-    { name: 'Dashboard Gudang', path: '/accestret/gudang/dashboard', icon: <Package size={20} />, roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
-    { name: 'Stok Bahan Baku', path: '/accestret/gudang/bahan-baku', icon: <Layers size={20} />, roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
-    { name: 'Stok Kaos Polos', path: '/accestret/gudang/kaos-polos', icon: <Package size={20} />, roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
-    { name: 'Barang Masuk/Keluar', path: '/accestret/gudang/mutasi', icon: <ArrowRightLeft size={20} />, roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
+    // MENU ACCESTRET - GUDANG (identik dengan role Gudang standar)
+    { name: 'Dashboard Gudang',    path: '/accestret/gudang/dashboard', icon: <LayoutDashboard size={20} />, roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
+    { name: 'Approval Permintaan', path: '/permintaan-stok',            icon: <Bell size={20} />,            roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret', hasPermintaanBadge: true },
+    { name: 'Barang Masuk',        path: '/barang-masuk',               icon: <TrendingUp size={20} />,      roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
+    { name: 'Barang Keluar',       path: '/barang-keluar',              icon: <TrendingDown size={20} />,    roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
+    { name: 'Mutasi Barang',       path: '/mutasi',                     icon: <ArrowRightLeft size={20} />,  roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
+    { name: 'Stok Barang',         path: '/stok',                       icon: <Package size={20} />,         roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
+    { name: 'Stok Jalan',          path: '/stok-jalan',                 icon: <Layers size={20} />,          roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
+    { name: 'Warning Stok',        path: '/warning-stok',               icon: <AlertTriangle size={20} />,   roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
 
     // MENU ACCESTRET - PRODUKSI
     { name: 'Dashboard Produksi', path: '/accestret/produksi/dashboard', icon: <LayoutDashboard size={20} />, roles: ['produksi_accestret', 'owner', 'Manager', 'Admin'], group: 'Produksi Accestret' },
@@ -370,7 +389,8 @@ const Sidebar = () => {
             return menuItems.map((item) => {
               const hasActiveChild = item.subMenu && item.subMenu.some(sub => location.pathname === sub.path || (sub.path && sub.path !== '/' && location.pathname.startsWith(sub.path + '/')));
               const isActive = location.pathname === item.path || (item.path && item.path !== '/' && item.path !== '/gudang' && item.path !== '/finance' && location.pathname.startsWith(item.path + '/')) || hasActiveChild;
-              const isExpanded = expandedMenus[item.name] || hasActiveChild || (item.path && location.pathname.startsWith(item.path) && item.path !== '/finance');
+              const autoExpand = userRole.toLowerCase() !== 'owner';
+              const isExpanded = expandedMenus[item.name] || (autoExpand && (hasActiveChild || (item.path && location.pathname.startsWith(item.path) && item.path !== '/finance')));
               const showGroupLabel = item.group && item.group !== currentGroup;
               if (showGroupLabel) currentGroup = item.group;
 
@@ -427,7 +447,8 @@ const Sidebar = () => {
                         const hasNestedActiveChild = sub.subMenu && sub.subMenu.some(nested => location.pathname === nested.path || location.pathname.startsWith(nested.path + '/'));
                         const isSubActive = location.pathname === (sub.path || '') || hasNestedActiveChild || (sub.path && sub.path !== '/' && sub.path !== '/finance' && sub.path !== '/gudang' && location.pathname.startsWith(sub.path + '/'));
                         const expandedKey = item.name + '_' + sub.title;
-                        const isSubExpanded = expandedMenus[expandedKey] || hasNestedActiveChild || (sub.path && location.pathname.startsWith(sub.path) && !sub.path.endsWith('/reports'));
+                        const autoExpandSub = userRole.toLowerCase() !== 'owner';
+                        const isSubExpanded = expandedMenus[expandedKey] || (autoExpandSub && (hasNestedActiveChild || (sub.path && location.pathname.startsWith(sub.path) && !sub.path.endsWith('/reports'))));
 
                         return (
                           <div key={sub.title || sub}>

@@ -7,6 +7,8 @@ const PermintaanStok = () => {
     const [permintaan, setPermintaan] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
 
+    const userRole = (JSON.parse(localStorage.getItem('user')) || {}).role || '';
+
     useEffect(() => {
         fetchPermintaan();
     }, []);
@@ -15,7 +17,9 @@ const PermintaanStok = () => {
         try {
             const res = await getPermintaanStok();
             if (res.data.status === 'success') {
-                setPermintaan(res.data.data);
+                let data = res.data.data;
+                if (userRole === 'gudang_accestret') data = data.filter(d => ['Accestret', 'Acestreet'].includes(d.cabang_id));
+                setPermintaan(data);
             }
         } catch (error) {
             console.error("Gagal memuat permintaan stok", error);
@@ -81,70 +85,72 @@ const PermintaanStok = () => {
                             </div>
                         </div>
 
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
-                                <thead className="bg-gray-900 text-xs text-white uppercase tracking-wider font-semibold sticky top-0">
-                                    <tr>
-                                        <th className="p-4">Tanggal</th>
-                                        <th className="p-4">Pengambil</th>
-                                        <th className="p-4">Divisi</th>
-                                        <th className="p-4">Barang</th>
-                                        <th className="p-4">Ukuran</th>
-                                        <th className="p-4 text-center">Qty</th>
-                                        <th className="p-4">Keterangan</th>
-                                        <th className="p-4 text-center">Status</th>
-                                        <th className="p-4 text-center">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {filteredPermintaan.map(item => (
-                                        <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50 text-sm">
-                                            <td className="p-4 text-gray-600">{new Date(item.tanggal_request).toLocaleDateString('id-ID')}</td>
-                                            <td className="p-4 font-bold text-gray-800">{item.nama_pengambil}</td>
-                                            <td className="p-4 text-gray-600">{item.divisi}</td>
-                                            <td className="p-4 font-medium text-gray-900">{item.nama_brand} - {item.nama_barang}</td>
-                                            <td className="p-4 text-center font-bold">{item.ukuran}</td>
-                                            <td className="p-4 text-center font-black text-red-600">{item.jumlah}</td>
-                                            <td className="p-4 text-gray-500 max-w-xs truncate" title={item.keterangan}>{item.keterangan || '-'}</td>
-                                            <td className="p-4 text-center">
-                                                {item.status === 'pending' ? (
-                                                    <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-bold uppercase">Pending</span>
-                                                ) : item.status === 'approved' ? (
-                                                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-bold uppercase">Approved</span>
-                                                ) : (
-                                                    <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-bold uppercase">Rejected</span>
-                                                )}
-                                            </td>
-                                            <td className="p-4 text-center">
-                                                {item.status === 'pending' && (
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <button 
-                                                            onClick={() => handleApprove(item.id)}
-                                                            className="bg-green-500 hover:bg-green-600 text-white p-1.5 rounded-lg transition-colors"
-                                                            title="Approve"
-                                                        >
-                                                            <Check size={16} />
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => handleReject(item.id)}
-                                                            className="bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-lg transition-colors"
-                                                            title="Reject"
-                                                        >
-                                                            <X size={16} />
-                                                        </button>
-                                                    </div>
-                                                )}
-                                                {item.status !== 'pending' && <span className="text-gray-400">-</span>}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {filteredPermintaan.length === 0 && (
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse text-sm">
+                                    <thead className="bg-gray-900 text-white text-[11px] uppercase tracking-wider sticky top-0 z-10">
                                         <tr>
-                                            <td colSpan={9} className="p-8 text-center text-gray-500 font-medium">Belum ada permintaan stok.</td>
+                                            <th className="px-3 py-3 border-r border-gray-700 whitespace-nowrap">TANGGAL</th>
+                                            <th className="px-3 py-3 border-r border-gray-700">PENGAMBIL</th>
+                                            <th className="px-3 py-3 border-r border-gray-700">DIVISI</th>
+                                            <th className="px-3 py-3 border-r border-gray-700">BARANG</th>
+                                            <th className="px-3 py-3 border-r border-gray-700 text-center">UKURAN</th>
+                                            <th className="px-3 py-3 border-r border-gray-700 text-center">QTY</th>
+                                            <th className="px-3 py-3 border-r border-gray-700">KETERANGAN</th>
+                                            <th className="px-3 py-3 border-r border-gray-700 text-center">STATUS</th>
+                                            <th className="px-3 py-3 text-center">AKSI</th>
                                         </tr>
-                                    )}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        {filteredPermintaan.map((item, idx) => (
+                                            <tr key={item.id} className={`border-b border-gray-100 hover:bg-blue-50/30 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
+                                                <td className="px-3 py-2.5 whitespace-nowrap text-gray-600 border-r border-gray-100">{new Date(item.tanggal_request).toLocaleDateString('id-ID')}</td>
+                                                <td className="px-3 py-2.5 font-bold text-gray-800 border-r border-gray-100">{item.nama_pengambil}</td>
+                                                <td className="px-3 py-2.5 text-gray-600 border-r border-gray-100">{item.divisi}</td>
+                                                <td className="px-3 py-2.5 font-semibold text-gray-800 border-r border-gray-100">{item.nama_brand} - {item.nama_barang}</td>
+                                                <td className="px-3 py-2.5 text-center font-bold border-r border-gray-100">{item.ukuran}</td>
+                                                <td className="px-3 py-2.5 text-center font-black text-red-600 border-r border-gray-100">{item.jumlah}</td>
+                                                <td className="px-3 py-2.5 text-gray-500 max-w-xs truncate border-r border-gray-100" title={item.keterangan}>{item.keterangan || '-'}</td>
+                                                <td className="px-3 py-2.5 text-center border-r border-gray-100">
+                                                    {item.status === 'pending' ? (
+                                                        <span className="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">Pending</span>
+                                                    ) : item.status === 'approved' ? (
+                                                        <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">Approved</span>
+                                                    ) : (
+                                                        <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">Rejected</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-3 py-2.5 text-center">
+                                                    {item.status === 'pending' && (
+                                                        <div className="flex items-center justify-center gap-1.5">
+                                                            <button 
+                                                                onClick={() => handleApprove(item.id)}
+                                                                className="w-8 h-8 rounded-xl bg-green-50 text-green-600 hover:bg-green-600 hover:text-white flex items-center justify-center transition-colors shadow-sm"
+                                                                title="Approve"
+                                                            >
+                                                                <Check size={14} />
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => handleReject(item.id)}
+                                                                className="w-8 h-8 rounded-xl bg-red-50 text-red-600 hover:bg-red-600 hover:text-white flex items-center justify-center transition-colors shadow-sm"
+                                                                title="Reject"
+                                                            >
+                                                                <X size={14} />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                    {item.status !== 'pending' && <span className="text-gray-300 font-normal">-</span>}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {filteredPermintaan.length === 0 && (
+                                            <tr>
+                                                <td colSpan={9} className="p-8 text-center text-gray-400">Belum ada permintaan stok.</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>

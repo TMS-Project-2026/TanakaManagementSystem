@@ -4,7 +4,7 @@ import Sidebar from '../components/Sidebar';
 import { 
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
-import { UserCircle } from 'lucide-react';
+import { UserCircle, Activity, DollarSign, TrendingUp, Package, Percent, ShoppingBag, CheckCircle } from 'lucide-react';
 
 const Dashboard = ({ embedded = false }) => {
   const [data, setData] = useState(null);
@@ -92,8 +92,8 @@ const Dashboard = ({ embedded = false }) => {
               {showProfile && (
                 <div className="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
                   <div className="p-4 bg-red-50/50">
-                    <p className="text-sm font-black text-gray-900">Admin</p>
-                    <p className="text-[10px] font-bold text-[#990000] uppercase tracking-wider mt-0.5">Marketing & Sales</p>
+                    <p className="text-sm font-black text-gray-900">{JSON.parse(localStorage.getItem('user'))?.nama || JSON.parse(localStorage.getItem('user'))?.username || 'Admin'}</p>
+                    <p className="text-[10px] font-bold text-[#990000] uppercase tracking-wider mt-0.5">{(JSON.parse(localStorage.getItem('user'))?.role || 'Admin').replace('_', ' ')}</p>
                   </div>
                 </div>
               )}
@@ -103,25 +103,36 @@ const Dashboard = ({ embedded = false }) => {
 
         <div className="flex-1 overflow-y-auto px-4 sm:px-10 pb-10">
           
-          <div className="mb-6 flex flex-col items-start gap-1">
-            <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-tight">
-              Dashboard <span className="text-[#990000]">Marketing</span>
-            </h1>
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
+            <div>
+              <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-tight flex items-center gap-3">
+                <div className="bg-red-50 border border-red-100 p-2 rounded-lg shadow-sm">
+                  <Activity className="text-[#990000]" size={20} />
+                </div>
+                Dashboard Pusat
+              </h1>
+              <p className="text-sm text-gray-500 mt-2 font-medium">Pantau rangkuman seluruh pendapatan dan pesanan dari tim marketing dan sales.</p>
+            </div>
           </div>
 
 {/* ================= 1. TOP METRICS (6 Kotak Grid 3x2) - CLEAN RED-WHITE ================= */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {[
-              { title: 'Sales Revenue', value: formatRupiah(data.summary.totalRevenue) },
-              { title: 'Profit Bersih', value: formatRupiah(data.summary.totalProfit) },
-              { title: 'Total HPP', value: formatRupiah(data.summary.totalHPP) },
-              { title: 'Qty Terjual', value: `${data.summary.totalQty} Pcs` },
-              { title: 'Potongan Admin', value: formatRupiah(data.summary.totalPotongan) },
-              { title: 'Status Terjual', value: `${data.summary.totalQty} Item` }
+              { title: 'Sales Revenue', value: formatRupiah(data.summary.totalRevenue), icon: <DollarSign size={16} className="text-white" /> },
+              { title: 'Profit Bersih', value: formatRupiah(data.summary.totalProfit), icon: <TrendingUp size={16} className="text-white" /> },
+              { title: 'Total HPP', value: formatRupiah(data.summary.totalHPP), icon: <Package size={16} className="text-white" /> },
+              { title: 'Qty Terjual', value: `${data.summary.totalQty} Pcs`, icon: <ShoppingBag size={16} className="text-white" /> },
+              { title: 'Potongan Admin', value: formatRupiah(data.summary.totalPotongan), icon: <Percent size={16} className="text-white" /> },
+              { title: 'Status Terjual', value: `${data.summary.totalQty} Item`, icon: <CheckCircle size={16} className="text-white" /> }
             ].map((card, i) => (
-              <div key={i} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 border-l-[6px] border-l-[#990000] flex flex-col justify-center transition-all hover:-translate-y-0.5 hover:shadow-md min-h-[120px]">
-                <p className="text-xs font-bold uppercase tracking-wider mb-2 text-gray-500">{card.title}</p>
-                <h3 className="text-2xl font-black text-gray-900 leading-tight break-words">{card.value}</h3>
+              <div key={i} className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 border-l-[6px] border-l-[#990000] flex flex-col justify-center transition-all hover:-translate-y-1 hover:shadow-md min-h-[110px]">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-[30px] h-[30px] rounded-full bg-[#990000] flex items-center justify-center shrink-0 shadow-sm shadow-red-900/20">
+                    {card.icon}
+                  </div>
+                  <p className="text-[12px] font-bold text-gray-500 tracking-wider uppercase truncate">{card.title}</p>
+                </div>
+                <h3 className="text-2xl font-black text-gray-900 leading-tight truncate break-words">{card.value}</h3>
               </div>
             ))}
           </div>

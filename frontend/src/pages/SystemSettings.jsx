@@ -49,9 +49,17 @@ const SystemSettings = () => {
             <Sidebar />
             <main className="flex-1 p-6 overflow-y-auto h-screen">
                 <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100 max-w-4xl mx-auto">
-                    <h1 className="text-3xl font-bold text-gray-800 mb-8 border-l-4 border-gray-800 pl-4 flex items-center gap-2">
-                        <Settings className="text-gray-800" /> Pengaturan Sistem Global
-                    </h1>
+                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
+                        <div>
+                            <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                                <div className="bg-gray-100 border border-gray-200 p-2 rounded-lg shadow-sm">
+                                    <Settings className="text-gray-800" size={20} />
+                                </div>
+                                Pengaturan Sistem Global
+                            </h1>
+                            <p className="text-sm text-gray-500 mt-2 font-medium">Konfigurasi nama aplikasi, zona waktu, dan mode pemeliharaan (maintenance).</p>
+                        </div>
+                    </div>
 
                     <form onSubmit={handleSave} className="space-y-8">
                         {/* Application Details */}

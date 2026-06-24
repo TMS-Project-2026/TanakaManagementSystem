@@ -64,7 +64,7 @@ exports.getDashboard = async (req, res) => {
 
         // Tabel: Daftar barang hampir habis
         const [hampirHabis] = await promiseDb.query(`
-            SELECT nama_barang, jumlah, cabang_id, minimum_stok 
+            SELECT kode_produk, nama_barang, bahan, jumlah, cabang_id, minimum_stok 
             FROM stok 
             WHERE jumlah <= minimum_stok 
             ORDER BY jumlah ASC 
@@ -93,7 +93,13 @@ exports.getDashboard = async (req, res) => {
 exports.getWarningStok = async (req, res) => {
     try {
         const promiseDb = db.promise();
-        const sql = "SELECT * FROM stok WHERE jumlah <= minimum_stok ORDER BY jumlah ASC";
+        const sql = `SELECT s.id, s.kode_produk, s.nama_barang, s.bahan, s.kategori, s.jumlah, s.cabang_id, s.minimum_stok 
+                     FROM stok s
+                     WHERE s.jumlah <= s.minimum_stok
+                     AND EXISTS (
+                         SELECT 1 FROM barang_masuk bm WHERE bm.barang_id = s.id
+                     )
+                     ORDER BY s.jumlah ASC, s.nama_barang ASC`;
         const [results] = await promiseDb.query(sql);
         res.status(200).json({ status: "success", data: results });
     } catch (error) {

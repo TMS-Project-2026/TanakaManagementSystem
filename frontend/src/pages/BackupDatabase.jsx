@@ -43,9 +43,17 @@ const BackupDatabase = () => {
             <Sidebar />
             <main className="flex-1 p-6 overflow-y-auto h-screen">
                 <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100">
-                    <h1 className="text-3xl font-bold text-gray-800 mb-6 border-l-4 border-orange-500 pl-4 flex items-center gap-2">
-                        <Database className="text-orange-500" /> Backup Database
-                    </h1>
+                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
+                        <div>
+                            <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                                <div className="bg-red-50 border border-red-100 p-2 rounded-lg shadow-sm">
+                                    <Database className="text-[#990000]" size={20} />
+                                </div>
+                                Backup Database
+                            </h1>
+                            <p className="text-sm text-gray-500 mt-2 font-medium">Buat dan unduh salinan basis data sistem untuk mencegah kehilangan data.</p>
+                        </div>
+                    </div>
 
                     <div className="bg-orange-50 border border-orange-200 rounded-2xl p-6 mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
                         <div>

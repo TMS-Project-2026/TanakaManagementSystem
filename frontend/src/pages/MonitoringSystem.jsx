@@ -38,12 +38,18 @@ const MonitoringSystem = () => {
             <Sidebar />
             <main className="flex-1 p-6 overflow-y-auto h-screen">
                 <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100">
-                    <div className="flex justify-between items-center mb-6">
-                        <h1 className="text-3xl font-bold text-gray-800 border-l-4 border-indigo-500 pl-4 flex items-center gap-2">
-                            <Server className="text-indigo-500" /> Monitoring System
-                        </h1>
-                        <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-bold flex items-center gap-1">
-                            <span className="w-2 h-2 rounded-full bg-green-500 animate-ping mr-1"></span> Live
+                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
+                        <div>
+                            <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                                <div className="bg-red-50 border border-red-100 p-2 rounded-lg shadow-sm">
+                                    <Server className="text-[#990000]" size={20} />
+                                </div>
+                                Monitoring System
+                            </h1>
+                            <p className="text-sm text-gray-500 mt-2 font-medium">Pantau status server, penggunaan memori, CPU, dan koneksi database secara langsung.</p>
+                        </div>
+                        <span className="text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5 shadow-sm">
+                            <span className="w-2 h-2 rounded-full bg-green-500 animate-ping"></span> Live Status
                         </span>
                     </div>
 

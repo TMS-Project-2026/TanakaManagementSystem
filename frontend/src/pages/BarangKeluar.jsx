@@ -12,10 +12,12 @@ const BarangKeluar = () => {
     const [showProfile, setShowProfile] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
+    const userRole = (JSON.parse(localStorage.getItem('user')) || {}).role || '';
+
     // Form state
     const [namaBrand, setNamaBrand] = useState('');
     const [namaBarang, setNamaBarang] = useState('');
-    const [cabangId, setCabangId] = useState('Tanaka'); // Tanaka / Banua / Acestreet
+    const [cabangId, setCabangId] = useState(userRole === 'gudang_accestret' ? 'Acestreet' : 'Tanaka');
     const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
     const [tujuan, setTujuan] = useState(''); // diisi manual: shopee, tiktok, offline dll
     const [items, setItems] = useState([{ ukuran: 'S', jumlah: '' }]);
@@ -29,10 +31,18 @@ const BarangKeluar = () => {
     const fetchData = async () => {
         try {
             const resBK = await getBarangKeluar();
-            if (resBK.data.status === 'success') setHistory(resBK.data.data);
+            if (resBK.data.status === 'success') {
+                let data = resBK.data.data;
+                if (userRole === 'gudang_accestret') data = data.filter(d => ['Accestret', 'Acestreet'].includes(d.cabang_id));
+                setHistory(data);
+            }
             
             const resStok = await getStok();
-            if (resStok.data.status === 'success') setStokList(resStok.data.data);
+            if (resStok.data.status === 'success') {
+                let data = resStok.data.data;
+                if (userRole === 'gudang_accestret') data = data.filter(d => ['Accestret', 'Acestreet'].includes(d.cabang_id));
+                setStokList(data);
+            }
         } catch (error) {
             console.error("Gagal memuat data", error);
         }
@@ -117,7 +127,7 @@ const BarangKeluar = () => {
             // Reset form
             setNamaBrand('');
             setNamaBarang('');
-            setCabangId('Tanaka');
+            setCabangId(userRole === 'gudang_accestret' ? 'Acestreet' : 'Tanaka');
             setTujuan('');
             setItems([{ ukuran: 'S', jumlah: '' }]);
         } catch (error) {
@@ -183,7 +193,7 @@ const BarangKeluar = () => {
                       <div className="absolute right-0 mt-3 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
                         <div className="p-4 bg-red-50/50">
                           <p className="text-sm font-black text-gray-900">Admin</p>
-                          <p className="text-[10px] font-bold text-red-600 uppercase tracking-wider mt-0.5">Gudang</p>
+                          <p className="text-[10px] font-bold text-red-600 uppercase tracking-wider mt-0.5">{userRole === 'gudang_accestret' ? 'Gudang Accestret' : 'Gudang'}</p>
                         </div>
                       </div>
                     )}
@@ -202,20 +212,7 @@ const BarangKeluar = () => {
                             </h1>
                             <p className="text-sm text-gray-500 mt-2 font-medium">Catat pengeluaran stok barang massal dengan validasi instan level stok</p>
                         </div>
-                        <button
-                            onClick={() => {
-                                setNamaBrand('');
-                                setNamaBarang('');
-                                setCabangId('Tanaka');
-                                setTujuan('');
-                                setItems([{ ukuran: 'S', jumlah: '' }]);
-                                setErrorMsg('');
-                                setShowAddModal(true);
-                            }}
-                            className="bg-red-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 shadow-sm hover:bg-red-700 hover:shadow-md transition-all active:scale-95 whitespace-nowrap"
-                        >
-                            <Plus size={18} className="text-white" /> Catat Barang Keluar
-                        </button>
+
                     </div>
 
                     {successMsg && (
@@ -229,152 +226,7 @@ const BarangKeluar = () => {
                         </div>
                     )}
 
-                    {/* MODAL INPUT DATA */}
-                    {showAddModal && (
-                        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-                            <div className="bg-white w-full max-w-4xl rounded-2xl p-6 sm:p-8 shadow-xl overflow-y-auto max-h-[90vh] animate-in zoom-in-95 duration-200 border border-gray-100">
-                                <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
-                                    <div>
-                                        <h2 className="text-xl font-bold text-gray-900">Catat Barang Keluar Baru</h2>
-                                        <p className="text-xs text-gray-500 mt-1">Isi form di bawah ini. Sistem otomatis mencocokkan stok dan memotong jumlah barang yang keluar.</p>
-                                    </div>
-                                    <button type="button" onClick={() => setShowAddModal(false)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"><X size={20} /></button>
-                                </div>
-                                
-                                <form onSubmit={handleCreate}>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5 mb-6">
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Brand</label>
-                                            <input 
-                                                list="brand-list" 
-                                                type="text" 
-                                                placeholder="Contoh: Adidas" 
-                                                value={namaBrand} 
-                                                onChange={e => setNamaBrand(e.target.value)} 
-                                                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-100 focus:border-red-600 outline-none transition-all" 
-                                            />
-                                            <datalist id="brand-list">
-                                                {uniqueBrands.map(b => <option key={b} value={b} />)}
-                                            </datalist>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Barang</label>
-                                            <input 
-                                                list="barang-list" 
-                                                type="text" 
-                                                placeholder="Contoh: Kaos Keren" 
-                                                required 
-                                                value={namaBarang} 
-                                                onChange={e => setNamaBarang(e.target.value)} 
-                                                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-100 focus:border-red-600 outline-none transition-all" 
-                                            />
-                                            <datalist id="barang-list">
-                                                {uniqueBarang.map(b => <option key={b} value={b} />)}
-                                            </datalist>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-1">Cabang Asal</label>
-                                            <select 
-                                                required 
-                                                value={cabangId} 
-                                                onChange={e => setCabangId(e.target.value)} 
-                                                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-100 focus:border-red-600 outline-none bg-white transition-all"
-                                            >
-                                                <option value="Tanaka">Tanaka</option>
-                                                <option value="Banua">Banua</option>
-                                                <option value="Acestreet">Acestreet</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-1">Tanggal Keluar</label>
-                                            <input 
-                                                type="date" 
-                                                required 
-                                                value={tanggal} 
-                                                onChange={e => setTanggal(e.target.value)} 
-                                                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-100 focus:border-red-600 outline-none transition-all" 
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-1">Tujuan / Channel</label>
-                                            <input 
-                                                type="text" 
-                                                placeholder="Contoh: Shopee / TikTok / Offline" 
-                                                required 
-                                                value={tujuan} 
-                                                onChange={e => setTujuan(e.target.value)} 
-                                                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-red-100 focus:border-red-600 outline-none transition-all" 
-                                            />
-                                        </div>
-                                    </div>
 
-                                    {/* DYNAMIC SIZES INPUT */}
-                                    <div className="bg-gray-50/50 p-5 rounded-2xl border border-gray-100 mb-6">
-                                        <h4 className="font-bold text-gray-800 mb-1 text-sm text-center">Masukkan Ukuran & Jumlah Keluar</h4>
-                                        <p className="text-xs text-gray-400 mb-4 text-center">Tambahkan ukuran satu per satu dan masukkan kuantitas keluar.</p>
-                                        
-                                        <div className="max-w-md mx-auto space-y-3">
-                                            {items.map((item, index) => (
-                                                <div key={index} className="flex items-center gap-3 bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
-                                                    <div className="flex-1">
-                                                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Ukuran</label>
-                                                        <select 
-                                                            value={item.ukuran} 
-                                                            onChange={e => handleItemChange(index, 'ukuran', e.target.value)}
-                                                            className="w-full border border-gray-200 rounded-lg p-2 focus:ring-2 focus:ring-red-100 focus:border-red-600 outline-none bg-white text-sm"
-                                                        >
-                                                            {sizesArray.map(sz => (
-                                                                <option key={sz} value={sz}>{sz}</option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
-                                                    <div className="w-28">
-                                                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Jumlah</label>
-                                                        <input 
-                                                            type="number" 
-                                                            min="1" 
-                                                            placeholder="0" 
-                                                            required
-                                                            value={item.jumlah} 
-                                                            onChange={e => handleItemChange(index, 'jumlah', e.target.value)}
-                                                            className="w-full border border-gray-200 rounded-lg p-2 focus:ring-2 focus:ring-red-100 focus:border-red-600 outline-none text-sm font-bold"
-                                                        />
-                                                    </div>
-                                                    {items.length > 1 && (
-                                                        <button 
-                                                            type="button" 
-                                                            onClick={() => handleRemoveItem(index)}
-                                                            className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors mt-5"
-                                                            title="Hapus ukuran"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            ))}
-
-                                            <button 
-                                                type="button" 
-                                                onClick={handleAddItem}
-                                                className="w-full py-2 border-2 border-dashed border-gray-200 hover:border-red-500 rounded-xl flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-red-600 font-semibold bg-white transition-all active:scale-[0.98]"
-                                            >
-                                                <Plus size={16} /> Tambah Ukuran Lain
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div className="pt-5 border-t border-gray-100 flex justify-end gap-3">
-                                        <button type="button" onClick={() => setShowAddModal(false)} className="px-6 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold transition-colors">
-                                            Batal
-                                        </button>
-                                        <button type="submit" className="bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 px-8 rounded-xl shadow-sm transition-all active:scale-95">
-                                            Simpan Keluar
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    )}
 
                     {/* Table Riwayat */}
                     <h3 className="text-xl font-bold text-gray-800 mb-4">Riwayat Barang Keluar</h3>

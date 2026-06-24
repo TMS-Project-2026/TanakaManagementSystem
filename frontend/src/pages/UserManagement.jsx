@@ -87,11 +87,17 @@ const UserManagement = () => {
             <Sidebar />
             <main className="flex-1 p-6 overflow-y-auto h-screen relative">
                 <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100">
-                    <div className="flex justify-between items-center mb-6">
-                        <h1 className="text-3xl font-bold text-gray-800 border-l-4 border-[#990000] pl-4 flex items-center gap-2">
-                            <Users className="text-[#990000]" /> Manajemen User
-                        </h1>
-                        <button onClick={openCreate} className="bg-[#990000] hover:bg-red-800 text-white font-medium py-2 px-4 rounded-lg flex items-center gap-2 transition-colors">
+                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
+                        <div>
+                            <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                                <div className="bg-red-50 border border-red-100 p-2 rounded-lg shadow-sm">
+                                    <Users className="text-[#990000]" size={20} />
+                                </div>
+                                Manajemen User
+                            </h1>
+                            <p className="text-sm text-gray-500 mt-2 font-medium">Kelola akun pengguna, peran, dan status akses ke dalam sistem.</p>
+                        </div>
+                        <button onClick={openCreate} className="bg-[#990000] hover:bg-red-800 text-white font-medium py-2.5 px-5 rounded-xl flex items-center gap-2 transition-all shadow-sm">
                             <PlusCircle size={18} /> Tambah User
                         </button>
                     </div>

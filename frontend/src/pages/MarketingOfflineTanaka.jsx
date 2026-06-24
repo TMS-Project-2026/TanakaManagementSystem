@@ -745,8 +745,8 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
               {showProfile && (
                 <div className="absolute right-10 top-16 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                   <div className="p-4 bg-red-50/50">
-                    <p className="text-sm font-black text-gray-900">Admin</p>
-                    <p className="text-[10px] font-bold text-[#990000] uppercase tracking-wider mt-0.5">Marketing Offline</p>
+                    <p className="text-sm font-black text-gray-900">{JSON.parse(localStorage.getItem('user'))?.nama || JSON.parse(localStorage.getItem('user'))?.username || 'Admin'}</p>
+                    <p className="text-[10px] font-bold text-[#990000] uppercase tracking-wider mt-0.5">{(JSON.parse(localStorage.getItem('user'))?.role || '').replace('_', ' ')}</p>
                   </div>
                 </div>
               )}

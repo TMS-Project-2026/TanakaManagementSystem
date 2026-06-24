@@ -33,12 +33,12 @@ const ITDashboard = () => {
     };
 
     const cards = [
-        { title: 'Total User', value: data.totalUser, icon: <Users className="text-[#990000]" size={32} /> },
-        { title: 'Aktif Hari Ini', value: data.activeToday, icon: <Activity className="text-green-600" size={32} /> },
-        { title: 'Total Role', value: data.totalRole, icon: <Shield className="text-blue-600" size={32} /> },
-        { title: 'Login Hari Ini', value: data.loginToday, icon: <Server className="text-purple-600" size={32} /> },
-        { title: 'Total Error', value: data.totalError, icon: <FileWarning className="text-red-600" size={32} /> },
-        { title: 'Backup Terakhir', value: data.lastBackup ? new Date(data.lastBackup).toLocaleDateString('id-ID') : 'Belum Ada', icon: <Database className="text-orange-600" size={32} /> }
+        { title: 'Total User', value: data.totalUser, icon: <Users className="text-white" size={16} /> },
+        { title: 'Aktif Hari Ini', value: data.activeToday, icon: <Activity className="text-white" size={16} /> },
+        { title: 'Total Role', value: data.totalRole, icon: <Shield className="text-white" size={16} /> },
+        { title: 'Login Hari Ini', value: data.loginToday, icon: <Server className="text-white" size={16} /> },
+        { title: 'Total Error', value: data.totalError, icon: <FileWarning className="text-white" size={16} /> },
+        { title: 'Backup Terakhir', value: data.lastBackup ? new Date(data.lastBackup).toLocaleDateString('id-ID') : 'Belum Ada', icon: <Database className="text-white" size={16} /> }
     ];
 
     return (
@@ -46,19 +46,29 @@ const ITDashboard = () => {
             <Sidebar />
             <main className="flex-1 p-6 overflow-y-auto h-screen">
                 <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100">
-                    <h1 className="text-3xl font-bold text-gray-800 mb-6 border-l-4 border-[#990000] pl-4">Dashboard IT</h1>
+                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
+                        <div>
+                            <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                                <div className="bg-red-50 border border-red-100 p-2 rounded-lg shadow-sm">
+                                    <Server className="text-[#990000]" size={20} />
+                                </div>
+                                Dashboard IT
+                            </h1>
+                            <p className="text-sm text-gray-500 mt-2 font-medium">Ringkasan aktivitas sistem, manajemen pengguna, dan status server.</p>
+                        </div>
+                    </div>
 
                     {/* Summary Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                         {cards.map((card, index) => (
-                            <div key={index} className="p-6 rounded-2xl shadow-sm border border-gray-100 bg-white flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm font-medium mb-1 text-gray-500">{card.title}</p>
-                                    <h3 className="text-2xl font-bold text-gray-800">{card.value}</h3>
+                            <div key={index} className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 border-l-[6px] border-l-[#990000] flex flex-col justify-center transition-all hover:-translate-y-1 hover:shadow-md min-h-[110px]">
+                                <div className="flex items-center gap-3 mb-2">
+                                    <div className="w-[30px] h-[30px] rounded-full bg-[#990000] flex items-center justify-center shrink-0 shadow-sm shadow-red-900/20">
+                                        {card.icon}
+                                    </div>
+                                    <p className="text-[12px] font-bold text-gray-500 tracking-wider uppercase truncate">{card.title}</p>
                                 </div>
-                                <div className="p-3 rounded-xl bg-gray-50">
-                                    {card.icon}
-                                </div>
+                                <h3 className="text-2xl font-black text-gray-900 leading-tight truncate break-words">{card.value}</h3>
                             </div>
                         ))}
                     </div>
