@@ -2,8 +2,20 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
-import { Package, Truck, CheckCircle, DollarSign, ShoppingCart, TrendingUp } from 'lucide-react';
+import { 
+  Package, Truck, CheckCircle, DollarSign, ShoppingCart, TrendingUp,
+  LayoutDashboard, ShoppingBag, FileText, Upload, Gift,
+  Users, Calendar, Search, Loader2,
+  AlertTriangle, ArrowRight, X, Download, Send, UserCircle, Plus, ChevronDown, PieChart
+} from 'lucide-react';
 import api from '../api/axios';
+import * as XLSX from 'xlsx';
+import { shopeeDataAdapter } from '../utils/shopeeAdapter';
+import { getStok, createPermintaanStok } from '../api/gudangApi';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
+  LineChart, Line
+} from 'recharts';
 
 const AccestretMarketingDashboardPrototype = () => {
   const [stats, setStats] = useState({
@@ -154,19 +166,10 @@ const AccestretMarketingDashboardPrototype = () => {
               </div>
             </div>
           </div>
-
-import * as XLSX from 'xlsx';
-import { shopeeDataAdapter } from '../utils/shopeeAdapter';
-import { getStok, createPermintaanStok } from '../api/gudangApi';
-import {
-  LayoutDashboard, ShoppingBag, FileText, Upload, Gift,
-  Users, Calendar, Search, Loader2,
-  AlertTriangle, ArrowRight, X, Download, Send, UserCircle, Plus, ChevronDown, PieChart
-} from 'lucide-react';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
-  LineChart, Line
-} from 'recharts';
+        </div>
+      </div>
+    );
+};
 
 const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => {
   // Daftar akun toko Accestret
