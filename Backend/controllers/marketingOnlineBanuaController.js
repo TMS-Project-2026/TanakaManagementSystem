@@ -8,10 +8,10 @@ exports.getDashboard = (req, res) => {
     const startOfMonth = firstDayOfMonth.toISOString().split('T')[0];
     
     const queries = {
-        revenueToday: `SELECT SUM(actual) as revenue FROM marketing_orders_online WHERE type = 'online' AND branch = 'Banua' AND order_date = ?`,
+        revenueToday: `SELECT SUM(total_price) as revenue FROM marketing_orders_online WHERE type = 'online' AND branch = 'Banua' AND order_date = ?`,
         ordersToday: `SELECT COUNT(id) as total_orders FROM marketing_orders_online WHERE type = 'online' AND branch = 'Banua' AND order_date = ?`,
         monthlySummary: `SELECT 
-                            SUM(actual) as totalRevenue,
+                            SUM(total_price) as totalRevenue,
                             SUM(profit) as totalProfit,
                             SUM(total_hpp_aktual) as totalHpp,
                             SUM(qty) as totalQty,
@@ -19,9 +19,9 @@ exports.getDashboard = (req, res) => {
                          FROM marketing_orders_online 
                          WHERE type = 'online' AND branch = 'Banua' 
                          AND order_date >= ?`,
-        topProducts: `SELECT product_name, SUM(qty) as total_qty, SUM(actual) as total_sales FROM marketing_orders_online WHERE type = 'online' AND branch = 'Banua' GROUP BY product_name ORDER BY total_qty DESC LIMIT 5`,
-        salesChart: `SELECT order_date, SUM(actual) as revenue, COUNT(id) as orders FROM marketing_orders_online WHERE type = 'online' AND branch = 'Banua' AND order_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) GROUP BY order_date ORDER BY order_date ASC`,
-        topToko: `SELECT akun_toko, SUM(actual) as total_revenue, COUNT(id) as total_orders, SUM(qty) as total_qty FROM marketing_orders_online WHERE type = 'online' AND branch = 'Banua' AND akun_toko IS NOT NULL AND akun_toko != '' AND akun_toko != '-' GROUP BY akun_toko ORDER BY total_revenue DESC`
+        topProducts: `SELECT product_name, SUM(qty) as total_qty, SUM(total_price) as total_sales FROM marketing_orders_online WHERE type = 'online' AND branch = 'Banua' GROUP BY product_name ORDER BY total_qty DESC LIMIT 5`,
+        salesChart: `SELECT order_date, SUM(total_price) as revenue, COUNT(id) as orders FROM marketing_orders_online WHERE type = 'online' AND branch = 'Banua' AND order_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) GROUP BY order_date ORDER BY order_date ASC`,
+        topToko: `SELECT akun_toko, SUM(total_price) as total_revenue, COUNT(id) as total_orders, SUM(qty) as total_qty FROM marketing_orders_online WHERE type = 'online' AND branch = 'Banua' AND akun_toko IS NOT NULL AND akun_toko != '' AND akun_toko != '-' GROUP BY akun_toko ORDER BY total_revenue DESC`
     };
 
     let resultData = {
@@ -96,7 +96,7 @@ exports.updateOrder = (req, res) => {
 
     const total_price      = q * pu;
     const hpp_total        = q * hpp;
-    const total_hpp_aktual = hpp_total + ps;
+    const total_hpp_aktual = hpp_total;
     const actual           = total_price - ps;
     const actual_satuan    = q > 0 ? actual / q : 0;
     const profit           = actual - hpp_total;
@@ -147,19 +147,19 @@ exports.importShopee = async (req, res) => {
             let stokResult = [];
             if (order.stok_id) {
                 [stokResult] = await promiseDb.query(
-                    "SELECT id, jumlah FROM stok WHERE id = ? AND cabang_id = 'Banua'",
+                    "SELECT id, jumlah FROM stok WHERE id = ? AND cabang_id IN ('Banua', 'Tanaka', 'Global')",
                     [order.stok_id]
                 );
             } else {
                 [stokResult] = await promiseDb.query(
-                    "SELECT id, jumlah FROM stok WHERE nama_barang = ? AND cabang_id = 'Banua'",
+                    "SELECT id, jumlah FROM stok WHERE nama_barang = ? AND cabang_id IN ('Banua', 'Tanaka', 'Global') ORDER BY jumlah DESC LIMIT 1",
                     [productName]
                 );
             }
 
             if (stokResult.length === 0) {
                 await promiseDb.query("ROLLBACK");
-                return res.status(404).json({ message: `Barang tidak ditemukan di gudang Banua: ${productName}. Tidak dapat membuat pesanan.` });
+                return res.status(404).json({ message: `Barang tidak ditemukan di gudang Global/Tanaka/Banua: ${productName}. Tidak dapat membuat pesanan.` });
             }
 
             const stok = stokResult[0];
@@ -186,7 +186,7 @@ exports.importShopee = async (req, res) => {
             const potongan_shopee = parseFloat(order.potongan_shopee) || 0;
             const hpp_aktual = parseFloat(order.hpp_aktual) || 0;
             const hpp = parseFloat(order.hpp) || (qty * hpp_aktual);
-            const total_hpp_aktual = parseFloat(order.total_hpp_aktual) || (hpp + potongan_shopee);
+            const total_hpp_aktual = parseFloat(order.total_hpp_aktual) || hpp;
             const actual = parseFloat(order.actual) || (total_price - potongan_shopee);
             const actual_satuan = parseFloat(order.actual_satuan) || (qty > 0 ? actual / qty : 0);
             const profit = parseFloat(order.profit) || (actual - hpp);
@@ -250,8 +250,8 @@ exports.getInventory = (req, res) => {
 // GET REPORTS (Harian, Bulanan, Berjalan)
 exports.getReports = (req, res) => {
     const queries = {
-        harian: `SELECT order_date as date, SUM(actual) as revenue, COUNT(id) as orders FROM marketing_orders_online WHERE type = 'online' AND branch = 'Banua' GROUP BY order_date ORDER BY order_date DESC LIMIT 30`,
-        bulanan: `SELECT DATE_FORMAT(order_date, '%Y-%m') as month, SUM(actual) as revenue, COUNT(id) as orders FROM marketing_orders_online WHERE type = 'online' AND branch = 'Banua' GROUP BY DATE_FORMAT(order_date, '%Y-%m') ORDER BY month DESC LIMIT 12`,
+        harian: `SELECT order_date as date, SUM(total_price) as revenue, COUNT(id) as orders FROM marketing_orders_online WHERE type = 'online' AND branch = 'Banua' GROUP BY order_date ORDER BY order_date DESC LIMIT 30`,
+        bulanan: `SELECT DATE_FORMAT(order_date, '%Y-%m') as month, SUM(total_price) as revenue, COUNT(id) as orders FROM marketing_orders_online WHERE type = 'online' AND branch = 'Banua' GROUP BY DATE_FORMAT(order_date, '%Y-%m') ORDER BY month DESC LIMIT 12`,
     };
 
     let reports = {
@@ -355,7 +355,7 @@ exports.getPromoStock = (req, res) => {
         FROM stok s
         WHERE
             s.jumlah > 0
-            AND s.cabang_id = 'Banua'
+            AND s.cabang_id IN ('Banua', 'Tanaka', 'Global')
             AND s.created_at <= DATE_SUB(CURDATE(), INTERVAL 60 DAY)
             AND s.nama_barang NOT IN (
                 SELECT DISTINCT product_name

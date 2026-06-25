@@ -16,6 +16,7 @@ const produkRoutes = require('./routes/produkRoutes');
 const marketingRoutes = require('./routes/marketingRoutes');
 const salesOnlineRoutes = require('./routes/salesOnlineRoutes'); // Khusus Excel
 const marketingOnlineBanuaRoutes = require('./routes/marketingOnlineBanuaRoutes'); // Khusus Marketing Online Banua
+const marketingOnlineTanakaRoutes = require('./routes/marketingOnlineTanakaRoutes'); // Khusus Marketing Online Tanaka
 const marketingAccestretRoutes = require('./routes/marketingAccestretRoutes'); // Khusus Marketing Accestret
 const marketingOfflineBanuaRoutes = require('./routes/marketingOfflineBanuaRoutes');
 const marketingOfflineTanakaRoutes = require('./routes/marketingOfflineTanakaRoutes'); // Khusus Marketing Offline Tanaka
@@ -56,6 +57,7 @@ app.use('/api/produk', produkRoutes);
 app.use('/api/marketing', marketingRoutes);
 app.use('/api/sales-online', salesOnlineRoutes); 
 app.use('/api/marketing-online-banua', marketingOnlineBanuaRoutes);
+app.use('/api/marketing-online-tanaka', marketingOnlineTanakaRoutes);
 app.use('/api/marketing-accestret', marketingAccestretRoutes);
 app.use('/api/marketing-offline', marketingOfflineBanuaRoutes);
 app.use('/api/marketing-offline-tanaka', marketingOfflineTanakaRoutes);

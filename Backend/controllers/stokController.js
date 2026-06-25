@@ -25,18 +25,18 @@ exports.getAllStok = (req, res) => {
 exports.getAnalisisStok = (req, res) => {
     // 1. Fast Moving (Terjual banyak dalam 30 hari terakhir)
     const sqlFastMoving = `
-        SELECT s.nama_barang, s.jumlah, SUM(m.qty) as total_terjual 
+        SELECT s.nama_barang, s.ukuran, s.jumlah, SUM(m.qty) as total_terjual 
         FROM stok s 
         LEFT JOIN marketing_orders_online m ON LOWER(s.nama_barang) = LOWER(m.product_name) 
         WHERE m.order_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) 
-        GROUP BY s.nama_barang, s.jumlah 
+        GROUP BY s.nama_barang, s.ukuran, s.jumlah 
         ORDER BY total_terjual DESC 
         LIMIT 5
     `;
 
     // 2. Dead Stock (Stok > 10, tidak ada penjualan dalam 60 hari)
     const sqlDeadStock = `
-        SELECT s.nama_barang, s.jumlah 
+        SELECT s.nama_barang, s.ukuran, s.jumlah 
         FROM stok s 
         WHERE s.jumlah > 10 
         AND LOWER(s.nama_barang) NOT IN (
@@ -49,7 +49,7 @@ exports.getAnalisisStok = (req, res) => {
 
     // 3. Stok Menipis
     const sqlStokMenipis = `
-        SELECT nama_barang, jumlah, minimum_stok 
+        SELECT nama_barang, ukuran, jumlah, minimum_stok 
         FROM stok 
         WHERE jumlah < minimum_stok OR jumlah = 0
         ORDER BY jumlah ASC 

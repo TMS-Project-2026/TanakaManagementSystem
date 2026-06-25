@@ -2,188 +2,20 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
-import { 
-  Package, Truck, CheckCircle, DollarSign, ShoppingCart, TrendingUp,
-  LayoutDashboard, ShoppingBag, FileText, Upload, Gift,
-  Users, Calendar, Search, Loader2,
-  AlertTriangle, ArrowRight, X, Download, Send, UserCircle, Plus, ChevronDown, PieChart
-} from 'lucide-react';
-import api from '../api/axios';
 import * as XLSX from 'xlsx';
 import { shopeeDataAdapter } from '../utils/shopeeAdapter';
 import { getStok, createPermintaanStok } from '../api/gudangApi';
+import {
+  LayoutDashboard, ShoppingBag, Package, FileText, Upload, Gift,
+  TrendingUp, Users, DollarSign, Calendar, Search, Loader2,
+  CheckCircle, AlertTriangle, ArrowRight, X, Download, Send, UserCircle, Plus, ChevronDown, PieChart
+} from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
   LineChart, Line
 } from 'recharts';
 
-const AccestretMarketingDashboardPrototype = () => {
-  const [stats, setStats] = useState({
-    pesananBaru: 0,
-    perluDikirim: 0,
-    dalamPengiriman: 0,
-    totalOmset: 0
-  });
-
-  // Placeholder data statis untuk prototype UI
-  useEffect(() => {
-    // Nantinya akan difetch dari API pesanan marketplace
-    setStats({
-      pesananBaru: 15,
-      perluDikirim: 8,
-      dalamPengiriman: 24,
-      totalOmset: 15450000
-    });
-  }, []);
-
-  const formatRupiah = (number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(number);
-  };
-
-  return (
-    <div className="flex bg-gray-50 h-screen font-sans">
-      <Sidebar />
-      <div className="flex-1 overflow-y-auto px-4 sm:px-10 pb-10">
-        <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100 mt-6">
-          <div className="mb-8 flex justify-between items-end">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">
-                Accestret <span className="text-orange-500">Marketplace</span>
-              </h1>
-              <p className="text-gray-500 font-medium mt-1">Pusat Manajemen Pesanan & Integrasi E-Commerce</p>
-            </div>
-            <button className="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow-sm shadow-orange-200 transition-all flex items-center gap-2">
-              <ShoppingCart size={18} />
-              Tarik Data Pesanan
-            </button>
-          </div>
-
-          {/* E-Commerce Key Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div className="bg-blue-50 p-6 rounded-3xl shadow-sm border border-blue-100 flex flex-col hover:shadow-md transition-shadow relative overflow-hidden group">
-              <div className="absolute -right-4 -top-4 opacity-10 group-hover:scale-110 transition-transform"><ShoppingCart size={80} /></div>
-              <p className="text-sm font-bold text-blue-800 flex items-center gap-2 relative z-10"><Package size={16} /> Pesanan Baru</p>
-              <h3 className="text-3xl font-black text-blue-900 mt-2 relative z-10">{stats.pesananBaru}</h3>
-              <p className="text-xs text-blue-600 mt-2 font-medium relative z-10">Menunggu diproses</p>
-            </div>
-            
-            <div className="bg-amber-50 p-6 rounded-3xl shadow-sm border border-amber-100 flex flex-col hover:shadow-md transition-shadow relative overflow-hidden group">
-              <div className="absolute -right-4 -top-4 opacity-10 group-hover:scale-110 transition-transform"><Package size={80} /></div>
-              <p className="text-sm font-bold text-amber-800 flex items-center gap-2 relative z-10"><Package size={16} /> Perlu Dikirim</p>
-              <h3 className="text-3xl font-black text-amber-900 mt-2 relative z-10">{stats.perluDikirim}</h3>
-              <p className="text-xs text-amber-600 mt-2 font-medium relative z-10">Siap di-pickup kurir</p>
-            </div>
-            
-            <div className="bg-purple-50 p-6 rounded-3xl shadow-sm border border-purple-100 flex flex-col hover:shadow-md transition-shadow relative overflow-hidden group">
-              <div className="absolute -right-4 -top-4 opacity-10 group-hover:scale-110 transition-transform"><Truck size={80} /></div>
-              <p className="text-sm font-bold text-purple-800 flex items-center gap-2 relative z-10"><Truck size={16} /> Dikirim</p>
-              <h3 className="text-3xl font-black text-purple-900 mt-2 relative z-10">{stats.dalamPengiriman}</h3>
-              <p className="text-xs text-purple-600 mt-2 font-medium relative z-10">Sedang dalam perjalanan</p>
-            </div>
-            
-            <div className="bg-emerald-50 p-6 rounded-3xl shadow-sm border border-emerald-100 flex flex-col hover:shadow-md transition-shadow relative overflow-hidden group">
-              <div className="absolute -right-4 -top-4 opacity-10 group-hover:scale-110 transition-transform"><DollarSign size={80} /></div>
-              <p className="text-sm font-bold text-emerald-800 flex items-center gap-2 relative z-10"><TrendingUp size={16} /> Omset Bulan Ini</p>
-              <h3 className="text-2xl font-black text-emerald-900 mt-2 relative z-10">{formatRupiah(stats.totalOmset)}</h3>
-              <p className="text-xs text-emerald-600 mt-2 font-medium relative z-10">+12.5% dari bulan lalu</p>
-            </div>
-          </div>
-
-          {/* Prototype Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold text-gray-800">Pesanan Terbaru Masuk</h3>
-                <a href="#" className="text-orange-500 text-sm font-semibold hover:underline">Lihat Semua</a>
-              </div>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-gray-50 text-gray-600 font-semibold border-b border-gray-100">
-                    <tr>
-                      <th className="py-3 px-4 rounded-tl-lg">ID Pesanan</th>
-                      <th className="py-3 px-4">Marketplace</th>
-                      <th className="py-3 px-4">Pelanggan</th>
-                      <th className="py-3 px-4">Status</th>
-                      <th className="py-3 px-4 rounded-tr-lg text-right">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50 text-gray-700">
-                    {[
-                      { id: 'SHP-99281', mp: 'Shopee', name: 'Budi Santoso', status: 'Baru', amount: 250000 },
-                      { id: 'TOK-11203', mp: 'Tokopedia', name: 'Siti Aminah', status: 'Perlu Dikirim', amount: 850000 },
-                      { id: 'TIK-55421', mp: 'TikTok Shop', name: 'Ahmad Fauzi', status: 'Baru', amount: 125000 },
-                    ].map((order, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
-                        <td className="py-3 px-4 font-medium text-gray-900">{order.id}</td>
-                        <td className="py-3 px-4">
-                          <span className={`px-2 py-1 text-xs font-bold rounded-md ${
-                            order.mp === 'Shopee' ? 'bg-orange-100 text-orange-700' : 
-                            order.mp === 'Tokopedia' ? 'bg-green-100 text-green-700' : 'bg-black text-white'
-                          }`}>{order.mp}</span>
-                        </td>
-                        <td className="py-3 px-4">{order.name}</td>
-                        <td className="py-3 px-4">
-                          <span className={`px-2 py-1 text-xs font-bold rounded-full flex items-center gap-1 w-max ${
-                            order.status === 'Baru' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
-                          }`}>
-                            {order.status === 'Baru' ? <Package size={12}/> : <CheckCircle size={12}/>}
-                            {order.status}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-right font-semibold">{formatRupiah(order.amount)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl shadow-sm p-6 text-white relative overflow-hidden">
-              <div className="absolute -right-10 -bottom-10 opacity-20"><Package size={150}/></div>
-              <h3 className="text-lg font-bold mb-2 relative z-10">Integrasi Sinkronisasi</h3>
-              <p className="text-gray-300 text-sm mb-6 relative z-10">Sistem sedang disiapkan untuk menarik data otomatis dari API Shopee & Tokopedia.</p>
-              
-              <div className="space-y-4 relative z-10">
-                <div className="bg-white/10 p-4 rounded-xl border border-white/10 backdrop-blur-sm">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="font-semibold text-sm text-white">Sinkronisasi Stok</span>
-                    <span className="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded-full font-bold">Aktif</span>
-                  </div>
-                  <p className="text-xs text-gray-400">Stok langsung terpotong saat pesanan masuk.</p>
-                </div>
-                <div className="bg-white/10 p-4 rounded-xl border border-white/10 backdrop-blur-sm">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="font-semibold text-sm text-white">API Shopee</span>
-                    <span className="text-xs bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-bold">Pending</span>
-                  </div>
-                  <p className="text-xs text-gray-400">Menunggu verifikasi developer app.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => {
-  // Daftar akun toko Accestret
-  const ACCESTRET_ACCOUNTS = [
-    'ACESTREET.ID',
-    'BAZAFKAF',
-    'OTSKAF',
-    'JOGJA WARUNGLOKAL',
-    'ACESPOIN',
-    'TASTYNESIA'
-  ];
-
-
+const MarketingOnlineTanaka = ({ embedded = false, forcedTab = null }) => {
   // Add CSS to hide number spinners
   useEffect(() => {
     const style = document.createElement('style');
@@ -297,7 +129,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
   const [showEditModal, setShowEditModal] = useState(false);
   const [editOrder, setEditOrder] = useState(null);
   const [manualOrder, setManualOrder] = useState({
-    customer_name: '', akun_toko: '', product_name: '', qty: '', price_unit: '',
+    customer_name: '', akun_toko: '', kode_produk: '', product_name: '', qty: '', price_unit: '',
     potongan_shopee: '', hpp_aktual: '', order_date: new Date().toISOString().split('T')[0],
     address: '', status: 'Pesanan Selesai'
   });
@@ -401,27 +233,15 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
     return months <= 0 ? 1 : months + 1;
   };
 
-  const derivedHarianBerjalanTarget = getDaysDiff(filterDate1, filterDateEnd) * 8500000;
+  const derivedHarianBerjalanTarget = getDaysDiff(filterDate1, filterDateEnd) * Math.round(34310000 / 30);
 
   const fetchDashboard = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:3000/api/marketing-accestret/dashboard', { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.get('http://localhost:3000/api/marketing-online-tanaka/dashboard', { headers: { Authorization: `Bearer ${token}` } });
       setDashboardData(res.data);
     } catch (err) {
       console.error(err);
-    }
-  };
-
-  const fetchPricelistOnline = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:3000/api/pricelist-online', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.data && res.data.data) setPricelistOnlineData(res.data.data);
-    } catch (err) {
-      console.error('Gagal mengambil pricelist online:', err);
     }
   };
 
@@ -435,7 +255,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:3000/api/marketing-accestret/orders', { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.get('http://localhost:3000/api/marketing-online-tanaka/orders', { headers: { Authorization: `Bearer ${token}` } });
       const normalizedData = res.data.map(o => ({
         ...o,
         akun_toko: normalizeAkun(o.akun_toko)
@@ -451,9 +271,10 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
   const fetchInventory = async () => {
     setLoading(true);
     try {
-      const res = await getStok('Accestret');
+      const res = await getStok();
       if (res.data.status === 'success') {
-        setInventory(res.data.data);
+        const filteredData = res.data.data.filter(s => ['Banua', 'Tanaka', 'Global'].includes(s.cabang_id));
+        setInventory(filteredData);
       }
     } catch (err) {
       console.error(err);
@@ -474,7 +295,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
       const token = localStorage.getItem('token');
       // We fetch ALL orders for the branch to process them based on the selected dates
       // In a real production app, we would send the date filters to the backend
-      const res = await axios.get('http://localhost:3000/api/marketing-accestret/orders', {
+      const res = await axios.get('http://localhost:3000/api/marketing-online-tanaka/orders', {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -482,10 +303,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
         ...o,
         akun_toko: normalizeAkun(o.akun_toko)
       }));
-      const globalAccounts = [
-        ...ACCESTRET_ACCOUNTS,
-        ...new Set(allOrders.map(o => o.akun_toko).filter(a => a && !ACCESTRET_ACCOUNTS.includes(a)))
-      ];
+      const globalAccounts = [...new Set(allOrders.map(o => o.akun_toko))];
 
       // Process Data based on reportSubTab
       const groupedByAccount = {};
@@ -519,15 +337,17 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
 
         accounts.forEach(acc => {
           const rev = getDailyRevenue(allOrders, acc, filterDate1);
-          const target = dailyTargets[acc] || 0;
+          const target = dailyTargets[acc] || 2000000;
           const ach = target > 0 ? (rev / target) * 100 : 0;
 
-          dailyData.push({
+          if (rev > 0 || target > 0) {
+            dailyData.push({
               account: acc,
               revenue: rev,
               target: target,
               achievement: ach
             });
+          }
         });
 
         dailyData.sort((a, b) => b.revenue - a.revenue);
@@ -562,7 +382,8 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
           const mtd1Revenue = getRangeRevenue(allOrders, acc, filterDate1, filterDateEnd);
           const target = (bulananTargets[acc] || 0) * getMonthsDiff(filterDate1, filterDateEnd);
           const achievement = target > 0 ? (mtd1Revenue / target) * 100 : 0;
-          dailyData.push({
+          if (mtd1Revenue > 0) {
+            dailyData.push({
               account: acc,
               date1: filterDate1,
               date1End: filterDateEnd,
@@ -570,6 +391,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
               target: target,
               achievement: achievement
             });
+          }
         });
 
       } else if (reportSubTab === 'berjalan-monthly') {
@@ -600,7 +422,8 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
             if (orderDate >= startPrevYear && orderDate <= endPrevYear) prevYearRev += revenue;
           });
 
-          finalReport.push({
+          if (currentRev > 0 || prevYearRev > 0) {
+            finalReport.push({
               account: acc,
               currentRevenue: currentRev,
               dateCurrent: startCurrent.toISOString(),
@@ -614,6 +437,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                 }
               ]
             });
+          }
         });
 
         finalReport.sort((a, b) => b.currentRevenue - a.currentRevenue);
@@ -661,7 +485,8 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
             const v1 = getRangeYtdOnlineRevenue(allOrders, acc, startYear, endYear);
             const v2 = getRangeYtdOnlineRevenue(allOrders, acc, startPrevYear, endPrevYear);
 
-            yearlyData.push({
+            if (v1 > 0 || v2 > 0) {
+              yearlyData.push({
                 account: acc,
                 currentRevenue: v1,
                 dateCurrent: `${startYear}`,
@@ -675,6 +500,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                   }
                 ]
               });
+            }
           });
         } else {
           // Laporan Tahunan
@@ -695,7 +521,8 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
               })
               .reduce((sum, o) => {
                 const total_price = parseFloat(o.total_price) || 0;
-                return sum + total_price;
+                const potongan_shopee = parseFloat(o.potongan_shopee) || 0;
+                return sum + (total_price - potongan_shopee);
               }, 0);
           };
 
@@ -703,7 +530,8 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
             const v1 = getYearlyYtdOnlineRevenue(allOrders, acc, y1);
             const v2 = getYearlyYtdOnlineRevenue(allOrders, acc, y2);
 
-            yearlyData.push({
+            if (v1 > 0 || v2 > 0) {
+              yearlyData.push({
                 account: acc,
                 currentRevenue: v1,
                 dateCurrent: `${y1}`,
@@ -715,6 +543,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                   }
                 ]
               });
+            }
           });
         }
 
@@ -731,7 +560,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
               const od = new Date(o.order_date);
               return od.getFullYear() === year && (od.getMonth() + 1) === month;
             })
-            .reduce((sum, o) => sum + (parseFloat(o.total_price) || 0), 0);
+            .reduce((sum, o) => sum + (parseFloat(o.total_price) || 0) - (parseFloat(o.potongan_shopee) || 0), 0);
 
         const accounts = [...new Set([
           ...globalAccounts,
@@ -741,12 +570,14 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
 
         accounts.forEach(acc => {
           const v1 = getMonthRev(allOrders, acc, mainYear, mainMonth);
-          monthlyResult.push({
+          if (v1 > 0 || (bulananTargets[acc] && bulananTargets[acc] > 0)) {
+            monthlyResult.push({
               account: acc,
               date1: monthlyTo,
               val1: v1,
               revenue: v1
             });
+          }
         });
 
         monthlyResult.sort((a, b) => b.val1 - a.val1);
@@ -788,20 +619,21 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
           allOrders.forEach(order => {
             if ((order.akun_toko || 'Unknown') !== acc) return;
             const orderDate = new Date(order.order_date);
-            const revenue = parseFloat(order.total_price || 0);
+            const revenue = parseFloat(order.total_price || 0) - parseFloat(order.potongan_shopee || 0);
 
             if (orderDate >= startCurrent && orderDate <= endCurrent) currentRev += revenue;
             if (orderDate >= startPrevMonth && orderDate <= endPrevMonth) prevMonthRev += revenue;
             if (orderDate >= startPrevYear && orderDate <= endPrevYear) prevYearRev += revenue;
           });
 
-          finalReport.push({
+          if (currentRev > 0 || prevMonthRev > 0 || prevYearRev > 0) {
+            finalReport.push({
               account: acc,
               currentRevenue: currentRev,
               dateCurrent: filterDate1,
               dateCurrentEnd: filterDateEnd,
               comparisons: [
-                { id: 'target', title: 'Target', compareValue: 0 },
+                { id: 'target', title: 'Target', compareValue: 0 }, // dynamically uses globalMonthlyTarget in render
                 { 
                   id: 'prev_month', title: 'Bulan Sebelumnya', compareValue: prevMonthRev, 
                   dateCompare: new Date(startPrevMonth.getTime() - startPrevMonth.getTimezoneOffset() * 60000).toISOString().split('T')[0], 
@@ -814,9 +646,12 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                 }
               ]
             });
+          }
         });
         
+        // Sort by current revenue descending
         finalReport.sort((a, b) => b.currentRevenue - a.currentRevenue);
+        
         setReportComparisonData(finalReport);
       }
     } catch (err) {
@@ -830,7 +665,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
     if (window.confirm("Yakin ingin mengajukan pesanan online ini ke Finance?")) {
       try {
         const token = localStorage.getItem('token');
-        await axios.post(`http://localhost:3000/api/marketing-accestret/orders/${id}/ajukan-finance`, {}, {
+        await axios.post(`http://localhost:3000/api/marketing-online-tanaka/orders/${id}/ajukan-finance`, {}, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         alert("Pesanan berhasil diajukan ke Finance.");
@@ -845,6 +680,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
     setEditOrder({
       id: order.id,
       akun_toko: order.akun_toko || '',
+      kode_produk: order.kode_produk || '',
       product_name: order.product_name || '',
       qty: order.qty || '',
       price_unit: order.price_unit || '',
@@ -862,7 +698,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      await axios.put(`http://localhost:3000/api/marketing-accestret/orders/${editOrder.id}`, editOrder, {
+      await axios.put(`http://localhost:3000/api/marketing-online-tanaka/orders/${editOrder.id}`, editOrder, {
         headers: { Authorization: `Bearer ${token}` }
       });
       alert('Order berhasil diperbarui!');
@@ -880,7 +716,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:3000/api/marketing-accestret/promo', { headers: { Authorization: `Bearer ${token}` } });
+      const res = await axios.get('http://localhost:3000/api/marketing-online-tanaka/promo', { headers: { Authorization: `Bearer ${token}` } });
       setPromoStock(res.data);
     } catch (err) {
       console.error(err);
@@ -901,11 +737,25 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
     }
   };
 
+  const fetchPricelistOnline = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get('http://localhost:3000/api/pricelist-online', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data && res.data.data) {
+        setPricelistOnlineData(res.data.data);
+      }
+    } catch (err) {
+      console.error("Gagal mengambil pricelist online:", err);
+    }
+  };
+
   // Fetch marketing targets dari database
   const fetchTargets = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:3000/api/marketing-accestret/targets', {
+      const res = await axios.get('http://localhost:3000/api/marketing-online-tanaka/targets', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const targets = res.data;
@@ -940,6 +790,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
 
   useEffect(() => {
     fetchDbProducts();
+    fetchPricelistOnline();
     fetchTargets();
   }, []);
 
@@ -977,7 +828,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
       // ========== AUTO-DETECT HEADER ROW ==========
       // Read raw data as 2D array first to find where the actual headers are
       const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
-      console.log('📊 Raw Excel rows (first 5):', rawRows.slice(0, 5));
+      console.log('ðŸ“Š Raw Excel rows (first 5):', rawRows.slice(0, 5));
 
       // Known header keywords to detect the header row (Enriched with Indonesian Shopee/marketplace terms)
       const knownHeaders = [
@@ -1002,7 +853,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
 
         if (matchCount >= 3) { // At least 3 known headers found = this is the header row
           headerRowIndex = i;
-          console.log(`✅ Header row detected at row index ${i} with ${matchCount} matches:`, rawRows[i]);
+          console.log(`âœ… Header row detected at row index ${i} with ${matchCount} matches:`, rawRows[i]);
           break;
         }
       }
@@ -1010,16 +861,16 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
       // Fallback: If no row had >= 3 matches, but there is a row with some matches (e.g. 1 or 2), use the best matched row
       if (headerRowIndex === 0 && maxMatches > 0 && maxMatches < 3) {
         headerRowIndex = bestHeaderRowIndex;
-        console.log(`⚠️ Low header matches (${maxMatches}), using best matched row index ${bestHeaderRowIndex}:`, rawRows[bestHeaderRowIndex]);
+        console.log(`âš ï¸ Low header matches (${maxMatches}), using best matched row index ${bestHeaderRowIndex}:`, rawRows[bestHeaderRowIndex]);
       }
 
       // Re-read with correct header row using range option
       const jsonData = XLSX.utils.sheet_to_json(worksheet, { range: headerRowIndex, defval: '' });
 
-      console.log('📋 Parsed JSON data count:', jsonData.length);
+      console.log('ðŸ“‹ Parsed JSON data count:', jsonData.length);
       if (jsonData.length > 0) {
-        console.log('🔑 Column headers detected:', Object.keys(jsonData[0]));
-        console.log('📄 First row data:', jsonData[0]);
+        console.log('ðŸ”‘ Column headers detected:', Object.keys(jsonData[0]));
+        console.log('ðŸ“„ First row data:', jsonData[0]);
       }
 
       if (jsonData.length === 0) {
@@ -1034,7 +885,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
       if (adaptedData !== jsonData) {
         // Jika format Shopee terdeteksi, langsung gunakan data hasil adaptasi dual-schema
         finalMappedData = adaptedData;
-        console.log('🚀 [UI] Format Shopee terdeteksi & dikonversi secara otomatis!', finalMappedData.length);
+        console.log('ðŸš€ [UI] Format Shopee terdeteksi & dikonversi secara otomatis!', finalMappedData.length);
       } else {
         // Jika bukan format Shopee, jalankan logika pemetaan (mapping) standard bawaan sistem
         finalMappedData = jsonData.map((row, rowIndex) => {
@@ -1157,15 +1008,26 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
           };
 
           const qty = parseInt(getField(['qty', 'jumlah', 'quantity', 'kuantitas', 'jumlah produk yang dipesan', 'jumlah produk'])) || 1;
-          const productName = getField(['product', 'produk', 'barang', 'nama produk', 'product name', 'nama barang']) || 'Produk Tidak Diketahui';
+          const productNameRaw = getField(['product', 'produk', 'barang', 'nama produk', 'product name', 'nama barang']);
+          const kodeProdukVal = getField(['kode', 'kode produk', 'item code', 'product code', 'kode item', 'sku']);
 
-          // Attempt to find matching product in our master DB to automatically populate HPP
+          let finalProductName = productNameRaw || 'Produk Tidak Diketahui';
           let matchedHpp = 0;
-          if (dbProducts && dbProducts.length > 0 && productName !== 'Produk Tidak Diketahui') {
-            // Find if the Shopee product name contains the DB product name, or vice versa (case-insensitive substring match)
+          let matchedPrice = 0;
+          let matchedPotongan = 0;
+
+          if (kodeProdukVal && pricelistOnlineData && pricelistOnlineData.length > 0) {
+            const match = pricelistOnlineData.find(p => p.kode.toLowerCase() === kodeProdukVal.toLowerCase());
+            if (match) {
+              finalProductName = finalProductName === 'Produk Tidak Diketahui' || !productNameRaw ? match.nama_produk : finalProductName;
+              matchedHpp = parseFloat(match.hpp) || 0;
+              matchedPrice = parseFloat(match.harga_jual) || 0;
+              matchedPotongan = parseFloat(match.pot_shopee) || 0;
+            }
+          } else if (dbProducts && dbProducts.length > 0 && finalProductName !== 'Produk Tidak Diketahui') {
             const match = dbProducts.find(p => {
               const dbName = (p.nama_produk || '').toLowerCase().trim();
-              const excelName = productName.toLowerCase().trim();
+              const excelName = finalProductName.toLowerCase().trim();
               return excelName.includes(dbName) || dbName.includes(excelName);
             });
             if (match) {
@@ -1173,7 +1035,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
             }
           }
 
-          const priceUnit = parseNum(getField(['price', 'harga satuan', 'unit price', 'harga awal', 'deal price', 'harga asli', 'harga jualan'], ['total price']));
+          const priceUnit = parseNum(getField(['price', 'harga satuan', 'unit price', 'harga awal', 'deal price', 'harga asli', 'harga jualan'], ['total price'])) || matchedPrice;
           const totalPrice = parseNum(getField(['total price', 'total harga', 'subtotal', 'total bayar', 'total pembayaran', 'total real', 'total penghasilan'])) || (qty * priceUnit);
 
           // HPP fields - use excludeKeys to prevent "HPP" from matching "HPP ACTUAL" or "TOTAL HPP"
@@ -1185,7 +1047,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
           const finalHppUnit = hppActual || hppUnit;
           const finalTotalHpp = totalHpp || (qty * finalHppUnit);
 
-          const discount = parseNum(getField(['potongan shopee', 'potongan', 'diskon shopee', 'shopee discount', 'diskon dari shopee', 'voucher shopee', 'harga potongan shopee', 'diskon'], ['total']));
+          const discount = parseNum(getField(['potongan shopee', 'potongan', 'diskon shopee', 'shopee discount', 'diskon dari shopee', 'voucher shopee', 'harga potongan shopee', 'diskon'], ['total'])) || matchedPotongan;
           const satuan = parseNum(getField(['satuan']));
 
           // Parse actual and actual_satuan fields correctly
@@ -1197,8 +1059,9 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
 
           const result = {
             customer_name: getField(['nama', 'pembeli', 'username', 'customer', 'username pembeli', 'nama customer']) || 'Anonim',
-            akun_toko: getField(['item code', 'item_code', 'kode item', 'akun', 'toko', 'shop', 'account', 'username penjual', 'akun toko']) || '-',
-            product_name: productName,
+            akun_toko: getField(['akun', 'toko', 'shop', 'account', 'username penjual', 'akun toko']) || '-',
+            kode_produk: kodeProdukVal || '',
+            product_name: finalProductName,
             qty: qty,
             price_unit: priceUnit || satuan || 0,
             total_price: totalPrice,
@@ -1215,14 +1078,14 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
 
           // Debug log first row mapping
           if (rowIndex === 0) {
-            console.log('🔄 First row mapping result:', result);
+            console.log('ðŸ”„ First row mapping result:', result);
           }
 
           return result;
         });
       }
 
-      console.log('✅ Total mapped rows:', finalMappedData.length);
+      console.log('âœ… Total mapped rows:', finalMappedData.length);
       setImportPreview(finalMappedData);
       setShowImportModal(true);
     } catch (err) {
@@ -1237,7 +1100,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:3000/api/marketing-accestret/import', importPreview, {
+      await axios.post('http://localhost:3000/api/marketing-online-tanaka/import', importPreview, {
         headers: { Authorization: `Bearer ${token}` }
       });
       alert(`Berhasil mengimport ${importPreview.length} data order!`);
@@ -1294,6 +1157,16 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
   };
 
   const handleSaveManual = async () => {
+    // Validasi field wajib
+    const errors = [];
+    if (!manualOrder.akun_toko) errors.push('Nama Toko');
+    if (!manualOrder.stok_id && !manualOrder.kode_produk) errors.push('Kode Produk');
+    if (!manualOrder.qty || parseInt(manualOrder.qty) <= 0) errors.push('Qty');
+    if (errors.length > 0) {
+      alert(`Field berikut wajib diisi:\nâ€¢ ${errors.join('\nâ€¢ ')}`);
+      return;
+    }
+
     const qty = parseInt(manualOrder.qty) || 0;
     const price_unit = parseFloat(manualOrder.price_unit) || 0;
     const hpp_aktual = parseFloat(manualOrder.hpp_aktual) || 0;
@@ -1321,7 +1194,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
       hpp_aktual,       // nilai satuan HPP yang diinput user (number)
       potongan_shopee,
       total_price,
-      hpp,              // = qty × hpp_aktual
+      hpp,              // = qty Ã— hpp_aktual
       total_hpp_aktual,
       actual_satuan,
       actual,
@@ -1331,13 +1204,13 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:3000/api/marketing-accestret/import', [finalOrder], {
+      await axios.post('http://localhost:3000/api/marketing-online-tanaka/import', [finalOrder], {
         headers: { Authorization: `Bearer ${token}` }
       });
       alert("Pesanan manual berhasil disimpan!");
       setShowManualModal(false);
       setManualOrder({
-        customer_name: '', akun_toko: '', product_name: '', qty: '', price_unit: '',
+        customer_name: '', akun_toko: '', kode_produk: '', product_name: '', qty: '', price_unit: '',
         potongan_shopee: '', hpp_aktual: '', order_date: new Date().toISOString().split('T')[0],
         address: '', status: 'Pesanan Selesai', stok_id: null
       });
@@ -1477,7 +1350,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                     <button
                       onClick={() => {
                         setManualOrder({
-                          customer_name: '', akun_toko: '', product_name: '', qty: '', price_unit: '',
+                          customer_name: '', akun_toko: '', kode_produk: '', product_name: '', qty: '', price_unit: '',
                           potongan_shopee: '', hpp_aktual: '', order_date: new Date().toISOString().split('T')[0],
                           address: '', status: 'Pesanan Selesai'
                         });
@@ -1591,7 +1464,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                               <span className={`${badgeBg[idx]} text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shrink-0`}>
                                 {idx + 1}
                               </span>
-                              {/* Nama produk — klik untuk lihat nama lengkap */}
+                              {/* Nama produk - klik untuk lihat nama lengkap */}
                               <div className="relative flex-1 min-w-0">
                                 <button
                                   onClick={() => setTooltipProduk(tooltipProduk === idx ? null : idx)}
@@ -1732,6 +1605,12 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                           <ChevronDown size={10} className="text-red-400" />
                         </div>
                       </th>
+                      <th className="py-3 px-3 font-semibold border-r border-gray-800 text-left min-w-[100px]">
+                        <div className="flex items-center justify-between gap-1">
+                          <span>KODE</span>
+                          <ChevronDown size={10} className="text-indigo-400" />
+                        </div>
+                      </th>
                       <th className="py-3 px-3 font-semibold border-r border-gray-800 text-left min-w-[200px]">
                         <div className="flex items-center justify-between gap-1">
                           <span>PRODUCT</span>
@@ -1810,14 +1689,14 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                   <tbody className="text-xs text-gray-800 font-sans">
                     {loading ? (
                       <tr>
-                        <td colSpan="15" className="text-center py-24 bg-white">
+                        <td colSpan="16" className="text-center py-24 bg-white">
                           <Loader2 className="w-10 h-10 animate-spin text-red-600 mx-auto" />
                           <p className="text-gray-500 font-black text-sm mt-3 uppercase tracking-wider">Memuat lembar data Excel...</p>
                         </td>
                       </tr>
                     ) : filteredOrders.length === 0 ? (
                       <tr>
-                        <td colSpan="15" className="text-center py-24 bg-white text-gray-400 font-bold italic">
+                        <td colSpan="16" className="text-center py-24 bg-white text-gray-400 font-bold italic">
                           Belum ada data order online. Silakan import file Shopee atau tambah manual.
                         </td>
                       </tr>
@@ -1844,6 +1723,13 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                             <td className="py-2.5 px-3 border-r border-gray-100 text-center text-gray-300 text-[10px] select-none font-bold"></td>
                             <td className="py-2.5 px-3 border-r border-gray-100 font-bold text-gray-900 whitespace-nowrap">{formatIndoLongDate(order.order_date)}</td>
                             <td className="py-2.5 px-3 border-r border-gray-100 font-black text-gray-800 uppercase text-[10px] tracking-wide whitespace-nowrap">{order.akun_toko || '-'}</td>
+                            <td className="py-2.5 px-3 border-r border-gray-100 whitespace-nowrap">
+                              {order.kode_produk ? (
+                                <span className="inline-block bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-black px-2 py-0.5 rounded-md tracking-wide">{order.kode_produk}</span>
+                              ) : (
+                                <span className="text-gray-300 text-[10px]">-</span>
+                              )}
+                            </td>
                             <td
                               className={`py-2.5 px-3 border-r border-gray-100 font-bold text-gray-900 cursor-pointer select-none transition-all ${expandedProduct === (order.id || idx) ? 'max-w-none whitespace-normal text-[#990000]' : 'max-w-[200px] truncate hover:text-[#990000]'}`}
                               onClick={() => setExpandedProduct(expandedProduct === (order.id || idx) ? null : (order.id || idx))}
@@ -1885,10 +1771,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
 
             // Grouping stok identik dengan Stok.jsx
             const groupedStok = Object.values(inventory.reduce((acc, curr) => {
-              const kode   = (curr.kode_produk || '').trim().toLowerCase();
-              const nama   = (curr.nama_barang || '').trim().toLowerCase();
-              const cabang = (curr.cabang_id || '').trim().toLowerCase();
-              const key = `${kode}|${nama}|${cabang}`;
+              const key = `${(curr.kode_produk||'').toLowerCase()}|${(curr.nama_barang||'').toLowerCase()}|${(curr.cabang_id||'').toLowerCase()}`;
               if (!acc[key]) {
                 acc[key] = {
                   id: curr.id,
@@ -1917,8 +1800,10 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
             const filteredStok = groupedStok.filter(item => {
               const q = stokSearch.toLowerCase();
               return (
-                item.nama_barang.toLowerCase().includes(q) ||
-                item.nama_brand.toLowerCase().includes(q) ||
+                item.nama_barang?.toLowerCase().includes(q) ||
+                item.kode_produk?.toLowerCase().includes(q) ||
+                item.nama_brand?.toLowerCase().includes(q) ||
+                item.bahan?.toLowerCase().includes(q) ||
                 item.cabang_id.toLowerCase().includes(q) ||
                 item.kategori.toLowerCase().includes(q)
               );
@@ -1929,12 +1814,12 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                 {promoHighlight && stokSearch === promoHighlight && (
                   <div className="flex items-center gap-2 mb-4">
                     <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full flex items-center gap-1 shadow-sm">
-                      🔍 Filter dari Promo: <strong>{promoHighlight}</strong>
+                      ðŸ” Filter dari Promo: <strong>{promoHighlight}</strong>
                     </span>
                     <button
-                      onClick={() => { setStokSearch(''); navigate('/marketing-online/inventory'); }}
+                      onClick={() => { setStokSearch(''); navigate('/marketing-online-tanaka/inventory'); }}
                       className="text-[10px] text-gray-400 hover:text-gray-600 font-bold bg-white px-2 py-1 rounded-full border border-gray-200 shadow-sm"
-                    >✕ Hapus</button>
+                    >âœ• Hapus</button>
                   </div>
                 )}
 
@@ -1943,8 +1828,8 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                     <table className="w-full text-left border-collapse">
                       <thead className="bg-gray-900 text-xs text-white uppercase tracking-wider font-semibold sticky top-0 z-10">
                         <tr>
-                          <th className="p-4">Kode</th>
-                          <th className="p-4">Kategori</th>
+                          <th className="p-4 text-[#990000]">Kode</th>
+                          <th className="p-4">Jenis / Kategori</th>
                           <th className="p-4">Nama Produk</th>
                           <th className="p-4">Bahan</th>
                           <th className="p-4">Cabang</th>
@@ -1953,7 +1838,6 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                           ))}
                           <th className="p-4 text-center w-28">Total Stok</th>
                           <th className="p-4 text-center w-28">Min. Stok</th>
-                          <th className="p-4">Rak</th>
                           <th className="p-4 text-center w-36">Aksi</th>
                         </tr>
                       </thead>
@@ -1974,9 +1858,9 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                             }`}>
                               <td className="p-4 font-bold text-[#990000]">{item.kode_produk}</td>
                               <td className="p-4">
-                                <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${
-                                  item.kategori === 'Utama' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-gray-100 text-gray-600'
-                                }`}>{item.kategori}</span>
+                                <span className="bg-gray-100 text-gray-700 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                                  {item.kategori}
+                                </span>
                               </td>
                               <td className="p-4 font-bold text-gray-800">{item.nama_barang}</td>
                               <td className="p-4 text-gray-500">{item.bahan}</td>
@@ -1995,7 +1879,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                                   {item.minimum_stok}
                                 </span>
                               </td>
-                              <td className="p-4 font-semibold text-gray-600">{item.kode_rak}</td>
+                              
                               <td className="p-4 text-center">
                                 <div className="flex flex-col gap-1.5">
                                   <button
@@ -2079,7 +1963,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                         })()}
                       </select>
                     </div>
-                    <div className="flex items-end pb-3 text-gray-400 font-black text-lg select-none">—</div>
+                    <div className="flex items-end pb-3 text-gray-400 font-black text-lg select-none">-</div>
                     <div className="flex-1 min-w-[250px] p-3 bg-gray-50 border border-gray-200 rounded-xl">
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Sampai Tahun (YTD)</label>
                       <select
@@ -2102,7 +1986,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                     <div className="flex-1 min-w-[200px] p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
                       <label className="block text-xs font-bold text-emerald-600 uppercase mb-2">Target Pendapatan</label>
                       <div className="w-full py-1 text-emerald-700 font-bold text-lg">
-                        {formatRupiah(3067000000 * (Math.abs(new Date(filterDate2).getFullYear() - new Date(filterDate1).getFullYear()) + 1))}
+                        {formatRupiah(411720000 * (Math.abs(new Date(filterDate2).getFullYear() - new Date(filterDate1).getFullYear()) + 1))}
                       </div>
                     </div>
                   </>
@@ -2120,7 +2004,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                     <div className="flex-1 min-w-[200px] p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
                       <label className="block text-xs font-bold text-emerald-600 uppercase mb-2">Target Pendapatan</label>
                       <div className="w-full py-1 text-emerald-700 font-bold text-lg">
-                        {formatRupiah(8500000)}
+                        {formatRupiah(Math.round(34310000 / 30))}
                       </div>
                     </div>
                   </>
@@ -2130,14 +2014,14 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Periode Bulan</label>
                       <div className="flex items-center space-x-2">
                         <input type="date" className="w-full p-2 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-100 text-sm font-medium" value={filterDate1} onChange={e => setFilterDate1(e.target.value)} />
-                        <span className="text-gray-400 font-black">—</span>
+                        <span className="text-gray-400 font-black">-</span>
                         <input type="date" className="w-full p-2 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-100 text-sm font-medium" value={filterDateEnd} onChange={e => setFilterDateEnd(e.target.value)} />
                       </div>
                     </div>
                     <div className="flex-1 min-w-[200px] p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
                       <label className="block text-xs font-bold text-emerald-600 uppercase mb-2">Target Pendapatan</label>
                       <div className="w-full py-1 text-emerald-700 font-bold text-lg">
-                        {formatRupiah(250000000 * getMonthsDiff(filterDate1, filterDateEnd))}
+                        {formatRupiah(34310000 * getMonthsDiff(filterDate1, filterDateEnd))}
                       </div>
                     </div>
                   </>
@@ -2156,7 +2040,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                     <div className="flex-1 min-w-[200px] p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
                       <label className="block text-xs font-bold text-emerald-600 uppercase mb-2">Target Pendapatan</label>
                       <div className="w-full py-1 text-emerald-700 font-bold text-lg">
-                        {formatRupiah(255000000)}
+                        {formatRupiah(34310000)}
                       </div>
                     </div>
                   </>
@@ -2172,7 +2056,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                         onChange={e => setBerjalanMonthMain(e.target.value)}
                       />
                     </div>
-                    <div className="flex items-end pb-3 text-gray-400 font-black text-lg select-none">—</div>
+                    <div className="flex items-end pb-3 text-gray-400 font-black text-lg select-none">-</div>
                     <div className="flex-1 min-w-[250px] p-3 bg-gray-50 border border-gray-200 rounded-xl">
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Sampai Bulan</label>
                       <input
@@ -2185,7 +2069,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                     <div className="flex-1 min-w-[200px] p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
                       <label className="block text-xs font-bold text-emerald-600 uppercase mb-2">Target Pendapatan</label>
                       <div className="w-full py-1 text-emerald-700 font-bold text-lg">
-                        {formatRupiah(255000000 * getMonthsDiff(`${berjalanMonthMain}-01`, `${berjalanMonthCmp}-01`))}
+                        {formatRupiah(34310000 * getMonthsDiff(`${berjalanMonthMain}-01`, `${berjalanMonthCmp}-01`))}
                       </div>
                     </div>
                   </>
@@ -2201,7 +2085,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                         onChange={e => setFilterDate1(e.target.value)}
                       />
                     </div>
-                    <div className="flex items-end pb-3 text-gray-400 font-black text-lg select-none">—</div>
+                    <div className="flex items-end pb-3 text-gray-400 font-black text-lg select-none">-</div>
                     <div className="flex-1 min-w-[200px]">
                       <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Sampai Tanggal</label>
                       <input
@@ -2318,7 +2202,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                               <td className="py-4 px-6 text-center font-bold text-gray-400 border-x border-b border-gray-100">{idx + 1}</td>
                               <td className="py-4 px-6 font-black text-gray-900 border-x border-b border-gray-100">{row.account}</td>
                               <td className="py-4 px-6 text-center font-bold bg-cyan-50 text-cyan-800 border-b border-gray-100">
-                                {new Date(row.date1).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} – {new Date(row.date1End).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                {new Date(row.date1).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} â€“ {new Date(row.date1End).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                               </td>
                               <td className="py-4 px-6 text-center font-bold text-gray-700 border-b border-gray-100">{formatRupiah(row.target)}</td>
                               <td className="py-4 px-6 text-right font-black text-blue-700 border-b border-gray-100">{formatRupiah(row.revenue)}</td>
@@ -2412,12 +2296,12 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                                         <td className="py-3 px-6 text-center font-bold bg-cyan-50 text-cyan-800 border-b border-gray-100">
                                           {accRow.dateCurrent ? (
                                             reportSubTab === 'berjalan-tahunan'
-                                              ? `Tahun ${accRow.dateCurrent} – ${accRow.dateCurrentEnd} (YTD)`
+                                              ? `Tahun ${accRow.dateCurrent} â€“ ${accRow.dateCurrentEnd} (YTD)`
                                               : (reportSubTab === 'tahunan'
                                                 ? `Tahun ${accRow.dateCurrent} (YTD)`
                                                 : (reportSubTab === 'berjalan-monthly' 
-                                                    ? `${new Date(accRow.dateCurrent).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })} – ${new Date(accRow.dateCurrentEnd).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`
-                                                    : (accRow.dateCurrentEnd ? `${new Date(accRow.dateCurrent).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} – ${new Date(accRow.dateCurrentEnd).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}` : 'Bulan Ini')))
+                                                    ? `${new Date(accRow.dateCurrent).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })} â€“ ${new Date(accRow.dateCurrentEnd).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`
+                                                    : (accRow.dateCurrentEnd ? `${new Date(accRow.dateCurrent).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} â€“ ${new Date(accRow.dateCurrentEnd).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}` : 'Bulan Ini')))
                                           ) : (reportSubTab === 'berjalan-tahunan' ? 'Tahun Ini' : 'Bulan Ini')}
                                         </td>
                                         <td className="py-3 px-6 text-right font-black text-blue-700 border-b border-gray-100">{formatRupiah(accRow.currentRevenue)}</td>
@@ -2433,15 +2317,15 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                                               <>
                                                 <span className="text-[10px] uppercase tracking-wider opacity-60 block mb-0.5">{comp.titleCompare}</span>
                                                 {reportSubTab === 'berjalan-tahunan'
-                                                  ? `↩ Tahun ${comp.dateCompare1} – ${comp.dateCompare2} (YTD)`
+                                                  ? `â†© Tahun ${comp.dateCompare1} â€“ ${comp.dateCompare2} (YTD)`
                                                   : (reportSubTab === 'tahunan'
-                                                    ? `↩ Tahun ${comp.dateCompare1} (YTD)`
+                                                    ? `â†© Tahun ${comp.dateCompare1} (YTD)`
                                                     : (reportSubTab === 'berjalan-monthly'
-                                                        ? `↩ ${new Date(comp.dateCompare1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`
-                                                        : (comp.dateCompare2 ? `↩ ${new Date(comp.dateCompare1).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} – ${new Date(comp.dateCompare2).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}` : `↩ ${comp.titleCompare}`)))}
+                                                        ? `â†© ${new Date(comp.dateCompare1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`
+                                                        : (comp.dateCompare2 ? `â†© ${new Date(comp.dateCompare1).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })} â€“ ${new Date(comp.dateCompare2).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}` : `â†© ${comp.titleCompare}`)))}
                                               </>
                                           ) : (
-                                            `↩ ${comp.titleCompare}`
+                                            `â†© ${comp.titleCompare}`
                                           )}
                                         </td>
                                         <td className="py-3 px-6 text-right font-bold text-gray-400 border-b border-gray-100">{formatRupiah(comp.valueCompare)}</td>
@@ -2470,9 +2354,9 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                             {(() => {
                               const totalRev = filteredReportComparisonData.reduce((acc, curr) => acc + curr.currentRevenue, 0);
                               const totalTarget = reportSubTab === 'berjalan-tahunan' 
-                                ? 3067000000 * (Math.abs(new Date(filterDate2).getFullYear() - new Date(filterDate1).getFullYear()) + 1) 
+                                ? 411720000 * (Math.abs(new Date(filterDate2).getFullYear() - new Date(filterDate1).getFullYear()) + 1) 
                                 : (reportSubTab === 'berjalan-monthly' 
-                                  ? 255000000 * getMonthsDiff(`${berjalanMonthMain}-01`, `${berjalanMonthCmp}-01`) 
+                                  ? 34310000 * getMonthsDiff(`${berjalanMonthMain}-01`, `${berjalanMonthCmp}-01`) 
                                   : (reportSubTab === 'bulanan' ? derivedHarianBerjalanTarget : filteredReportComparisonData.reduce((acc, curr) => {
                                       const t = reportSubTab === 'tahunan' ? (tahunanTargets[curr.account] || 0) : (bulananTargets[curr.account] || 0);
                                       return acc + t;
@@ -2495,7 +2379,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                           
                           {(reportSubTab === 'bulanan-monthly' || reportSubTab === 'tahunan') && (
                             <td className="py-5 px-6 text-center text-emerald-400 text-lg font-black">
-                              {formatRupiah(reportSubTab === 'tahunan' ? 3067000000 : 255000000)}
+                              {formatRupiah(reportSubTab === 'tahunan' ? 411720000 : 34310000)}
                             </td>
                           )}
 
@@ -2520,10 +2404,10 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                               {(() => {
                                   const totalRev = filteredReportComparisonData.reduce((acc, curr) => acc + (curr.val1 || curr.currentRevenue || curr.revenue), 0);
                                   if (reportSubTab === 'bulanan-monthly') {
-                                    const pct = (totalRev / 255000000) * 100;
+                                    const pct = (totalRev / 34310000) * 100;
                                     return `${pct.toFixed(2)}%`;
                                   } else if (reportSubTab === 'tahunan') {
-                                    const pct = (totalRev / 3067000000) * 100;
+                                    const pct = (totalRev / 411720000) * 100;
                                     return `${pct.toFixed(2)}%`;
                                   } else {
                                     const totalPrev = filteredReportComparisonData.reduce((acc, curr) => acc + (curr.val2 || curr.prevRevenue), 0);
@@ -2541,7 +2425,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                           <td className="py-4 px-6 text-right border-l border-gray-700">
                             <span className="text-emerald-400 font-bold text-lg">
                               {(() => {
-                                const totalTarget = 250000000 * getMonthsDiff(filterDate1, filterDateEnd);
+                                const totalTarget = 34310000 * getMonthsDiff(filterDate1, filterDateEnd);
                                 return formatRupiah(totalTarget);
                               })()}
                             </span>
@@ -2549,7 +2433,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                           <td className="py-4 px-6 text-center text-blue-400 text-lg font-black border-l border-gray-700">
                             {(() => {
                                 const totalRev = filteredReportComparisonData.reduce((acc, curr) => acc + curr.revenue, 0);
-                                const totalTarget = 250000000 * getMonthsDiff(filterDate1, filterDateEnd);
+                                const totalTarget = 34310000 * getMonthsDiff(filterDate1, filterDateEnd);
                                 const pct = totalTarget > 0 ? (totalRev / totalTarget) * 100 : 0;
                                 return `${pct.toFixed(2)}%`;
                             })()} <span className="text-xs text-gray-400 block mt-1">(Ach. Target)</span>
@@ -2663,9 +2547,9 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
               <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 flex items-start gap-3">
                 <AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={18} />
                 <div>
-                  <p className="text-sm font-black text-amber-800">Barang Mengendap ≥ 2 Bulan</p>
+                  <p className="text-sm font-black text-amber-800">Barang Mengendap â‰¥ 2 Bulan</p>
                   <p className="text-xs text-amber-600 mt-0.5 font-medium">
-                    Daftar ini menampilkan stok cabang Banua yang belum terjual selama ≥ 60 hari dan tidak ada transaksi dalam 2 bulan terakhir. Segera buat promo untuk menggerakkan stok ini.
+                    Daftar ini menampilkan stok cabang Banua yang belum terjual selama â‰¥ 60 hari dan tidak ada transaksi dalam 2 bulan terakhir. Segera buat promo untuk menggerakkan stok ini.
                   </p>
                 </div>
               </div>
@@ -2707,9 +2591,9 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                               ? 'bg-orange-100 text-orange-700 border border-orange-200'
                               : 'bg-amber-100 text-amber-700 border border-amber-200';
                           const badgeLabel = hari >= 180
-                            ? `${bulan} bln ⚠️`
+                            ? `${bulan} bln âš ï¸`
                             : hari >= 90
-                              ? `${bulan} bln 🔶`
+                              ? `${bulan} bln ðŸ”¶`
                               : `${bulan} bln`;
 
                           return (
@@ -2742,7 +2626,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                                   onClick={() => {
                                     // Navigate ke tab Stok Inventori dengan filter nama produk
                                     setStokSearch(item.product_name);
-                                    navigate(`/marketing-online/inventory?q=${encodeURIComponent(item.product_name)}`);
+                                    navigate(`/marketing-online-tanaka/inventory?q=${encodeURIComponent(item.product_name)}`);
                                   }}
                                   className="px-3 py-1.5 bg-[#990000] text-white rounded-xl text-[10px] font-black hover:bg-red-900 transition-all active:scale-95 shadow-lg shadow-red-100 flex items-center gap-1.5 mx-auto"
                                 >
@@ -2845,7 +2729,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
         loading={loading}
         formatRupiah={formatRupiah}
         inventory={inventory}
-        availableAccounts={ACCESTRET_ACCOUNTS}
+        availableAccounts={[...new Set([...Object.keys(dailyTargets), ...Object.keys(bulananTargets), ...Object.keys(tahunanTargets)])].sort()}
       />
 
       {/* EDIT ORDER MODAL */}
@@ -2856,7 +2740,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
             <div className="flex items-center justify-between px-8 py-6 border-b border-gray-100 sticky top-0 bg-white z-10 rounded-t-3xl">
               <div>
                 <h2 className="text-xl font-black text-gray-900">Edit Order</h2>
-                <p className="text-xs text-gray-400 font-medium mt-0.5">Perbarui data pesanan — semua kalkulasi dihitung ulang otomatis</p>
+                <p className="text-xs text-gray-400 font-medium mt-0.5">Perbarui data pesanan - semua kalkulasi dihitung ulang otomatis</p>
               </div>
               <button onClick={() => { setShowEditModal(false); setEditOrder(null); }} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
                 <X size={20} className="text-gray-500" />
@@ -2873,13 +2757,8 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Akun Toko</label>
-                  <select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-medium text-sm"
-                    value={editOrder.akun_toko} onChange={e => setEditOrder({ ...editOrder, akun_toko: e.target.value })}>
-                    <option value="">-- Pilih Akun Toko --</option>
-                    {ACCESTRET_ACCOUNTS.map((acc, i) => (
-                      <option key={i} value={acc}>{acc}</option>
-                    ))}
-                  </select>
+                  <input type="text" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-medium text-sm"
+                    value={editOrder.akun_toko} onChange={e => setEditOrder({ ...editOrder, akun_toko: e.target.value })} placeholder="Nama akun toko" />
                 </div>
               </div>
 
@@ -2907,7 +2786,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
               {/* Baris 3: HPP Satuan & Potongan Shopee */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-[#990000] uppercase mb-2">⚡ HPP Satuan</label>
+                  <label className="block text-xs font-bold text-[#990000] uppercase mb-2">âš¡ HPP Satuan</label>
                   <input type="number" className="w-full p-3 bg-red-50 border border-red-200 rounded-xl outline-none focus:ring-2 focus:ring-red-100 font-bold text-sm text-[#990000]"
                     value={editOrder.hpp_aktual} onChange={e => setEditOrder({ ...editOrder, hpp_aktual: e.target.value })} placeholder="0" min="0" />
                   <p className="text-[10px] text-gray-400 mt-1">Ubah jika harga bahan baku berubah</p>
@@ -2936,7 +2815,210 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                       { label: 'Total Harga', val: totalHarga, color: 'text-gray-800' },
                       { label: 'Total HPP', val: totalHppAkt, color: 'text-orange-600' },
                       { label: 'Actual', val: actual, color: 'text-blue-700' },
-                      { label: 'HPP (qty×hpp)', val: hppTotal, color: 'text-gray-600' },
+                      { label: 'HPP (qtyÃ—hpp)', val: hppTotal, color: 'text-gray-600' },
+                      { label: 'Profit', val: profit, color: profit >= 0 ? 'text-emerald-700' : 'text-red-600' },
+                    ].map((item, i) => (
+                      <div key={i} className="text-center">
+                        <p className="text-[9px] font-black uppercase text-gray-400 tracking-wider">{item.label}</p>
+                        <p className={`text-sm font-black ${item.color} mt-0.5`}>{formatRupiah(item.val)}</p>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+
+              {/* Status & Catatan */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Status</label>
+                  <select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-bold text-sm"
+                    value={editOrder.status} onChange={e => setEditOrder({ ...editOrder, status: e.target.value })}>
+                    <option value="Pesanan Selesai">Pesanan Selesai</option>
+                    <option value="Menunggu Finance">Menunggu Finance</option>
+                    <option value="Batal">Batal</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Catatan</label>
+                  <input type="text" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-medium text-sm"
+                    value={editOrder.catatan} onChange={e => setEditOrder({ ...editOrder, catatan: e.target.value })} placeholder="Catatan tambahan..." />
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-8 py-5 border-t border-gray-100 flex justify-end gap-3 sticky bottom-0 bg-white rounded-b-3xl">
+              <button onClick={() => { setShowEditModal(false); setEditOrder(null); }}
+                className="px-6 py-2.5 rounded-xl text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors">
+                Batal
+              </button>
+              <button onClick={handleSaveEdit} disabled={loading}
+                className="px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition-all flex items-center gap-2">
+                {loading ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />}
+                Simpan Perubahan
+              </button>
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                  <thead className="bg-gray-900 text-white text-[9px] uppercase tracking-widest font-bold sticky top-0">
+                    <tr>
+                      <th className="py-4 px-6">Tanggal</th>
+                      <th className="py-4 px-6">Akun</th>
+                      <th className="py-4 px-6">Produk</th>
+                      <th className="py-4 px-6">Qty</th>
+                      <th className="py-4 px-6">Total Harga</th>
+                      <th className="py-4 px-6">Potongan</th>
+                      <th className="py-4 px-6">Profit</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-[10px] divide-y divide-gray-100">
+                    {importPreview.slice(0, 50).map((row, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50">
+                        <td className="py-3 px-6 whitespace-nowrap">{row.order_date}</td>
+                        <td className="py-3 px-6 text-gray-500">{row.akun_toko}</td>
+                        <td className="py-3 px-6 font-bold">{row.product_name}</td>
+                        <td className="py-3 px-6 font-black text-[#990000]">{row.qty}</td>
+                        <td className="py-3 px-6 font-semibold">{formatRupiah(row.total_price)}</td>
+                        <td className="py-3 px-6 text-red-500 font-medium">{formatRupiah(row.potongan_shopee)}</td>
+                        <td className="py-3 px-6 font-bold text-emerald-600">{formatRupiah(row.profit)}</td>
+                      </tr>
+                    ))}
+                    {importPreview.length > 50 && (
+                      <tr>
+                        <td colSpan="6" className="py-4 text-center text-gray-500 font-medium bg-gray-50">
+                          ... dan {importPreview.length - 50} baris lainnya
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="px-8 py-5 border-t border-gray-100 bg-white flex justify-end gap-3">
+              <button
+                onClick={() => setShowImportModal(false)}
+                className="px-6 py-2.5 rounded-xl text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleSaveImport}
+                disabled={loading}
+                className="px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-[#990000] hover:bg-[#7a0000] shadow-sm hover:shadow-md transition-all flex items-center gap-2"
+              >
+                {loading ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />}
+                Simpan ke Database
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MANUAL ORDER MODAL */}
+      <ManualOrderModal
+        show={showManualModal}
+        onClose={() => setShowManualModal(false)}
+        onSave={handleSaveManual}
+        order={manualOrder}
+        setOrder={setManualOrder}
+        loading={loading}
+        formatRupiah={formatRupiah}
+        inventory={inventory}
+        pricelistOnlineData={pricelistOnlineData}
+        availableAccounts={[...new Set([...Object.keys(dailyTargets), ...Object.keys(bulananTargets), ...Object.keys(tahunanTargets)])].sort()}
+      />
+
+      {/* EDIT ORDER MODAL */}
+      {showEditModal && editOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between px-8 py-6 border-b border-gray-100 sticky top-0 bg-white z-10 rounded-t-3xl">
+              <div>
+                <h2 className="text-xl font-black text-gray-900">Edit Order</h2>
+                <p className="text-xs text-gray-400 font-medium mt-0.5">Perbarui data pesanan - semua kalkulasi dihitung ulang otomatis</p>
+              </div>
+              <button onClick={() => { setShowEditModal(false); setEditOrder(null); }} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+                <X size={20} className="text-gray-500" />
+              </button>
+            </div>
+
+            <div className="px-8 py-6 space-y-5">
+              {/* Baris 1: Tanggal & Akun Toko */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Tanggal Order</label>
+                  <input type="date" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-medium text-sm"
+                    value={editOrder.order_date} onChange={e => setEditOrder({ ...editOrder, order_date: e.target.value })} />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Akun Toko</label>
+                  <input type="text" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-medium text-sm"
+                    value={editOrder.akun_toko} onChange={e => setEditOrder({ ...editOrder, akun_toko: e.target.value })} placeholder="Nama akun toko" />
+                </div>
+              </div>
+
+              {/* Kode Produk & Nama Produk */}
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-indigo-500 uppercase mb-2">Kode Produk</label>
+                  <input type="text" className="w-full p-3 bg-indigo-50 border border-indigo-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-100 font-bold text-sm text-indigo-700 tracking-wide"
+                    value={editOrder.kode_produk || ''} onChange={e => setEditOrder({ ...editOrder, kode_produk: e.target.value })} placeholder="Mis: TK-001" />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Nama Produk</label>
+                  <input type="text" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-medium text-sm"
+                    value={editOrder.product_name} onChange={e => setEditOrder({ ...editOrder, product_name: e.target.value })} placeholder="Nama produk" />
+                </div>
+              </div>
+
+              {/* Baris 2: Qty & Harga Satuan */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Qty</label>
+                  <input type="number" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-medium text-sm"
+                    value={editOrder.qty} onChange={e => setEditOrder({ ...editOrder, qty: e.target.value })} placeholder="0" min="0" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Harga Satuan</label>
+                  <input type="number" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-medium text-sm"
+                    value={editOrder.price_unit} onChange={e => setEditOrder({ ...editOrder, price_unit: e.target.value })} placeholder="0" min="0" />
+                </div>
+              </div>
+
+              {/* Baris 3: HPP Satuan & Potongan Shopee */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#990000] uppercase mb-2">âš¡ HPP Satuan</label>
+                  <input type="number" className="w-full p-3 bg-red-50 border border-red-200 rounded-xl outline-none focus:ring-2 focus:ring-red-100 font-bold text-sm text-[#990000]"
+                    value={editOrder.hpp_aktual} onChange={e => setEditOrder({ ...editOrder, hpp_aktual: e.target.value })} placeholder="0" min="0" />
+                  <p className="text-[10px] text-gray-400 mt-1">Ubah jika harga bahan baku berubah</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Potongan Shopee</label>
+                  <input type="number" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-100 font-medium text-sm"
+                    value={editOrder.potongan_shopee} onChange={e => setEditOrder({ ...editOrder, potongan_shopee: e.target.value })} placeholder="0" min="0" />
+                </div>
+              </div>
+
+              {/* Preview Kalkulasi Otomatis */}
+              {(() => {
+                const q   = parseInt(editOrder.qty) || 0;
+                const pu  = parseFloat(editOrder.price_unit) || 0;
+                const ps  = parseFloat(editOrder.potongan_shopee) || 0;
+                const hpp = parseFloat(editOrder.hpp_aktual) || 0;
+                const totalHarga   = q * pu;
+                const hppTotal     = q * hpp;
+                const totalHppAkt  = hppTotal + ps;
+                const actual       = totalHarga - ps;
+                const profit       = actual - hppTotal;
+                return (
+                  <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 grid grid-cols-3 gap-3">
+                    {[
+                      { label: 'Total Harga', val: totalHarga, color: 'text-gray-800' },
+                      { label: 'Total HPP', val: totalHppAkt, color: 'text-orange-600' },
+                      { label: 'Actual', val: actual, color: 'text-blue-700' },
+                      { label: 'HPP (qtyÃ—hpp)', val: hppTotal, color: 'text-gray-600' },
                       { label: 'Profit', val: profit, color: profit >= 0 ? 'text-emerald-700' : 'text-red-600' },
                     ].map((item, i) => (
                       <div key={i} className="text-center">
@@ -3041,7 +3123,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
 };
 
 // Sub-component for Manual Order Modal
-const ManualOrderModal = ({ show, onClose, onSave, order, setOrder, loading, formatRupiah, inventory, availableAccounts }) => {
+const ManualOrderModal = ({ show, onClose, onSave, order, setOrder, loading, formatRupiah, inventory, availableAccounts, pricelistOnlineData }) => {
   if (!show) return null;
   return (
     <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -3063,7 +3145,7 @@ const ManualOrderModal = ({ show, onClose, onSave, order, setOrder, loading, for
               <input type="date" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-100 outline-none font-medium" value={order.order_date} onChange={e => setOrder({ ...order, order_date: e.target.value })} />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Akun Toko</label>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Akun Toko <span className="text-red-500">*</span></label>
               <select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-100 outline-none font-medium text-gray-800" value={order.akun_toko} onChange={e => setOrder({ ...order, akun_toko: e.target.value })}>
                 <option value="">-- Pilih Akun Toko --</option>
                 {availableAccounts && availableAccounts.map((acc, idx) => (
@@ -3074,9 +3156,9 @@ const ManualOrderModal = ({ show, onClose, onSave, order, setOrder, loading, for
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Kode Produk</label>
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Kode Produk <span className="text-red-500">*</span></label>
             <select 
-              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-100 outline-none font-medium text-gray-800" 
+              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-100 outline-none font-medium text-gray-800 text-sm" 
               value={order.stok_id || ''} 
               onChange={e => {
                 const selectedId = e.target.value;
@@ -3088,7 +3170,20 @@ const ManualOrderModal = ({ show, onClose, onSave, order, setOrder, loading, for
                 if (selectedItem) {
                   const sizeText = selectedItem.ukuran && selectedItem.ukuran !== '-' ? ` - ${selectedItem.ukuran}` : '';
                   const fullName = `${selectedItem.nama_barang}${sizeText}`;
-                  setOrder({ ...order, stok_id: selectedItem.id, kode_produk: selectedItem.kode_produk || '', product_name: fullName });
+                  const kode = selectedItem.kode_produk || '';
+                  // Cari harga dari pricelist berdasarkan kode produk
+                  const priceMatch = kode && pricelistOnlineData?.find(p => p.kode?.toLowerCase() === kode.toLowerCase());
+                  setOrder({ 
+                    ...order, 
+                    stok_id: selectedItem.id, 
+                    kode_produk: kode,
+                    product_name: fullName,
+                    ...(priceMatch ? {
+                      hpp_aktual: parseFloat(priceMatch.hpp) || order.hpp_aktual,
+                      price_unit: parseFloat(priceMatch.harga_jual) || order.price_unit,
+                      potongan_shopee: parseFloat(priceMatch.pot_shopee) || order.potongan_shopee,
+                    } : {})
+                  });
                 }
               }}
             >
@@ -3102,11 +3197,17 @@ const ManualOrderModal = ({ show, onClose, onSave, order, setOrder, loading, for
                 );
               })}
             </select>
+            {order.product_name && (
+              <p className="mt-2 text-xs text-gray-500 font-medium px-1">
+                ðŸ“¦ <span className="text-gray-800 font-bold">{order.product_name}</span>
+                {order.kode_produk && <span className="ml-2 text-indigo-500 font-bold">({order.kode_produk})</span>}
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Qty</label>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Qty <span className="text-red-500">*</span></label>
               <input type="number" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-100 outline-none font-bold text-[#990000]" value={order.qty} onChange={e => setOrder({ ...order, qty: e.target.value })} placeholder="0" />
             </div>
             <div>
@@ -3188,4 +3289,5 @@ const ManualOrderModal = ({ show, onClose, onSave, order, setOrder, loading, for
   );
 };
 
-export default AccestretMarketingDashboard;
+export default MarketingOnlineTanaka;
+

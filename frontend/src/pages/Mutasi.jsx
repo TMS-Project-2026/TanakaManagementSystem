@@ -17,7 +17,7 @@ const Mutasi = () => {
     // Form header inputs (Tulis Manual)
     const [form, setForm] = useState({
         nama_barang: '',
-        dari_cabang: userRole === 'gudang_accestret' ? 'Acestreet' : '',
+        dari_cabang: userRole === 'gudang_accestret' ? 'Acestreet' : userRole === 'gudang' ? 'Global' : '',
         ke_cabang: '',
         tanggal: new Date().toISOString().split('T')[0]
     });
@@ -137,7 +137,7 @@ const Mutasi = () => {
             fetchData();
             
             // Reset form
-            setForm({ nama_barang: '', dari_cabang: userRole === 'gudang_accestret' ? 'Acestreet' : '', ke_cabang: '', tanggal: new Date().toISOString().split('T')[0] });
+            setForm({ nama_barang: '', dari_cabang: userRole === 'gudang_accestret' ? 'Acestreet' : userRole === 'gudang' ? 'Global' : '', ke_cabang: '', tanggal: new Date().toISOString().split('T')[0] });
             setFormItems([{ ukuran: 'S', jumlah: 1 }]);
             setShowAddModal(false);
         } catch (error) {
@@ -251,23 +251,25 @@ const Mutasi = () => {
                                                 ))}
                                             </datalist>
                                         </div>
-                                        <div>
-                                            <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Dari Cabang (Tulis Manual)</label>
-                                            <input
-                                                type="text"
-                                                required
-                                                placeholder="Ketik cabang asal..."
-                                                list="branches-datalist"
-                                                value={form.dari_cabang}
-                                                onChange={e => setForm({...form, dari_cabang: e.target.value})}
-                                                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all text-sm bg-white"
-                                            />
-                                            <datalist id="branches-datalist">
-                                                {uniqueBranches.map(br => (
-                                                    <option key={br} value={br} />
-                                                ))}
-                                            </datalist>
-                                        </div>
+                                        {userRole !== 'gudang' && (
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Dari Cabang (Tulis Manual)</label>
+                                                <input
+                                                    type="text"
+                                                    required
+                                                    placeholder="Ketik cabang asal..."
+                                                    list="branches-datalist"
+                                                    value={form.dari_cabang}
+                                                    onChange={e => setForm({...form, dari_cabang: e.target.value})}
+                                                    className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 outline-none transition-all text-sm bg-white"
+                                                />
+                                                <datalist id="branches-datalist">
+                                                    {uniqueBranches.map(br => (
+                                                        <option key={br} value={br} />
+                                                    ))}
+                                                </datalist>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -377,7 +379,7 @@ const Mutasi = () => {
                                         <th className="p-4 font-semibold">Tanggal</th>
                                         <th className="p-4 font-semibold">Nama Barang</th>
                                         <th className="p-4 font-semibold text-center">Ukuran</th>
-                                        <th className="p-4 font-semibold text-center">Dari Cabang</th>
+                                        {userRole !== 'gudang' && <th className="p-4 font-semibold text-center">Dari Cabang</th>}
                                         <th className="p-4 font-semibold text-center">Ke Cabang</th>
                                         <th className="p-4 font-semibold text-center">Jumlah</th>
                                     </tr>
@@ -394,7 +396,7 @@ const Mutasi = () => {
                                                     {item.ukuran || '-'}
                                                 </span>
                                             </td>
-                                            <td className="p-4 text-center"><span className="bg-red-50 text-red-700 px-2.5 py-1 rounded text-xs font-extrabold">{item.dari_cabang}</span></td>
+                                            {userRole !== 'gudang' && <td className="p-4 text-center"><span className="bg-red-50 text-red-700 px-2.5 py-1 rounded text-xs font-extrabold">{item.dari_cabang}</span></td>}
                                             <td className="p-4 text-center"><span className="bg-green-50 text-green-700 px-2.5 py-1 rounded text-xs font-extrabold">{item.ke_cabang}</span></td>
                                             <td className="p-4 text-center font-extrabold text-blue-600 text-base">{item.jumlah} Pcs</td>
                                         </tr>

@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Marketing from './pages/Marketing';
 import MarketingOnlineBanua from './pages/MarketingOnlineBanua';
+import MarketingOnlineTanaka from './pages/MarketingOnlineTanaka';
 import MarketingOfflineBanua from './pages/MarketingOfflineBanua';
 import MarketingOfflineTanaka from './pages/MarketingOfflineTanaka';
 import CreateOrderOfflineBanua from './pages/CreateOrderOfflineBanua';
@@ -101,6 +102,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
       if (userRole === 'produksi') return <Navigate to='/produksi/dashboard' replace />;
       if (userRole === 'admin_it') return <Navigate to='/it/dashboard' replace />;
       if (userRole === 'marketing_online') return <Navigate to='/marketing-online/dashboard' replace />;
+      if (userRole === 'marketing_online_tanaka') return <Navigate to='/marketing-online-tanaka/dashboard' replace />;
       if (userRole === 'marketing_offline') return <Navigate to='/marketing-offline/dashboard' replace />;
       if (userRole === 'marketing_offline_tanaka') return <Navigate to='/marketing-offline-tanaka/dashboard' replace />;
       if (userRole === 'marketing_accestret') return <Navigate to='/accestret/marketing/dashboard' replace />;
@@ -166,6 +168,12 @@ function App() {
         <Route path="/marketing-online/:tab/:subtab?" element={
           <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'marketing_online', 'Marketing']}>
             <MarketingOnlineBanua />
+          </ProtectedRoute>
+        } />
+        <Route path="/marketing-online-tanaka" element={<Navigate to="/marketing-online-tanaka/dashboard" replace />} />
+        <Route path="/marketing-online-tanaka/:tab/:subtab?" element={
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'marketing_online_tanaka']}>
+            <MarketingOnlineTanaka />
           </ProtectedRoute>
         } />
         <Route path="/gudang" element={
@@ -234,7 +242,7 @@ function App() {
           </ProtectedRoute>
         } />
         <Route path="/pricelist-online" element={
-          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'owner', 'marketing_online', 'Marketing']}>
+          <ProtectedRoute allowedRoles={['Admin', 'Manager', 'owner', 'marketing_online', 'marketing_online_tanaka', 'Marketing']}>
             <PricelistOnline />
           </ProtectedRoute>
         } />

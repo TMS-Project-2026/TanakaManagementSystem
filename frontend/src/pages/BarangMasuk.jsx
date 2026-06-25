@@ -25,7 +25,7 @@ const BarangMasuk = () => {
     const [namaBrand, setNamaBrand] = useState('');
     const [namaBarang, setNamaBarang] = useState('');
     const [kategori, setKategori] = useState('Reguler');
-    const [cabangId, setCabangId] = useState(userRole === 'gudang_accestret' ? 'Acestreet' : 'Banua');
+    const [cabangId, setCabangId] = useState(userRole === 'gudang_accestret' ? 'Acestreet' : userRole === 'gudang' ? 'Global' : 'Banua');
     const [kodeRak, setKodeRak] = useState('');
     const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
     const [minimumStok, setMinimumStok] = useState('5'); // Default minimal stok untuk transaksi ini
@@ -126,7 +126,7 @@ const BarangMasuk = () => {
             setNamaBrand('');
             setNamaBarang('');
             setKategori('Reguler');
-            setCabangId(userRole === 'gudang_accestret' ? 'Acestreet' : 'Banua');
+            setCabangId(userRole === 'gudang_accestret' ? 'Acestreet' : userRole === 'gudang' ? 'Global' : 'Banua');
             setKodeRak('');
             setMinimumStok('5');
             setSizeItems(initialSizes);
@@ -474,7 +474,7 @@ const BarangMasuk = () => {
                                     setNamaBarang('');
                                     setKodeProduk('');
                                     setKategori('Reguler');
-                                    setCabangId('Banua');
+                                    setCabangId(userRole === 'gudang_accestret' ? 'Acestreet' : userRole === 'gudang' ? 'Global' : 'Banua');
                                     setKodeRak('');
                                     setMinimumStok('5');
                                     setSizeItems(initialSizes);
@@ -543,15 +543,18 @@ const BarangMasuk = () => {
                                             <input type="date" required value={tanggal} onChange={e => setTanggal(e.target.value)}
                                                 className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-green-100 focus:border-green-600 outline-none transition-all" />
                                         </div>
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-1">Cabang Tujuan</label>
-                                            <select required value={cabangId} onChange={e => setCabangId(e.target.value)}
-                                                className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-green-100 focus:border-green-600 outline-none bg-white">
-                                                <option value="Banua">Banua</option>
-                                                <option value="Tanaka">Tanaka</option>
-                                                <option value="Acestreet">Acestreet</option>
-                                            </select>
-                                        </div>
+                                        {userRole !== 'gudang' && (
+                                            <div>
+                                                <label className="block text-sm font-semibold text-gray-700 mb-1">Cabang Tujuan</label>
+                                                <select required value={cabangId} onChange={e => setCabangId(e.target.value)}
+                                                    className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-green-100 focus:border-green-600 outline-none bg-white">
+                                                    <option value="Banua">Banua</option>
+                                                    <option value="Tanaka">Tanaka</option>
+                                                    <option value="Acestreet">Acestreet</option>
+                                                    <option value="Global">Global</option>
+                                                </select>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* TABEL GRID UKURAN */}
@@ -635,7 +638,7 @@ const BarangMasuk = () => {
                                         <th className="px-3 py-3 border-r border-gray-700">JENIS</th>
                                         <th className="px-3 py-3 border-r border-gray-700">NAMA PRODUK</th>
                                         <th className="px-3 py-3 border-r border-gray-700">BAHAN</th>
-                                        <th className="px-3 py-3 border-r border-gray-700">CABANG</th>
+                                        {userRole !== 'gudang' && <th className="px-3 py-3 border-r border-gray-700">CABANG</th>}
                                         {sizesArray.map(sz => (
                                             <th key={sz} className="px-2 py-3 text-center border-r border-gray-700 w-14">{sz}</th>
                                         ))}
@@ -657,7 +660,7 @@ const BarangMasuk = () => {
                                             </td>
                                             <td className="px-3 py-2.5 font-semibold text-gray-800 border-r border-gray-100 whitespace-nowrap">{item.nama_barang}</td>
                                             <td className="px-3 py-2.5 text-gray-500 border-r border-gray-100">{item.bahan}</td>
-                                            <td className="px-3 py-2.5 text-gray-600 border-r border-gray-100">{item.cabang_id}</td>
+                                            {userRole !== 'gudang' && <td className="px-3 py-2.5 text-gray-600 border-r border-gray-100">{item.cabang_id}</td>}
                                             {sizesArray.map(sz => {
                                                 const qty = item.sizes[sz]?.jumlah || 0;
                                                 return (
@@ -707,19 +710,22 @@ const BarangMasuk = () => {
                                 <button type="button" onClick={() => setShowEditModal(false)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"><X size={20} /></button>
                             </div>
                             <form onSubmit={saveEdit}>
-                                <div className="mb-4">
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Cabang Tujuan</label>
-                                    <select 
-                                        required 
-                                        value={editForm.cabang_id} 
-                                        onChange={e => setEditForm({...editForm, cabang_id: e.target.value})} 
-                                        className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-100 focus:border-blue-600 outline-none bg-white transition-all"
-                                    >
-                                        <option value="Banua">Banua</option>
-                                        <option value="Tanaka">Tanaka</option>
-                                        <option value="Acestreet">Acestreet</option>
-                                    </select>
-                                </div>
+                                {userRole !== 'gudang' && (
+                                    <div className="mb-4">
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Cabang Tujuan</label>
+                                        <select 
+                                            required 
+                                            value={editForm.cabang_id} 
+                                            onChange={e => setEditForm({...editForm, cabang_id: e.target.value})} 
+                                            className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-100 focus:border-blue-600 outline-none bg-white transition-all"
+                                        >
+                                            <option value="Banua">Banua</option>
+                                            <option value="Tanaka">Tanaka</option>
+                                            <option value="Acestreet">Acestreet</option>
+                                            <option value="Global">Global</option>
+                                        </select>
+                                    </div>
+                                )}
                                 <div className="grid grid-cols-2 gap-4">
                                     {sizesArray.map(size => (
                                         <div key={size} className="flex items-center gap-3 bg-gray-50 p-2 rounded-lg border border-gray-200">

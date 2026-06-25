@@ -21,7 +21,7 @@ exports.getDashboard = async (req, res) => {
         const keluarHariIni = keluarHariIniResult[0].total || 0;
 
         // Jumlah stok menipis
-        const [stokMenipisResult] = await promiseDb.query("SELECT COUNT(*) as total FROM stok WHERE jumlah <= minimum_stok");
+        const [stokMenipisResult] = await promiseDb.query("SELECT COUNT(*) as total FROM stok s WHERE s.jumlah <= s.minimum_stok AND EXISTS (SELECT 1 FROM barang_masuk bm WHERE bm.barang_id = s.id)");
         const stokMenipisCount = stokMenipisResult[0].total;
 
         // Total suku cadang (sparepart)
@@ -64,10 +64,11 @@ exports.getDashboard = async (req, res) => {
 
         // Tabel: Daftar barang hampir habis
         const [hampirHabis] = await promiseDb.query(`
-            SELECT kode_produk, nama_barang, bahan, jumlah, cabang_id, minimum_stok 
-            FROM stok 
-            WHERE jumlah <= minimum_stok 
-            ORDER BY jumlah ASC 
+            SELECT s.kode_produk, s.nama_barang, s.ukuran, s.bahan, s.jumlah, s.cabang_id, s.minimum_stok 
+            FROM stok s
+            WHERE s.jumlah <= s.minimum_stok 
+            AND EXISTS (SELECT 1 FROM barang_masuk bm WHERE bm.barang_id = s.id)
+            ORDER BY s.jumlah ASC 
             LIMIT 5
         `);
 
@@ -93,7 +94,7 @@ exports.getDashboard = async (req, res) => {
 exports.getWarningStok = async (req, res) => {
     try {
         const promiseDb = db.promise();
-        const sql = `SELECT s.id, s.kode_produk, s.nama_barang, s.bahan, s.kategori, s.jumlah, s.cabang_id, s.minimum_stok 
+        const sql = `SELECT s.id, s.kode_produk, s.nama_barang, s.bahan, s.kategori, s.ukuran, s.jumlah, s.cabang_id, s.minimum_stok 
                      FROM stok s
                      WHERE s.jumlah <= s.minimum_stok
                      AND EXISTS (

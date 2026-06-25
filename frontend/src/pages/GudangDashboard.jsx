@@ -171,7 +171,7 @@ const GudangDashboard = ({ embedded = false }) => {
                                                     </span>
                                                     <div className="relative flex-1 min-w-0">
                                                         <span className="text-xs font-bold text-gray-800 truncate w-full block">
-                                                            {item.nama_barang}
+                                                            {item.nama_barang} {item.ukuran ? `- ${item.ukuran}` : ''}
                                                         </span>
                                                         <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider block">
                                                             Cabang: {item.cabang_id}
@@ -216,7 +216,7 @@ const GudangDashboard = ({ embedded = false }) => {
                                                     </span>
                                                     <div className="relative flex-1 min-w-0">
                                                         <span className="text-xs font-bold text-gray-800 truncate w-full block">
-                                                            {item.nama_barang}
+                                                            {item.nama_barang} {item.ukuran ? `- ${item.ukuran}` : ''}
                                                         </span>
                                                         <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider block">
                                                             Sisa Stok: {item.jumlah}
@@ -256,7 +256,7 @@ const GudangDashboard = ({ embedded = false }) => {
                                         data.deadStock.map((item, idx) => (
                                             <div key={idx} className="bg-gray-50/50 hover:bg-gray-50 p-4 rounded-2xl border border-gray-100 flex justify-between items-center transition-all">
                                                 <div className="min-w-0 flex-1 pr-3">
-                                                    <p className="font-bold text-gray-800 text-xs truncate">{item.nama_barang}</p>
+                                                    <p className="font-bold text-gray-800 text-xs truncate">{item.nama_barang} {item.ukuran ? `- ${item.ukuran}` : ''}</p>
                                                     <p className="text-[10px] text-red-500 font-bold mt-1">⚠️ Mengendap &gt; 2 Bulan</p>
                                                 </div>
                                                 <div className="text-right shrink-0">
