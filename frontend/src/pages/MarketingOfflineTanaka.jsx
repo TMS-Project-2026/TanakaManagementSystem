@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
+import NotificationBell from '../components/NotificationBell';
 import {
   Users, FileText, ShoppingBag, Plus, Edit, Trash2, Send, X, Search, UserCircle, ChevronDown, Gift,
   Loader2, Download, TrendingUp, TrendingDown, Activity, AlertTriangle, CheckCircle, Package, Eye, Upload, DollarSign
@@ -58,6 +59,10 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
   const activeTab = currentTab;
 
   const [loading, setLoading] = useState(false);
+
+  const userRole = JSON.parse(localStorage.getItem('user'))?.role;
+  const isOwner = userRole?.toLowerCase() === 'owner';
+  const [pendingApprovals, setPendingApprovals] = useState([]);
 
   // States
   const [dashboardData, setDashboardData] = useState({
@@ -171,7 +176,31 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
         },
         comparisons: { ...prev.comparisons, ...(res.data.comparisons || {}) }
       }));
+
+      if (isOwner) {
+          const token = localStorage.getItem('token');
+          const approvalRes = await axios.get('http://localhost:3000/api/owner/approval', { headers: { Authorization: `Bearer ${token}` } }).catch(()=>({data:{data:[]}}));
+          const allApprovals = approvalRes.data?.data || [];
+          setPendingApprovals(allApprovals.filter(a => a.status === 'pending' && a.request_type?.toLowerCase().includes('quotation')));
+      }
+
     } catch (err) { console.error(err); } finally { setLoading(false); }
+  };
+
+  const handleApprove = async (id) => {
+      if(!window.confirm('Setujui pengajuan diskon/quotation ini?')) return;
+      try {
+          await axios.put(`http://localhost:3000/api/owner/approval/${id}`, { status: 'approved' }, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }});
+          fetchDashboard();
+      } catch (e) { alert('Gagal menyetujui'); }
+  };
+
+  const handleReject = async (id) => {
+      if(!window.confirm('Tolak pengajuan diskon/quotation ini?')) return;
+      try {
+          await axios.put(`http://localhost:3000/api/owner/approval/${id}`, { status: 'rejected' }, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }});
+          fetchDashboard();
+      } catch (e) { alert('Gagal menolak'); }
   };
 
   const fetchCustomers = async () => {
@@ -738,8 +767,9 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
             </div>
           )}
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-2xl border border-gray-100">
-              <div className="bg-gray-100 p-2 rounded-full cursor-pointer hover:bg-gray-200 transition-colors" onClick={() => setShowProfile(!showProfile)}>
+            <NotificationBell />
+            <div className="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-2xl border border-gray-100 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => setShowProfile(!showProfile)}>
+              <div className="bg-gray-100 p-2 rounded-full">
                 <UserCircle className="text-gray-400" size={24} />
               </div>
               <ChevronDown size={14} className="text-gray-400" />
@@ -872,15 +902,15 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
                     ))}
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  <div className={`grid grid-cols-1 ${isOwner ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-8`}>
                     {/* Sales Trend - Line Chart (2/3 width) */}
-                    <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                      <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                          <TrendingUp className="text-[#990000]" size={22} /> Tren Penjualan (30 Hari Terakhir)
+                    <div className={`${isOwner ? 'lg:col-span-2' : 'lg:col-span-2'} bg-white p-4 rounded-xl shadow-sm border border-gray-100`}>
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                          <TrendingUp className="text-[#990000]" size={16} /> Tren Penjualan (30 Hari Terakhir)
                         </h3>
                       </div>
-                      <div className="h-80 w-full">
+                      <div className="h-[220px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                           <LineChart data={dashboardData?.daily || []}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -927,10 +957,10 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
                       </div>
                     </div>
 
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
                       <div>
-                        <h3 className="text-xl font-bold text-gray-800 mb-5 flex items-center gap-2">
-                          <Package className="text-orange-500" size={22} /> Top 5 Produk
+                        <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+                          <Package className="text-orange-500" size={16} /> Top 5 Produk
                         </h3>
                         {orders.length > 0 ? (
                           <div className="space-y-3">
@@ -997,6 +1027,27 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
                         )}
                       </div>
                     </div>
+                  {/* Approval Panel (Owner Only) */}
+                  {isOwner && (
+                      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col border-t-[3px] border-t-blue-500">
+                          <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+                              <CheckCircle className="text-blue-500" size={16} /> Approval Diskon/Quotation
+                          </h3>
+                          <div className="space-y-3 flex-1 overflow-y-auto max-h-[190px] pr-1 custom-scrollbar">
+                              {pendingApprovals.length > 0 ? pendingApprovals.map(a => (
+                                  <div key={a.id} className="p-3 bg-blue-50/50 rounded-xl border border-blue-100">
+                                      <p className="text-xs font-bold text-gray-800 mb-1 truncate">{a.reference_number}</p>
+                                      <p className="text-[10px] text-gray-500 mb-3 truncate">Rp {formatRupiah(a.amount)} | {a.request_type}</p>
+                                      <div className="flex gap-2">
+                                          <button onClick={() => handleApprove(a.id)} className="flex-1 bg-blue-600 text-white text-[10px] font-bold py-1.5 rounded hover:bg-blue-700 transition-colors">Setujui</button>
+                                          <button onClick={() => handleReject(a.id)} className="flex-1 bg-white text-red-600 border border-red-200 text-[10px] font-bold py-1.5 rounded hover:bg-red-50 transition-colors">Tolak</button>
+                                      </div>
+                                  </div>
+                              )) : <div className="text-center text-xs text-gray-400 font-bold italic py-12">Tidak ada persetujuan</div>}
+                          </div>
+                      </div>
+                  )}
+
                   </div>
 
                 </div>
@@ -1733,7 +1784,7 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
                                 <button onClick={() => { setPreviewQuotation(q); setShowPreviewModal(true); }} title="Lihat PDF" className="p-2 text-gray-400 hover:text-blue-600 bg-white border border-gray-200 rounded-xl shadow-sm transition-all"><FileText size={15} /></button>
                                 {q.status === 'draft' && (
                                   <>
-                                    <button onClick={() => submitQuotation(q.id)} title="Submit ke Finance" className="p-2 text-gray-400 hover:text-emerald-600 bg-white border border-gray-200 rounded-xl shadow-sm transition-all"><Send size={15} /></button>
+                                    <button onClick={() => submitQuotation(q.id)} title="Deal & Ajukan Invoice" className="p-2 text-gray-400 hover:text-emerald-600 bg-white border border-gray-200 rounded-xl shadow-sm transition-all"><Send size={15} /></button>
                                     <button onClick={() => { 
                                       let parsedItems = [];
                                       try { if (q.items_detail) parsedItems = JSON.parse(q.items_detail); } catch(e) {}
@@ -1849,7 +1900,10 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
                       <button onClick={() => navigate(`/quotation/preview/${o.quotation_id}`)} className="p-1.5 text-gray-400 hover:text-indigo-600 bg-white border border-gray-200 rounded-lg shadow-sm transition-all" title="Lihat Quotation"><Eye size={14} /></button>
                       <button onClick={() => setUploadQuotationModal(o.quotation_id)} className="p-1.5 text-gray-400 hover:text-emerald-600 bg-white border border-gray-200 rounded-lg shadow-sm transition-all" title="Upload Dokumen"><Upload size={14} /></button>
                       {o.quotation_status !== 'Submitted' && o.quotation_status !== 'Invoice Created' && o.quotation_status !== 'approved' && o.quotation_status !== 'Diproses Produksi' && (
-                        <button onClick={() => submitQuotation(o)} className="p-1.5 text-gray-400 hover:text-orange-600 bg-white border border-gray-200 rounded-lg shadow-sm transition-all" title="Submit Quotation ke Finance"><Send size={14} /></button>
+                        <button onClick={() => submitQuotation(o)} className="p-1.5 text-gray-400 hover:text-orange-600 bg-white border border-gray-200 rounded-lg shadow-sm transition-all" title="Deal & Ajukan Invoice"><Send size={14} /></button>
+                      )}
+                      {o.invoice_id && (
+                        <button onClick={() => navigate(`/invoice/preview/${o.invoice_id}`)} className="p-1.5 text-gray-400 hover:text-blue-600 bg-white border border-gray-200 rounded-lg shadow-sm transition-all" title="Lihat & Download Invoice"><FileText size={14} /></button>
                       )}
                     </>
                   )}

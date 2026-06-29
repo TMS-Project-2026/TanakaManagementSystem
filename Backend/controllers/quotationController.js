@@ -74,7 +74,7 @@ exports.createQuotation = (req, res) => {
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
     const values = [
-        no_quotation, cabang, order_id || null, tanggal_quotation, tanggal_berlaku,
+        no_quotation, cabang, order_id || null, tanggal_quotation || null, tanggal_berlaku || null,
         nama_pt, alamat_pt, up_penagihan, cp_penagihan, email_customer,
         deskripsi_pesanan, items_detail ? JSON.stringify(items_detail) : null,
         subtotal || 0, ppn_persen || 0, jumlah_ppn || 0,
@@ -107,6 +107,8 @@ exports.updateQuotation = (req, res) => {
         setClause.push(`${key} = ?`);
         if ((key === 'items_detail' || key === 'file_uploads') && typeof value === 'object') {
             values.push(JSON.stringify(value));
+        } else if ((key === 'tanggal_quotation' || key === 'tanggal_berlaku') && value === '') {
+            values.push(null);
         } else {
             values.push(value);
         }

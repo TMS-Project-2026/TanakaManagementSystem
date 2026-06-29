@@ -355,7 +355,7 @@ const SalesOnline = () => {
 
       <main className="flex-1 flex flex-col pt-16 md:pt-0 h-screen overflow-hidden">
         {/* TOPBAR */}
-        <header className="h-auto flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-10 py-4 gap-4 sm:gap-0 mb-4">
+        <header className="h-auto flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 py-2 gap-3 sm:gap-0 mb-2">
           <div className="relative w-full sm:w-80">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input
@@ -417,13 +417,13 @@ const SalesOnline = () => {
           </div>
         </header>
 
-        <div className="flex-1 flex flex-col px-4 sm:px-10 pb-10 overflow-hidden">
-          <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100 flex flex-col h-full">
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8">
+        <div className="flex-1 flex flex-col px-4 sm:px-6 pb-4 overflow-hidden">
+          <div className="bg-white p-4 min-h-full rounded-2xl shadow-sm border border-gray-100 flex flex-col h-full">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 mb-4">
             <div>
-              <h2 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3">
-                <div className="bg-red-50 border border-red-100 p-2 rounded-lg shadow-sm">
-                  <ShoppingBag className="text-[#990000]" size={20} />
+              <h2 className="text-xl font-black text-gray-900 tracking-tight flex items-center gap-2">
+                <div className="bg-red-50 border border-red-100 p-1.5 rounded-lg shadow-sm">
+                  <ShoppingBag className="text-[#990000]" size={18} />
                 </div>
                 Data Sales Marketplace
               </h2>
@@ -467,38 +467,38 @@ const SalesOnline = () => {
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 flex-1 overflow-hidden flex flex-col">
             <div className="overflow-y-auto flex-1">
               <table className="w-full text-left border-collapse whitespace-nowrap">
-                <thead className="bg-gray-900 text-xs text-white uppercase tracking-wider font-semibold sticky top-0 z-10 shadow-sm">
+                <thead className="bg-gray-900 text-[11px] text-white uppercase tracking-wider font-semibold sticky top-0 z-10 shadow-sm">
                   <tr>
-                    <th className="py-4 px-6">Tanggal</th>
-                    <th className="py-4 px-6">Akun Toko</th>
-                    <th className="py-4 px-6">Produk</th>
-                    <th className="py-4 px-6 text-center">Qty</th>
-                    <th className="py-4 px-6 text-right">Harga Satuan</th>
-                    <th className="py-4 px-6 text-right">Total Harga</th>
-                    <th className="py-4 px-6 text-right">Potongan</th>
-                    <th className="py-4 px-6 text-right text-green-400">Profit Bersih</th>
-                    <th className="py-4 px-6 text-center">Aksi</th>
+                    <th className="py-2.5 px-4">Tanggal</th>
+                    <th className="py-2.5 px-4">Akun Toko</th>
+                    <th className="py-2.5 px-4">Produk</th>
+                    <th className="py-2.5 px-4 text-center">Qty</th>
+                    <th className="py-2.5 px-4 text-right">Harga Satuan</th>
+                    <th className="py-2.5 px-4 text-right">Total Harga</th>
+                    <th className="py-2.5 px-4 text-right">Potongan</th>
+                    <th className="py-2.5 px-4 text-right text-green-400">Profit Bersih</th>
+                    <th className="py-2.5 px-4 text-center">Aksi</th>
                   </tr>
                 </thead>
-                <tbody className="text-sm text-gray-700 divide-y divide-gray-100">
+                <tbody className="text-[13px] text-gray-700 divide-y divide-gray-100">
                   {loading ? (
-                    <tr><td colSpan="9" className="text-center py-20"><Loader2 className="w-8 h-8 animate-spin text-[#990000] mx-auto" /></td></tr>
+                    <tr><td colSpan="9" className="text-center py-10"><Loader2 className="w-8 h-8 animate-spin text-[#990000] mx-auto" /></td></tr>
                   ) : filteredSales.length === 0 ? (
-                    <tr><td colSpan="9" className="text-center py-20 text-gray-500 font-bold">Belum ada data penjualan online yang cocok.</td></tr>
+                    <tr><td colSpan="9" className="text-center py-10 text-gray-500 font-bold">Belum ada data penjualan online yang cocok.</td></tr>
                   ) : (
                     filteredSales.map((item) => (
                       <tr key={item.id} className="hover:bg-red-50/20 transition-colors">
-                        <td className="py-4 px-6">{new Date(item.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-                        <td className="py-4 px-6 font-semibold text-gray-900">{item.akun_toko}</td>
-                        <td className="py-4 px-6 font-medium text-gray-800">{item.nama_produk}</td>
-                        <td className="py-4 px-6 text-center font-bold text-[#990000]">{item.qty}</td>
-                        <td className="py-4 px-6 text-right font-medium">{formatRupiah(item.harga_satuan)}</td>
-                        <td className="py-4 px-6 text-right font-medium">{formatRupiah(item.total_harga)}</td>
-                        <td className="py-4 px-6 text-right text-red-500 font-medium">{formatRupiah(item.potongan_marketplace)}</td>
-                        <td className="py-4 px-6 text-right font-bold text-green-600 bg-green-50/30">{formatRupiah(item.profit)}</td>
-                        <td className="py-4 px-6 text-center">
+                        <td className="py-2.5 px-4">{new Date(item.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                        <td className="py-2.5 px-4 font-semibold text-gray-900">{item.akun_toko}</td>
+                        <td className="py-2.5 px-4 font-medium text-gray-800">{item.nama_produk}</td>
+                        <td className="py-2.5 px-4 text-center font-bold text-[#990000]">{item.qty}</td>
+                        <td className="py-2.5 px-4 text-right font-medium">{formatRupiah(item.harga_satuan)}</td>
+                        <td className="py-2.5 px-4 text-right font-medium">{formatRupiah(item.total_harga)}</td>
+                        <td className="py-2.5 px-4 text-right text-red-500 font-medium">{formatRupiah(item.potongan_marketplace)}</td>
+                        <td className="py-2.5 px-4 text-right font-bold text-green-600 bg-green-50/30">{formatRupiah(item.profit)}</td>
+                        <td className="py-2.5 px-4 text-center">
                           <button onClick={() => handleHapus(item.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                            <Trash2 size={18} />
+                            <Trash2 size={16} />
                           </button>
                         </td>
                       </tr>

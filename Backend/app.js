@@ -1,3 +1,4 @@
+require('./crash-logger');
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config({ quiet: true });
@@ -49,6 +50,7 @@ const stokJalanRoutes = require('./routes/stokJalanRoutes');
 const pengaturanKeuanganRoutes = require('./routes/pengaturanKeuanganRoutes');
 const permintaanStokRoutes = require('./routes/permintaanStokRoutes');
 const pricelistOnlineRoutes = require('./routes/pricelistOnlineRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 
 // 4. Daftarkan Route ke API
 app.use('/api/auth', authRoutes);
@@ -89,6 +91,7 @@ app.use('/api/stok-jalan', stokJalanRoutes);
 app.use('/api/pengaturan-keuangan', pengaturanKeuanganRoutes);
 app.use('/api/permintaan-stok', permintaanStokRoutes);
 app.use('/api/pricelist-online', pricelistOnlineRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Serve uploaded files
 const path = require('path');

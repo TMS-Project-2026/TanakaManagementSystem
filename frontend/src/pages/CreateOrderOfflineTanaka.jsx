@@ -4,6 +4,7 @@ import api from '../api/axios';
 import { createQuotation, getNextQuotationNumber, updateQuotation, getQuotationById } from '../api/quotationApi';
 import Sidebar from '../components/Sidebar';
 import { Save, X, ArrowLeft, ShoppingCart, Users, FileText, Upload, CreditCard, Settings, PenTool } from 'lucide-react';
+import { assignDisplayKode } from '../utils/productUtils';
 
 
 const CreateOrderOfflineTanaka = () => {
@@ -68,65 +69,12 @@ const CreateOrderOfflineTanaka = () => {
                 setCustomers(res.data);
             } catch (error) { console.error("Failed to fetch customers", error); }
         };
-        const getBrand = (prod) => {
-            const name = (prod.nama_produk || '').toUpperCase();
-            if (name.includes('YAMAHA')) return 'PRODUK YAMAHA MOTOR';
-            if (name.includes('HONDA MOBIL')) return 'PRODUK HONDA MOBIL';
-            if (name.includes('FLP') || name.includes('MEKANIK HONDA') || (name.includes('HONDA') && !name.includes('MOBIL'))) return 'PRODUK HONDA MOTOR';
-            if (name.includes('MITSUBISHI')) return 'PRODUK MITSUBISHI MOBIL';
-            if (name.includes('TOYOTA')) return 'PRODUK TOYOTA MOBIL';
-            if (name.includes('HYUNDAI')) return 'PRODUK HYUNDAI MOBIL';
-            if (name.includes('WULING')) return 'PRODUK WULING MOBIL';
-            if (name.includes('MAZDA')) return 'PRODUK MAZDA MOBIL';
-            if (name.includes('ALFAMART')) return 'PRODUK ALFAMART';
-            if (name.includes('INDOMARET')) return 'PRODUK INDOMARET';
-            if (name.includes('SATPAM') || name.includes('SAFARI HITAM') || name.includes('SAFARI KUNING')) return 'PRODUK SATPAM';
-            if (name.includes('SRS') || name.includes('RUMAH SAKIT') || name.includes('OKK')) return 'PRODUK SERAGAM RUMAH SAKIT';
-            if (name.includes('PERTAMINA')) return 'PRODUK PERTAMINA';
-            return 'PRODUK LAINNYA';
-        };
-
-        const BRAND_PREFIX = {
-            'PRODUK HONDA MOTOR':          'HM',
-            'PRODUK YAMAHA MOTOR':         'YM',
-            'PRODUK HONDA MOBIL':          'HMM',
-            'PRODUK MITSUBISHI MOBIL':     'MHM',
-            'PRODUK TOYOTA MOBIL':         'TM',
-            'PRODUK HYUNDAI MOBIL':        'HYM',
-            'PRODUK WULING MOBIL':         'WM',
-            'PRODUK MAZDA MOBIL':          'MM',
-            'PRODUK ALFAMART':             'AM',
-            'PRODUK INDOMARET':            'IM',
-            'PRODUK SATPAM':               'SP',
-            'PRODUK SERAGAM RUMAH SAKIT':  'SRS',
-            'PRODUK PERTAMINA':            'PT',
-            'PRODUK LAINNYA':              'PRD',
-        };
-
         const fetchProducts = async () => {
             try {
                 const res = await api.get('/produk');
                 if (res.data && res.data.data) {
-                    const fetchedProducts = res.data.data;
-                    
-                    const grouped = fetchedProducts.reduce((acc, curr) => {
-                        const brand = getBrand(curr);
-                        if (!acc[brand]) acc[brand] = [];
-                        acc[brand].push(curr);
-                        return acc;
-                    }, {});
-                    
-                    const processedProducts = [];
-                    Object.keys(grouped).forEach(brand => {
-                        grouped[brand].forEach((prod, idx) => {
-                            if (!prod.kode) {
-                                const prefix = BRAND_PREFIX[brand] || 'PRD';
-                                prod.kode = `${prefix}${String(idx + 1).padStart(3, '0')}`;
-                            }
-                            processedProducts.push(prod);
-                        });
-                    });
-                    setProducts(processedProducts);
+                    const productsWithCodes = assignDisplayKode(res.data.data);
+                    setProducts(productsWithCodes);
                 } else {
                     setProducts([]);
                 }
@@ -347,14 +295,18 @@ const CreateOrderOfflineTanaka = () => {
         setActiveItemIndex(index);
         if (Array.isArray(products)) {
             let pool = products;
-            // Filter by selected bahan first
-            if (form.bahan) {
-                pool = products.filter(p => p.bahan && p.bahan.toUpperCase() === form.bahan.toUpperCase());
+            // Filter by item's selected bahan first
+            const itemBahan = form.items[index]?.bahan;
+            if (itemBahan) {
+                pool = products.filter(p => {
+                    const productBahan = p.bahan || 'UNIONE';
+                    return productBahan.toUpperCase() === itemBahan.toUpperCase();
+                });
             }
             if (value && value.length > 0) {
                 const q = value.toLowerCase();
                 pool = pool.filter(p => {
-                    const kd = (p.kode || '').toLowerCase();
+                    const kd = (p.displayKode || p.kode || '').toLowerCase();
                     const nm = (p.nama_produk || p.nama || '').toLowerCase();
                     const bh = (p.bahan || '').toLowerCase();
                     const jn = (getJenis(p) || '').toLowerCase();
@@ -370,8 +322,9 @@ const CreateOrderOfflineTanaka = () => {
     const selectProduct = (index, prod) => {
         const newItems = [...form.items];
         // Sesuai Juklak: gunakan nama_produk asli dari database
-        newItems[index].rincian = prod.nama_produk || prod.nama;
-        newItems[index].kode_produk = prod.kode || '';  // simpan kode untuk referensi
+        const kodeDisplay = prod.displayKode ? `[${prod.displayKode}] ` : (prod.kode ? `[${prod.kode}] ` : '');
+        newItems[index].rincian = `${kodeDisplay}${prod.nama_produk || prod.nama}`;
+        newItems[index].kode_produk = prod.displayKode || prod.kode || '';  // simpan kode untuk referensi
         
         const hJual = Number(prod.harga_jual || prod.hpp_satuan || 0);
         const hSpv = Number(prod.harga_spv || 0);
@@ -399,32 +352,10 @@ const CreateOrderOfflineTanaka = () => {
     };
 
     const sendApprove = async (index) => {
-        const item = form.items[index];
-        const effectivePrice = Number(item.harga_satuan);
-        const hargaSpv = Number(item.harga_spv) || 0;
-
-        if (effectivePrice >= hargaSpv) {
-            alert('Harga masih di atas/sama dengan Harga SPV. Tidak perlu approval.');
-            return;
-        }
-
-        try {
-            await api.post('/marketing-offline-tanaka/orders/request-discount-approval', {
-                nama_produk: item.rincian,
-                harga_satuan: Number(item.harga_satuan),
-                diskon_item: Number(item.diskon_item),
-                harga_setelah_diskon: effectivePrice,
-                harga_spv: hargaSpv,
-                harga_jual: Number(item.harga_jual) || 0,
-            });
-            const newItems = [...form.items];
-            newItems[index].status_approval = 'Menunggu Approval Owner';
-            setForm({ ...form, items: newItems });
-            alert(`Request Approval Diskon untuk item "${item.rincian}" telah dikirim ke Owner!\nHarga setelah diskon: Rp ${effectivePrice.toLocaleString('id-ID')} (di bawah SPV: Rp ${hargaSpv.toLocaleString('id-ID')})`);
-        } catch (error) {
-            console.error('Gagal mengirim approval:', error);
-            alert('Gagal mengirim request approval: ' + (error.response?.data?.message || error.message));
-        }
+        alert("Silakan lengkapi form dan klik 'Simpan Order'. Pengajuan approval akan otomatis terkirim ke Owner berdasarkan harga yang Anda masukkan.");
+        const newItems = [...form.items];
+        newItems[index].status_approval = 'Akan diajukan saat disimpan';
+        setForm({ ...form, items: newItems });
     };
 
     const addItem = () => {
@@ -485,7 +416,7 @@ const CreateOrderOfflineTanaka = () => {
                     ppn_persen: form.ppn_persen,
                     jumlah_ppn: form.jumlah_ppn,
                     ongkos_kirim: form.ongkos_kirim,
-                    bahan: form.bahan,
+                    bahan: form.items.map(i => i.bahan).filter(Boolean).join(', ') || '',
                     grand_total_quo: form.grand_total,
                     payment_type: form.payment_type,
                     jenis_pembayaran: form.jenis_pembayaran,
@@ -623,47 +554,40 @@ const CreateOrderOfflineTanaka = () => {
                             </div>
                         </div>
 
-                        {/* 2.5 Pilihan Bahan (sebelum Detail Barang) */}
+                        {/* 3. Detail Pemesanan & Items */}
                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                            <h3 className="text-lg font-bold border-b border-gray-100 pb-3 mb-4 text-[#990000]">PILIH BAHAN</h3>
-                            <div className="flex flex-col gap-1">
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">Jenis Bahan Utama <span className="text-gray-400 font-normal">(Produk yang tampil di input barang akan difilter sesuai bahan ini)</span></label>
-                                <select name="bahan" value={form.bahan || ''} onChange={handleChange} className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none bg-white text-base font-semibold">
-                                    <option value="">-- Pilih Bahan (Semua produk tampil jika kosong) --</option>
-                                    <option value="NAGATA">NAGATA</option>
-                                    <option value="UNIONE">UNIONE</option>
-                                    <option value="MACAN DRILL">MACAN DRILL</option>
-                                    <option value="JAPAN DRILL">JAPAN DRILL</option>
-                                    <option value="ERRO">ERRO</option>
-                                    <option value="OXFORD">OXFORD</option>
-                                    <option value="RISPTOP">RISPTOP</option>
-                                    <option value="RIPSTOP">RIPSTOP</option>
-                                    <option value="KAOS">KAOS</option>
-                                    <option value="LACOSTE">LACOSTE</option>
-                                    <option value="DRY FIT">DRY FIT</option>
-                                    <option value="HIGH TWIST">HIGH TWIST</option>
-                                    <option value="CANVAS">CANVAS</option>
-                                    <option value="JEANS">JEANS</option>
-                                    <option value="PARAGON">PARAGON</option>
-                                    <option value="PARASUT">PARASUT</option>
-                                    <option value="PIQUE">PIQUE</option>
-                                    <option value="SERENA">SERENA</option>
-                                    <option value="TASLAN MILKY">TASLAN MILKY</option>
-                                </select>
-                                {form.bahan && (
-                                    <p className="text-xs text-blue-600 mt-1">✓ Produk difilter: hanya menampilkan produk berbahan <strong>{form.bahan}</strong></p>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* 3. Detail Order & Items */}
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                            <h3 className="text-lg font-bold border-b border-gray-100 pb-3 mb-4 text-[#990000]">DETAIL BARANG</h3>
+                            <h3 className="text-lg font-bold border-b border-gray-100 pb-3 mb-4 text-[#990000]">DETAIL PEMESANAN</h3>
+                            
                             <div className="space-y-4 mb-6">
                                 {form.items && form.items.map((item, index) => (
                                     <div key={index} className="grid grid-cols-12 gap-3 bg-gray-50 p-4 rounded-lg border border-gray-200 relative pt-8 md:pt-4">
-                                        <div className="col-span-12 md:col-span-3 relative">
-                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Nama Produk</label>
+                                        <div className="col-span-12 md:col-span-4 relative">
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Jenis Bahan (Filter Produk)</label>
+                                            <select name="bahan" value={item.bahan || ''} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 border border-red-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none bg-red-50/30 text-sm font-semibold text-[#990000]">
+                                                <option value="">-- Semua Bahan --</option>
+                                                <option value="NAGATA">NAGATA</option>
+                                                <option value="UNIONE">UNIONE</option>
+                                                <option value="MACAN DRILL">MACAN DRILL</option>
+                                                <option value="JAPAN DRILL">JAPAN DRILL</option>
+                                                <option value="ERRO">ERRO</option>
+                                                <option value="OXFORD">OXFORD</option>
+                                                <option value="RISPTOP">RISPTOP</option>
+                                                <option value="RIPSTOP">RIPSTOP</option>
+                                                <option value="KAOS">KAOS</option>
+                                                <option value="LACOSTE">LACOSTE</option>
+                                                <option value="DRY FIT">DRY FIT</option>
+                                                <option value="HIGH TWIST">HIGH TWIST</option>
+                                                <option value="CANVAS">CANVAS</option>
+                                                <option value="JEANS">JEANS</option>
+                                                <option value="PARAGON">PARAGON</option>
+                                                <option value="PARASUT">PARASUT</option>
+                                                <option value="PIQUE">PIQUE</option>
+                                                <option value="SERENA">SERENA</option>
+                                                <option value="TASLAN MILKY">TASLAN MILKY</option>
+                                            </select>
+                                        </div>
+                                        <div className="col-span-12 md:col-span-8 relative">
+                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Nama Produk {item.bahan && <span className="text-[#990000] lowercase">(Filter: {item.bahan})</span>}</label>
                                             <input 
                                                 type="text" 
                                                 name="rincian" 
@@ -681,14 +605,16 @@ const CreateOrderOfflineTanaka = () => {
                                                     {filteredProducts.map(prod => (
                                                         <li key={prod.id} onClick={() => selectProduct(index, prod)} className="p-2.5 hover:bg-red-50 cursor-pointer border-b border-gray-100 last:border-0">
                                                             <div className="flex items-center gap-2">
-                                                                <span className="text-[10px] font-black text-white bg-[#990000] px-1.5 py-0.5 rounded font-mono shrink-0">
-                                                                    {prod.kode || `PRD-${prod.id}`}
-                                                                </span>
+                                                                {(prod.displayKode || prod.kode) && (
+                                                                    <span className="text-[10px] font-black text-white bg-[#990000] px-1.5 py-0.5 rounded font-mono shrink-0">
+                                                                        {prod.displayKode || prod.kode}
+                                                                    </span>
+                                                                )}
                                                                 <span className="text-xs font-semibold text-gray-800 truncate">{prod.nama_produk}</span>
                                                             </div>
                                                             <div className="flex justify-between mt-1">
                                                                 <span className="text-[10px] text-gray-400">{prod.bahan || '-'} {prod.variasi ? `| ${prod.variasi}` : ''}</span>
-                                                                <span className="text-[10px] font-bold text-[#990000]">Rp {Number(prod.harga_jual || prod.hpp_satuan || 0).toLocaleString('id-ID')}</span>
+                                                                <span className="text-[10px] font-bold text-[#990000]">Rp {Math.round(Number(prod.harga_jual || prod.hpp_satuan || 0)).toLocaleString('id-ID')}</span>
                                                             </div>
                                                         </li>
                                                     ))}
@@ -720,7 +646,7 @@ const CreateOrderOfflineTanaka = () => {
                                                 )}
                                             </div>
                                             {needsApproval(item) && !item.status_approval && (
-                                                <p className="text-[9px] text-red-500 font-bold mt-1 text-right">⚠ Harga di bawah SPV (Rp {Number(item.harga_spv).toLocaleString('id-ID')}), butuh approval Owner</p>
+                                                <p className="text-[9px] text-red-500 font-bold mt-1 text-right">⚠ Harga di bawah SPV (Rp {Math.round(Number(item.harga_spv)).toLocaleString('id-ID')}), butuh approval Owner</p>
                                             )}
                                             {!needsApproval(item) && Number(item.diskon_item) > 0 && (
                                                 <p className="text-[9px] text-green-600 font-bold mt-1 text-right">✓ Diskon OK, harga masih di atas SPV</p>
@@ -740,7 +666,7 @@ const CreateOrderOfflineTanaka = () => {
                                             <div className="col-span-12 md:col-span-3">
                                                 <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Harga Bordir/pcs</label>
                                                 <input type="text" inputMode="decimal" name="harga_bordir" value={item.harga_bordir || ''} onChange={(e) => handleItemChange(index, e)} placeholder="0" className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-right text-sm text-orange-600 font-semibold" />
-                                                {Number(item.harga_bordir) > 0 && <p className="text-[9px] text-orange-500 mt-1 text-right">+Rp {(Number(item.qty||1)*Number(item.harga_bordir)).toLocaleString('id-ID')}</p>}
+                                                {Number(item.harga_bordir) > 0 && <p className="text-[9px] text-orange-500 mt-1 text-right">+Rp {Math.round(Number(item.qty||1)*Number(item.harga_bordir)).toLocaleString('id-ID')}</p>}
                                             </div>
 
                                         </div>
@@ -753,7 +679,7 @@ const CreateOrderOfflineTanaka = () => {
                                 <div className="w-full md:w-1/2 lg:w-1/3 space-y-4 bg-gray-50 p-5 rounded-xl border border-gray-200">
                                     <div className="flex items-center justify-between gap-4">
                                         <label className="text-sm font-semibold text-gray-700 w-1/3">Subtotal</label>
-                                        <span className="w-2/3 text-right font-bold text-gray-800">Rp {form.subtotal.toLocaleString('id-ID')}</span>
+                                        <span className="w-2/3 text-right font-bold text-gray-800">Rp {Math.round(form.subtotal).toLocaleString('id-ID')}</span>
                                     </div>
                                     <div className="flex items-center justify-between gap-4">
                                         <label className="text-sm font-semibold text-gray-700 w-1/3">
@@ -761,17 +687,17 @@ const CreateOrderOfflineTanaka = () => {
                                             <span className="block text-[10px] text-gray-400 font-normal mt-0.5">(Jika dibutuhkan)</span>
                                         </label>
                                         <input type="text" inputMode="decimal" name="ppn_persen" value={form.ppn_persen} onChange={handleChange} className="w-1/3 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-right" />
-                                        <span className="w-1/3 text-right text-sm text-gray-600">Rp {form.jumlah_ppn.toLocaleString('id-ID')}</span>
+                                        <span className="w-1/3 text-right text-sm text-gray-600">Rp {Math.round(form.jumlah_ppn).toLocaleString('id-ID')}</span>
                                     </div>
                                     {/* Global discount removed; per-item discounts are used instead */}
                                     <div className="flex items-center justify-between gap-4">
                                         <label className="text-sm font-semibold text-gray-700 w-1/3">Ongkos Kirim</label>
                                         <input type="text" inputMode="decimal" name="ongkos_kirim" value={form.ongkos_kirim} onChange={handleChange} className="w-1/3 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-right" placeholder="0" />
-                                        <span className="w-1/3 text-right text-sm text-gray-600 font-bold">+ Rp {Number(form.ongkos_kirim || 0).toLocaleString('id-ID')}</span>
+                                        <span className="w-1/3 text-right text-sm text-gray-600 font-bold">+ Rp {Math.round(Number(form.ongkos_kirim || 0)).toLocaleString('id-ID')}</span>
                                     </div>
                                     <div className="flex items-center justify-between gap-4 pt-4 border-t-2 border-gray-300">
                                         <label className="text-base font-extrabold text-[#990000] w-1/3">GRAND TOTAL</label>
-                                        <span className="w-2/3 text-right text-xl font-black text-[#990000]">Rp {form.grand_total.toLocaleString('id-ID')}</span>
+                                        <span className="w-2/3 text-right text-xl font-black text-[#990000]">Rp {Math.round(form.grand_total).toLocaleString('id-ID')}</span>
                                     </div>
                                 </div>
                             </div>

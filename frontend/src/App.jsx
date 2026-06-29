@@ -12,7 +12,7 @@ import CreateOrderOfflineTanaka from './pages/CreateOrderOfflineTanaka';
 
 import Promo from './pages/Promo';
 import SalesOnline from './pages/SalesOnline';
-import Finance from './pages/Finance';
+
 import FinanceDashboard from './pages/FinanceDashboard';
 import CashBank from './pages/CashBank';
 
@@ -53,6 +53,7 @@ import MonitoringSystem from './pages/MonitoringSystem';
 import SystemSettings from './pages/SystemSettings';
 
 import OwnerMonitoring from './pages/OwnerMonitoring';
+import OwnerDashboard from './pages/OwnerDashboard';
 import ApprovalCenter from './pages/ApprovalCenter';
 
 // Produksi Pages
@@ -302,7 +303,7 @@ function App() {
           </ProtectedRoute>
         } />
         <Route path="/invoice/preview/:id" element={
-          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Finance']}>
+          <ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Finance', 'marketing_offline', 'marketing_offline_tanaka', 'marketing_accestret', 'marketing_online']}>
             <InvoicePreview />
           </ProtectedRoute>
         } />
@@ -373,6 +374,7 @@ function App() {
         } />
 
         {/* OWNER ROUTES */}
+        <Route path="/owner/dashboard" element={<ProtectedRoute allowedRoles={['owner']}><OwnerDashboard /></ProtectedRoute>} />
         <Route path="/owner/monitoring" element={<ProtectedRoute allowedRoles={['owner']}><OwnerMonitoring /></ProtectedRoute>} />
         <Route path="/owner/monitoring/:section" element={<ProtectedRoute allowedRoles={['owner']}><OwnerMonitoring /></ProtectedRoute>} />
         <Route path="/finance/approval" element={<ProtectedRoute allowedRoles={['owner', 'Admin', 'Manager', 'Finance']}><ApprovalCenter /></ProtectedRoute>} />

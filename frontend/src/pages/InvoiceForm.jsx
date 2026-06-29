@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import { createInvoice, getInvoiceById, updateInvoice, requestRevision } from '../api/invoiceApi';
-import { Save, X, ArrowLeft, Receipt, CreditCard, PenTool, Upload } from 'lucide-react';
+import { Save, X, ArrowLeft, Receipt, CreditCard, PenTool, Upload, Send } from 'lucide-react';
 import api from '../api/axios';
 import { formatPhoneNumber } from '../utils/formatters';
 import { getNextInvoiceNumber } from '../api/invoiceApi';
@@ -36,15 +36,15 @@ const InvoiceForm = () => {
         detail_pekerjaan: '',
         no_po_kontrak: '',
         deskripsi_pesanan: '',
-        items: [{ rincian: '', ukuran: '', qty: 1, harga_satuan: 0, satuan: 'Pcs' }],
+        items: [{ rincian: '', ukuran: '', qty: 1, harga_satuan: 0, diskon_item: 0, satuan: 'Pcs' }],
         qty: 1,
         harga_satuan: 0,
         subtotal: 0,
         ppn_persen: 0,
-        Diskon: 0,
         diskon: 0, // nominal
         diskon_persen: 0,
         jumlah_ppn: 0,
+        ongkos_kirim: 0,
         grand_total: 0,
         keterangan: '',
         note: '',
@@ -105,17 +105,18 @@ const InvoiceForm = () => {
         }
 
         const jumlah_ppn = subtotal * (Number(form.ppn_persen) / 100);
-        const diskon_nominal = subtotal * (Number(form.diskon_persen || 0) / 100);
-        const grand_total = subtotal + jumlah_ppn - diskon_nominal;
+        const diskon_nominal = 0; // Removed global discount
+        const grand_total = subtotal + jumlah_ppn + Number(form.ongkos_kirim || 0);
 
         setForm(prev => ({
             ...prev,
             subtotal,
             jumlah_ppn,
             diskon: diskon_nominal,
+            diskon_persen: 0,
             grand_total
         }));
-    }, [form.qty, form.harga_satuan, form.ppn_persen, form.items, form.diskon_persen]);
+    }, [form.qty, form.harga_satuan, form.ppn_persen, form.items, form.ongkos_kirim]);
 
     // Auto update note based on cabang
     useEffect(() => {
@@ -190,7 +191,7 @@ Atas Nama                 : ACCESTREAT`;
     };
 
     const addItem = () => {
-        setForm({ ...form, items: [...form.items, { rincian: '', ukuran: '', qty: 1, harga_satuan: 0, satuan: 'Pcs' }] });
+        setForm({ ...form, items: [...form.items, { rincian: '', ukuran: '', qty: 1, harga_satuan: 0, diskon_item: 0, satuan: 'Pcs' }] });
     };
 
     const removeItem = (index) => {
@@ -206,12 +207,16 @@ Atas Nama                 : ACCESTREAT`;
             if (res.data.status === 'success') {
                 const data = res.data.data;
                 setOriginalData(data);
+                const parsedItems = typeof data.items === 'string' ? JSON.parse(data.items) : (data.items || [{ rincian: '', qty: data.qty || 1, harga_satuan: data.harga_satuan || 0, diskon_item: 0, satuan: 'Pcs' }]);
+                const inferredOngkir = Math.max(0, Number(data.grand_total || 0) - Number(data.subtotal || 0) - Number(data.jumlah_ppn || 0) + Number(data.diskon || 0));
+
                 setForm({
                     ...data,
                     tanggal_transaksi: data.tanggal_transaksi ? data.tanggal_transaksi.split('T')[0] : '',
                     tanggal_terbit: data.tanggal_terbit ? data.tanggal_terbit.split('T')[0] : '',
                     tanggal_jatuh_tempo: data.tanggal_jatuh_tempo ? data.tanggal_jatuh_tempo.split('T')[0] : '',
-                    items: typeof data.items === 'string' ? JSON.parse(data.items) : (data.items || [{ rincian: '', qty: data.qty || 1, harga_satuan: data.harga_satuan || 0, satuan: 'Pcs' }]),
+                    items: parsedItems,
+                    ongkos_kirim: inferredOngkir,
                     materai: Boolean(data.materai),
                     ttd: Boolean(data.ttd)
                 });
@@ -231,21 +236,27 @@ Atas Nama                 : ACCESTREAT`;
 
     const isReduced = isEdit && originalData?.status === 'Terbit' && form.grand_total < originalData.grand_total;
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const handleSubmit = async (e, targetStatus = null) => {
+        if (e) e.preventDefault();
         try {
+            const payload = { ...form };
+            if (targetStatus) {
+                payload.status = targetStatus;
+            }
+            delete payload.Diskon; // Strip any invalid fields just in case
+
             if (isReduced) {
                 if (!alasanRevisi) {
                     alert("Harap isi alasan revisi/pengurangan.");
                     return;
                 }
-                await requestRevision(id, { alasan: alasanRevisi, newData: form });
+                await requestRevision(id, { alasan: alasanRevisi, newData: payload });
                 alert("Pengajuan revisi berhasil dikirim ke Owner!");
             } else if (isEdit) {
-                await updateInvoice(id, form);
+                await updateInvoice(id, payload);
                 alert("Invoice berhasil diperbarui!");
             } else {
-                await createInvoice(form);
+                await createInvoice(payload);
                 alert("Invoice berhasil dibuat!");
             }
             navigate('/invoice');
@@ -395,7 +406,7 @@ Atas Nama                 : ACCESTREAT`;
                             <div className="space-y-4 mb-6">
                                 {form.items && form.items.map((item, index) => (
                                     <div key={index} className="grid grid-cols-12 gap-3 bg-gray-50 p-4 rounded-lg border border-gray-200 relative pt-8 md:pt-4">
-                                        <div className="col-span-12 md:col-span-4 relative">
+                                        <div className="col-span-12 md:col-span-3 relative">
                                             <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Nama Produk</label>
                                             <input
                                                 type="text"
@@ -430,12 +441,28 @@ Atas Nama                 : ACCESTREAT`;
                                             <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 text-center">Unit</label>
                                             <input type="text" name="satuan" value={item.satuan} onChange={(e) => handleItemChange(index, e)} placeholder="Pcs" className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-center text-sm" />
                                         </div>
-                                        <div className="col-span-12 md:col-span-3">
-                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 text-right">Harga Satuan</label>
-                                            <input type="number" name="harga_satuan" value={item.harga_satuan} onChange={(e) => handleItemChange(index, e)} min="0" className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-right text-sm font-semibold" />
+                                        <div className="col-span-12 md:col-span-4">
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 text-right">Harga (Net)</label>
+                                                    <input type="number" name="harga_satuan" value={item.harga_satuan} onChange={(e) => handleItemChange(index, e)} min="0" className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-right text-sm font-semibold" />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 text-right">Diskon/Item</label>
+                                                    <input type="number" name="diskon_item" value={item.diskon_item || 0} onChange={(e) => handleItemChange(index, e)} min="0" className="w-full p-2 border border-red-200 bg-red-50 rounded-lg focus:ring-2 focus:ring-red-400 outline-none text-right text-sm font-semibold text-red-600" placeholder="0" />
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-between items-center mt-1.5 px-1 bg-gray-50 rounded py-1">
+                                                <span className="text-[10px] text-gray-500">
+                                                    Harga Asli: <span className="font-bold text-gray-600">Rp {(Number(item.harga_satuan || 0) + Number(item.diskon_item || 0)).toLocaleString('id-ID')}</span>
+                                                </span>
+                                                <span className="text-[10px] text-gray-500">
+                                                    Total Baris: <span className="font-bold text-[#990000]">Rp {(Number(item.qty || 0) * Number(item.harga_satuan || 0)).toLocaleString('id-ID')}</span>
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div className="absolute top-2 right-2 md:static md:col-span-1 flex items-end justify-center">
-                                            <button type="button" onClick={() => removeItem(index)} className="text-red-400 hover:text-red-600 transition-colors p-2">
+                                        <div className="absolute top-2 right-2 md:static md:col-span-1 flex items-start justify-center pt-5">
+                                            <button type="button" onClick={() => removeItem(index)} className="text-red-400 hover:text-red-600 transition-colors p-1">
                                                 <X size={18} />
                                             </button>
                                         </div>
@@ -456,9 +483,8 @@ Atas Nama                 : ACCESTREAT`;
                                         <span className="w-1/3 text-right text-sm text-gray-600">Rp {form.jumlah_ppn.toLocaleString('id-ID')}</span>
                                     </div>
                                     <div className="flex items-center justify-between gap-4">
-                                        <label className="text-sm font-semibold text-gray-700 w-1/3">Diskon (%)</label>
-                                        <input type="number" name="diskon_persen" value={form.diskon_persen} onChange={handleChange} min="0" max="100" className="w-1/3 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-right" />
-                                        <span className="w-1/3 text-right text-sm text-red-600 font-bold">- Rp {form.diskon.toLocaleString('id-ID')}</span>
+                                        <label className="text-sm font-semibold text-gray-700 w-1/3">Ongkos Kirim</label>
+                                        <input type="number" name="ongkos_kirim" value={form.ongkos_kirim || ''} onChange={handleChange} min="0" className="w-2/3 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-right" placeholder="0" />
                                     </div>
                                     <div className="flex items-center justify-between gap-4 pt-4 border-t-2 border-gray-300">
                                         <label className="text-base font-extrabold text-[#990000] w-1/3">GRAND TOTAL</label>
@@ -562,13 +588,27 @@ Atas Nama                 : ACCESTREAT`;
                                 <p className="text-xs text-yellow-700 mt-2 font-medium">Perhatian: Anda mengurangi jumlah tagihan dari Invoice yang sudah Terbit. Tindakan ini memerlukan persetujuan Owner.</p>
                             </div>
                         )}
-                        <div className="flex items-center justify-end gap-4 pb-10">
-                            <button type="button" onClick={() => navigate('/invoice')} className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium flex items-center gap-2">
+                        <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pb-10">
+                            <button type="button" onClick={() => navigate('/invoice')} className="w-full sm:w-auto px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium flex items-center justify-center gap-2">
                                 <X size={18} /> Batal
                             </button>
-                            <button type="submit" className={`px-8 py-3 text-white rounded-xl shadow-lg transition-transform active:scale-95 font-bold flex items-center gap-2 ${isReduced ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-[#990000] hover:bg-red-800'}`}>
-                                <Save size={18} /> {isReduced ? 'Ajukan Revisi ke Owner' : (isEdit ? 'Simpan Perubahan' : 'Terbitkan Invoice')}
-                            </button>
+                            
+                            {isReduced ? (
+                                <button type="button" onClick={(e) => handleSubmit(e)} className="w-full sm:w-auto px-8 py-3 text-white rounded-xl shadow-lg transition-transform active:scale-95 font-bold flex items-center justify-center gap-2 bg-yellow-600 hover:bg-yellow-700">
+                                    <Save size={18} /> Ajukan Revisi ke Owner
+                                </button>
+                            ) : (
+                                <>
+                                    {form.status !== 'Terbit' && form.status !== 'Lunas' && (
+                                        <button type="button" onClick={(e) => handleSubmit(e, 'Draft')} className="w-full sm:w-auto px-6 py-3 bg-gray-200 text-gray-800 rounded-xl shadow hover:bg-gray-300 transition-transform active:scale-95 font-bold flex items-center justify-center gap-2">
+                                            <Save size={18} /> Simpan Draft
+                                        </button>
+                                    )}
+                                    <button type="button" onClick={(e) => handleSubmit(e, 'Terbit')} className="w-full sm:w-auto px-8 py-3 text-white rounded-xl shadow-lg transition-transform active:scale-95 font-bold flex items-center justify-center gap-2 bg-[#990000] hover:bg-red-800">
+                                        <Send size={18} /> {form.status === 'Terbit' ? 'Simpan Perubahan' : 'Terbitkan & Kirim ke Marketing'}
+                                    </button>
+                                </>
+                            )}
                         </div>
                     </form>
                 </div>

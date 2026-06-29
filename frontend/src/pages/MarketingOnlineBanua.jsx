@@ -60,6 +60,10 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
     salesChart: [],
     topToko: []
   });
+  
+  const userRole = JSON.parse(localStorage.getItem('user'))?.role;
+  const isOwner = userRole?.toLowerCase() === 'owner';
+  const [pendingApprovals, setPendingApprovals] = useState([]);
   const [orders, setOrders] = useState([]);
   const [inventory, setInventory] = useState([]);
   const [stokGudang, setStokGudang] = useState([]);
@@ -238,9 +242,32 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
       const token = localStorage.getItem('token');
       const res = await axios.get('http://localhost:3000/api/marketing-online-banua/dashboard', { headers: { Authorization: `Bearer ${token}` } });
       setDashboardData(res.data);
+      
+      if (isOwner) {
+          const approvalRes = await axios.get('http://localhost:3000/api/owner/approval', { headers: { Authorization: `Bearer ${token}` } }).catch(()=>({data:{data:[]}}));
+          const allApprovals = approvalRes.data?.data || [];
+          // Filter out only Quotation / Diskon approvals
+          setPendingApprovals(allApprovals.filter(a => a.status === 'pending' && a.request_type?.toLowerCase().includes('quotation')));
+      }
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const handleApprove = async (id) => {
+      if(!window.confirm('Setujui pengajuan diskon/quotation ini?')) return;
+      try {
+          await axios.put(`http://localhost:3000/api/owner/approval/${id}`, { status: 'approved' }, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }});
+          fetchDashboard();
+      } catch (e) { alert('Gagal menyetujui'); }
+  };
+
+  const handleReject = async (id) => {
+      if(!window.confirm('Tolak pengajuan diskon/quotation ini?')) return;
+      try {
+          await axios.put(`http://localhost:3000/api/owner/approval/${id}`, { status: 'rejected' }, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }});
+          fetchDashboard();
+      } catch (e) { alert('Gagal menolak'); }
   };
 
   const normalizeAkun = (akun) => {
@@ -1380,15 +1407,15 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
               </div>
 
               {/* Charts Section */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className={`grid grid-cols-1 ${isOwner ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-6`}>
                 {/* Sales Trend - Line Chart (2/3 width) */}
-                <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                      <TrendingUp className="text-[#990000]" size={22} /> Tren Penjualan (30 Hari Terakhir)
+                <div className={`${isOwner ? 'lg:col-span-2' : 'lg:col-span-2'} bg-white p-4 rounded-xl shadow-sm border border-gray-100`}>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
+                      <TrendingUp className="text-[#990000]" size={16} /> Tren Penjualan (30 Hari Terakhir)
                     </h3>
                   </div>
-                  <div className="h-80 w-full">
+                  <div className="h-[220px] w-full">
                     {dashboardData.salesChart.length > 0 ? (
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={dashboardData.salesChart}>
@@ -1433,9 +1460,9 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                 </div>
 
                 {/* Top Products vs Sales - Ranking List */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col">
-                  <h3 className="text-xl font-bold text-gray-800 mb-5 flex items-center gap-2">
-                    <Package className="text-orange-500" size={22} /> Top 5 Produk
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col">
+                  <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <Package className="text-orange-500" size={16} /> Top 5 Produk
                   </h3>
                   {dashboardData.topProducts.length > 0 ? (
                     <div className="space-y-3">
@@ -1495,6 +1522,27 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                     </div>
                   )}
                 </div>
+
+                {/* Approval Panel (Owner Only) */}
+                {isOwner && (
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col border-t-[3px] border-t-blue-500">
+                        <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <CheckCircle className="text-blue-500" size={16} /> Approval Diskon/Quotation
+                        </h3>
+                        <div className="space-y-3 flex-1 overflow-y-auto max-h-[190px] pr-1 custom-scrollbar">
+                            {pendingApprovals.length > 0 ? pendingApprovals.map(a => (
+                                <div key={a.id} className="p-3 bg-blue-50/50 rounded-xl border border-blue-100">
+                                    <p className="text-xs font-bold text-gray-800 mb-1 truncate">{a.reference_number}</p>
+                                    <p className="text-[10px] text-gray-500 mb-3 truncate">Rp {formatRupiah(a.amount)} | {a.request_type}</p>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => handleApprove(a.id)} className="flex-1 bg-blue-600 text-white text-[10px] font-bold py-1.5 rounded hover:bg-blue-700 transition-colors">Setujui</button>
+                                        <button onClick={() => handleReject(a.id)} className="flex-1 bg-white text-red-600 border border-red-200 text-[10px] font-bold py-1.5 rounded hover:bg-red-50 transition-colors">Tolak</button>
+                                    </div>
+                                </div>
+                            )) : <div className="text-center text-xs text-gray-400 font-bold italic py-12">Tidak ada persetujuan</div>}
+                        </div>
+                    </div>
+                )}
               </div>
 
               {/* Top Toko - Persentase Kontribusi Revenue */}

@@ -53,6 +53,8 @@ const Sidebar = () => {
   }, [userRole]);
 
   const allMenuItems = [
+    { name: 'Rangkuman Eksekutif', path: '/owner/dashboard', icon: <Activity size={20} />, roles: ['owner'], group: 'Owner Dashboard' },
+    
     { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} />, roles: ['Admin', 'Manager', 'Marketing'], group: 'Sales' },
     { name: 'Order Offline', path: '/marketing', icon: <Users size={20} />, roles: ['Admin', 'Manager', 'Marketing'], group: 'Sales' },
     { name: 'Order Marketplace', path: '/sales-online', icon: <ShoppingBag size={20} />, roles: ['Admin', 'Manager', 'Marketing'], group: 'Sales' },

@@ -74,6 +74,9 @@ exports.updateApproval = async (req, res) => {
         // Cek apakah ini approval quotation ke invoice
         const [appData] = await db.promise().query("SELECT * FROM approvals WHERE id=?", [id]);
         if (appData.length > 0 && appData[0].tipe === 'quotation_to_invoice') {
+            const quotationId = appData[0].reference_id;
+            
+            // ... (keep the rest of the existing code down to the end of quotation_to_invoice block, let's view it first or I can do it right here if I know the structure)
             const leadId = appData[0].reference_id;
             const diajukanOleh = appData[0].diajukan_oleh;
             
@@ -240,6 +243,17 @@ exports.updateApproval = async (req, res) => {
                     await db.promise().query("UPDATE marketing_orders_offline SET status='New Order' WHERE id=?", [orderId]);
                 } else if (status === 'rejected') {
                     await db.promise().query("UPDATE marketing_orders_offline SET status='Rejected' WHERE id=?", [orderId]);
+                }
+            }
+        } else if (appData.length > 0 && appData[0].tipe === 'diskon_order') {
+            const orderId = appData[0].reference_id;
+            if (orderId) {
+                if (status === 'approved') {
+                    await db.promise().query("UPDATE marketing_orders_offline SET status='Approved by Owner' WHERE id=?", [orderId]);
+                    await db.promise().query("UPDATE marketing_quotations SET status='draft' WHERE order_id=?", [orderId]);
+                } else if (status === 'rejected') {
+                    await db.promise().query("UPDATE marketing_orders_offline SET status='Rejected' WHERE id=?", [orderId]);
+                    await db.promise().query("UPDATE marketing_quotations SET status='rejected' WHERE order_id=?", [orderId]);
                 }
             }
         } else if (appData.length > 0 && appData[0].tipe === 'revisi_invoice') {

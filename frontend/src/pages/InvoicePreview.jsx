@@ -167,7 +167,7 @@ const InvoicePreview = () => {
                     const diskonItem = Number(item.diskon_item || 0);
                     const hargaSebelumDiskon = Number(item.harga_satuan || 0) + diskonItem;
                     tableRows.push([
-                        item.rincian || '',
+                        (item.rincian || '').replace(/^\[.*?\]\s*/, ''),
                         item.ukuran || '-',
                         item.qty || 0,
                         item.satuan || 'Pcs',
@@ -469,7 +469,7 @@ const InvoicePreview = () => {
                                             const totalItem = Number(item.qty || 0) * Number(item.harga_satuan || 0);
                                             return (
                                                 <tr key={index} className={`border-b border-gray-100 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
-                                                    <td className="p-3 text-gray-800 align-top text-sm">{item.rincian}</td>
+                                                    <td className="p-3 text-gray-800 align-top text-sm">{(item.rincian || '').replace(/^\[.*?\]\s*/, '')}</td>
                                                     <td className="p-3 text-gray-700 align-top text-center text-sm font-semibold">{item.ukuran || '-'}</td>
                                                     <td className="p-3 text-gray-700 align-top text-center text-sm">{item.qty}</td>
                                                     <td className="p-3 text-gray-500 align-top text-center text-sm">{item.satuan || 'Pcs'}</td>

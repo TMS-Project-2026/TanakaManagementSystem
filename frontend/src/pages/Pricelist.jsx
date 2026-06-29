@@ -23,6 +23,8 @@ const getBrand = (prod) => {
     if (k.startsWith('YM')) return 'PRODUK YAMAHA MOTOR';
     if (k.startsWith('MHM')) return 'PRODUK MITSUBISHI MOBIL';
     if (k.startsWith('TM')) return 'PRODUK TOYOTA MOBIL';
+    if (k.startsWith('SM')) return 'PRODUK SUZUKI MOBIL';
+    if (k.startsWith('IM')) return 'PRODUK ISUZU MOBIL';
     if (k.startsWith('HYM')) return 'PRODUK HYUNDAI MOBIL';
     if (k.startsWith('WM')) return 'PRODUK WULING MOBIL';
     if (k.startsWith('MM')) return 'PRODUK MAZDA MOBIL';
@@ -39,6 +41,8 @@ const getBrand = (prod) => {
   if (name.includes('FLP') || name.includes('MEKANIK HONDA') || (name.includes('HONDA') && !name.includes('MOBIL'))) return 'PRODUK HONDA MOTOR';
   if (name.includes('MITSUBISHI')) return 'PRODUK MITSUBISHI MOBIL';
   if (name.includes('TOYOTA')) return 'PRODUK TOYOTA MOBIL';
+  if (name.includes('SUZUKI')) return 'PRODUK SUZUKI MOBIL';
+  if (name.includes('ISUZU')) return 'PRODUK ISUZU MOBIL';
   if (name.includes('HYUNDAI')) return 'PRODUK HYUNDAI MOBIL';
   if (name.includes('WULING')) return 'PRODUK WULING MOBIL';
   if (name.includes('MAZDA')) return 'PRODUK MAZDA MOBIL';
@@ -47,7 +51,7 @@ const getBrand = (prod) => {
   if (name.includes('SATPAM') || name.includes('SAFARI HITAM') || name.includes('SAFARI KUNING') || name.includes('PDL KUNING')) return 'PRODUK SATPAM';
   if (name.includes('SRS') || name.includes('RUMAH SAKIT') || name.includes('OKK')) return 'PRODUK SERAGAM RUMAH SAKIT';
   if (name.includes('PERTAMINA')) return 'PRODUK PERTAMINA';
-  return 'PRODUK LAINNYA';
+  return 'Lainnya';
 };
 
 // Daftar jenis yang valid sesuai juklak
@@ -83,6 +87,8 @@ const BRAND_ORDER = [
   'PRODUK HONDA MOBIL',
   'PRODUK MITSUBISHI MOBIL',
   'PRODUK TOYOTA MOBIL',
+  'PRODUK SUZUKI MOBIL',
+  'PRODUK ISUZU MOBIL',
   'PRODUK HYUNDAI MOBIL',
   'PRODUK WULING MOBIL',
   'PRODUK MAZDA MOBIL',
@@ -91,6 +97,7 @@ const BRAND_ORDER = [
   'PRODUK SATPAM',
   'PRODUK SERAGAM RUMAH SAKIT',
   'PRODUK PERTAMINA',
+  'Lainnya',
 ];
 
 const BRAND_COLORS = {
@@ -99,6 +106,8 @@ const BRAND_COLORS = {
   'PRODUK HONDA MOBIL':          'bg-gray-900',
   'PRODUK MITSUBISHI MOBIL':     'bg-[#990000]',
   'PRODUK TOYOTA MOBIL':         'bg-gray-900',
+  'PRODUK SUZUKI MOBIL':         'bg-[#990000]',
+  'PRODUK ISUZU MOBIL':          'bg-gray-900',
   'PRODUK HYUNDAI MOBIL':        'bg-[#990000]',
   'PRODUK WULING MOBIL':         'bg-gray-900',
   'PRODUK MAZDA MOBIL':          'bg-[#990000]',
@@ -107,7 +116,7 @@ const BRAND_COLORS = {
   'PRODUK SATPAM':               'bg-gray-900',
   'PRODUK SERAGAM RUMAH SAKIT':  'bg-[#990000]',
   'PRODUK PERTAMINA':            'bg-gray-900',
-  'PRODUK LAINNYA':              'bg-[#990000]',
+  'Lainnya':                     'bg-[#990000]',
 };
 
 // Prefix kode sesuai juklak: HM=Honda Motor, YM=Yamaha, HMM=Honda Mobil, dst.
@@ -117,15 +126,17 @@ const BRAND_PREFIX = {
   'PRODUK HONDA MOBIL':          'HMM',
   'PRODUK MITSUBISHI MOBIL':     'MHM',
   'PRODUK TOYOTA MOBIL':         'TM',
+  'PRODUK SUZUKI MOBIL':         'SM',
+  'PRODUK ISUZU MOBIL':          'IM',
   'PRODUK HYUNDAI MOBIL':        'HYM',
   'PRODUK WULING MOBIL':         'WM',
   'PRODUK MAZDA MOBIL':          'MM',
   'PRODUK ALFAMART':             'AM',
-  'PRODUK INDOMARET':            'IM',
+  'PRODUK INDOMARET':            'IDM',
   'PRODUK SATPAM':               'SP',
   'PRODUK SERAGAM RUMAH SAKIT':  'SRS',
-  'PRODUK PERTAMINA':            'PT',
-  'PRODUK LAINNYA':              'PRD',
+  'PRODUK PERTAMINA':            'PTA',
+  'Lainnya':                     'PRD',
 };
 
 const Pricelist = () => {
@@ -497,23 +508,15 @@ const Pricelist = () => {
                             </tr>
                             {/* Column Headers (Black) */}
                             <tr className="bg-gray-900 text-white uppercase text-[11px] tracking-wider font-bold text-center">
-                              <th rowSpan="2" className="p-3 border border-gray-700 align-middle min-w-[80px]">KODE</th>
-                              <th rowSpan="2" className="p-3 border border-gray-700 align-middle min-w-[120px]">JENIS / KATEGORI PRODUK</th>
-                              <th rowSpan="2" className="p-3 border border-gray-700 align-middle min-w-[200px]">NAMA PRODUK</th>
-                              <th rowSpan="2" className="p-3 border border-gray-700 align-middle min-w-[90px]">BAHAN</th>
-                              <th rowSpan="2" className="p-3 border border-gray-700 align-middle min-w-[80px]">VARIASI</th>
-                              <th className="p-2 border border-gray-700 align-middle">
-                                <span className="text-yellow-300">10%</span>
-                              </th>
-                              <th className="p-2 border border-gray-700 align-middle">
-                                <span className="text-yellow-300">15%</span>
-                              </th>
-                              <th rowSpan="2" className="p-3 border border-gray-700 align-middle min-w-[130px]">HARGA JUAL OFFLINE</th>
-                              {canCrud && <th rowSpan="2" className="p-3 border border-gray-700 align-middle">AKSI</th>}
-                            </tr>
-                            <tr className="bg-gray-900 text-white uppercase text-[11px] tracking-wider font-bold text-center">
-                              <th className="p-2 border border-gray-700 align-middle min-w-[120px]">SALES MANAGER</th>
-                              <th className="p-2 border border-gray-700 align-middle min-w-[110px]">SALES SPV</th>
+                              <th className="p-3 border border-gray-700 align-middle min-w-[80px]">KODE</th>
+                              <th className="p-3 border border-gray-700 align-middle min-w-[120px]">JENIS / KATEGORI PRODUK</th>
+                              <th className="p-3 border border-gray-700 align-middle min-w-[200px]">NAMA PRODUK</th>
+                              <th className="p-3 border border-gray-700 align-middle min-w-[90px]">BAHAN</th>
+                              <th className="p-3 border border-gray-700 align-middle min-w-[80px]">VARIASI</th>
+                              <th className="p-3 border border-gray-700 align-middle min-w-[120px]">SALES MANAGER</th>
+                              <th className="p-3 border border-gray-700 align-middle min-w-[110px]">SALES SPV</th>
+                              <th className="p-3 border border-gray-700 align-middle min-w-[130px]">HARGA JUAL OFFLINE</th>
+                              {canCrud && <th className="p-3 border border-gray-700 align-middle">AKSI</th>}
                             </tr>
                             {grouped[brand].map((prod, idx) => {
                               const prefix = BRAND_PREFIX[brand] || 'PRD';
@@ -564,94 +567,57 @@ const Pricelist = () => {
             </div>
             <form onSubmit={handleSubmit} className="p-6">
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div className="md:col-span-3">
-                  <h3 className="text-sm font-bold text-gray-800 border-b pb-2 mb-3">INFORMASI DASAR</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="md:col-span-2">
+                  <h3 className="text-sm font-bold text-gray-800 border-b pb-2 mb-3">INFORMASI PRODUK</h3>
+                </div>
+                <div className="md:col-span-2 bg-blue-50 border border-blue-100 p-4 rounded-xl flex flex-col md:flex-row gap-4 items-center">
+                  <div className="flex-1">
+                    <label className="block text-xs font-bold text-blue-800 mb-1">💡 Bantuan Pemetaan Brand (Opsional)</label>
+                    <select 
+                      className="w-full p-2.5 bg-white border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-300 outline-none text-sm text-blue-900"
+                      onChange={(e) => {
+                        const prefix = BRAND_PREFIX[e.target.value];
+                        if (prefix) {
+                          setForm(prev => ({ ...prev, kode: prefix }));
+                        }
+                      }}
+                    >
+                      <option value="">-- Pilih Brand untuk Otomatisasi Kode --</option>
+                      {BRAND_ORDER.map(b => (
+                        <option key={b} value={b}>{b}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="text-[10px] text-blue-700 md:w-1/2 leading-relaxed">
+                    Pilih brand di atas jika Anda ingin sistem otomatis mengisikan awalan <b>Kode Produk</b>. Anda tetap bisa mengubah kodenya secara manual di bawah.
+                  </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Kode Produk <span className="text-gray-400 font-normal">(sesuai juklak, misal: HM001)</span></label>
-                  <input type="text" name="kode" value={form.kode || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none text-sm font-bold uppercase tracking-widest" placeholder="HM001" />
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Kode Produk</label>
+                  <input type="text" name="kode" value={form.kode || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#990000]/20 outline-none text-sm font-bold uppercase tracking-widest" placeholder="Contoh: HM001" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Nama Produk Lengkap * <span className="text-gray-400 font-normal">(digunakan untuk pencarian)</span></label>
-                  <input type="text" name="nama_produk" value={form.nama_produk} onChange={handleInputChange} required className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#990000]/20 outline-none text-sm" placeholder="Contoh: FLP MERAH COWOK" />
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Jenis / Kategori Produk</label>
+                  <input type="text" name="kategori" value={form.kategori || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#990000]/20 outline-none text-sm" placeholder="Contoh: PDH" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Nama Produk *</label>
+                  <input type="text" name="nama_produk" value={form.nama_produk} onChange={handleInputChange} required className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#990000]/20 outline-none text-sm font-bold" placeholder="Contoh: FLP Merah Cowok" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Nama Order <span className="text-[#990000]">(tampil di deskripsi order)</span></label>
-                  <input 
-                    type="text" 
-                    name="nama" 
-                    list="nama-options"
-                    value={form.nama || ''} 
-                    onChange={handleInputChange} 
-                    className="w-full p-2.5 bg-gray-50 border border-yellow-200 rounded-xl focus:ring-2 focus:ring-yellow-200 outline-none text-sm font-semibold uppercase" 
-                    placeholder="Pilih atau Ketik Manual..." 
-                  />
-                  <datalist id="nama-options">
-                    <option value="SERAGAM" />
-                    <option value="KEMEJA" />
-                    <option value="CELANA" />
-                    <option value="TOPI" />
-                    <option value="WEARPACK" />
-                    <option value="JAKET" />
-                    <option value="ROMPI" />
-                    <option value="ALMAMATER" />
-                    <option value="PDH" />
-                    <option value="POLO" />
-                    <option value="KAOS" />
-                  </datalist>
-                  <p className="text-[10px] text-gray-400 mt-1">Pilih dari daftar untuk konsistensi, atau ketik manual jika tidak ada.</p>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Bahan</label>
+                  <input type="text" name="bahan" value={form.bahan || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#990000]/20 outline-none text-sm" placeholder="Contoh: UNIONE" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Kategori Produk</label>
-                  <select name="kategori" value={form.kategori} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#990000]/20 outline-none text-sm">
-                    <option value="Lainnya">Lainnya</option>
-                    <option value="Seragam Mekanik">Seragam Mekanik</option>
-                    <option value="Seragam Sekolah">Seragam Sekolah</option>
-                    <option value="Seragam Kerja">Seragam Kerja</option>
-                    <option value="PDH">PDH</option>
-                    <option value="PDL">PDL</option>
-                    <option value="Korsa">Korsa</option>
-                    <option value="Jas">Jas</option>
-                    <option value="Seragam SPG">Seragam SPG</option>
-                    <option value="Aksesoris">Aksesoris</option>
-                  </select>
-                </div>
-                <div className="md:col-span-3">
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Keterangan</label>
-                  <textarea name="keterangan" value={form.keterangan} onChange={handleInputChange} rows={1} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#990000]/20 outline-none text-sm resize-none" placeholder="Catatan tambahan..."></textarea>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Variasi</label>
+                  <input type="text" name="variasi" value={form.variasi || ''} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#990000]/20 outline-none text-sm" placeholder="Contoh: Lengan Panjang" />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-2">
                 <div className="md:col-span-3">
-                  <h3 className="text-sm font-bold text-gray-800 border-b pb-2 mb-3">HARGA DASAR</h3>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">HPP (Modal) *</label>
-                  <input type="number" name="hpp_satuan" value={form.hpp_satuan} onChange={handleInputChange} required className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#990000]/20 outline-none text-sm" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Margin (%) atau Rp</label>
-                  <input type="text" name="margin" value={form.margin} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#990000]/20 outline-none text-sm" placeholder="Contoh: 30% atau 15000" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Harga Jual Normal *</label>
-                  <input type="number" name="harga_jual" value={form.harga_jual} onChange={handleInputChange} required className="w-full p-2.5 bg-gray-50 border border-red-200 rounded-xl focus:ring-2 focus:ring-[#990000]/20 outline-none text-sm font-bold text-[#990000]" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="md:col-span-4">
-                  <h3 className="text-sm font-bold text-gray-800 border-b pb-2 mb-3">BATAS HARGA APPROVAL</h3>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Harga Direktur</label>
-                  <input type="number" name="harga_direktur" value={form.harga_direktur} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#990000]/20 outline-none text-sm" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Harga General Manager</label>
-                  <input type="number" name="harga_gm" value={form.harga_gm} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#990000]/20 outline-none text-sm" />
+                  <h3 className="text-sm font-bold text-gray-800 border-b pb-2 mb-3">PENGATURAN HARGA</h3>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Harga Sales Manager</label>
@@ -660,6 +626,10 @@ const Pricelist = () => {
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Harga Sales SPV</label>
                   <input type="number" name="harga_spv" value={form.harga_spv} onChange={handleInputChange} className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#990000]/20 outline-none text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Harga Jual Offline *</label>
+                  <input type="number" name="harga_jual" value={form.harga_jual} onChange={handleInputChange} required className="w-full p-2.5 bg-gray-50 border border-red-200 rounded-xl focus:ring-2 focus:ring-[#990000]/20 outline-none text-sm font-bold text-[#990000]" />
                 </div>
               </div>
 

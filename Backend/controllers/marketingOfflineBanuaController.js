@@ -135,7 +135,8 @@ exports.getOrders = (req, res) => {
     let sql = `
         SELECT o.*, o.jenis_pembayaran as payment_type, DATEDIFF(o.deadline, CURDATE()) as sisa_hari,
             q.id as quotation_id, q.status as quotation_status, q.no_quotation, q.file_uploads as quotation_files,
-            q.alasan_penolakan as quotation_alasan_penolakan
+            q.alasan_penolakan as quotation_alasan_penolakan,
+            inv.id as invoice_id, inv.no_invoice as invoice_no
         FROM marketing_orders_offline o
         LEFT JOIN (
             SELECT mq1.* FROM marketing_quotations mq1
@@ -145,6 +146,7 @@ exports.getOrders = (req, res) => {
                 GROUP BY order_id
             ) mq2 ON mq1.id = mq2.max_id
         ) q ON o.id = q.order_id
+        LEFT JOIN invoice inv ON q.id = inv.quotation_id
         WHERE o.type = 'offline' AND o.branch = 'Banua'
     `;
     const params = [];
@@ -185,8 +187,23 @@ exports.createOrder = (req, res) => {
         harga = req.body.harga || 0;
     }
 
+    let isNeedOwnerApproval = false;
+    let diskonKeterangan = [];
+    if (items && items.length > 0) {
+        items.forEach(i => {
+            const hSatuan = Number(i.harga_satuan || 0);
+            const hSpv = Number(i.harga_spv || 0);
+            if (hSpv > 0 && hSatuan < hSpv) {
+                isNeedOwnerApproval = true;
+                diskonKeterangan.push(`${i.rincian} (Harga: Rp ${hSatuan}, SPV: Rp ${hSpv})`);
+            }
+        });
+    }
+
     let initialStatus = status || 'New Order';
-    if (payment_type === 'Non DP') {
+    if (isNeedOwnerApproval) {
+        initialStatus = 'Menunggu Approval Owner';
+    } else if (payment_type === 'Non DP') {
         initialStatus = 'Menunggu Approval Non DP';
     }
 
@@ -211,7 +228,10 @@ exports.createOrder = (req, res) => {
                 });
             }
 
-            if (payment_type === 'Non DP') {
+            if (isNeedOwnerApproval) {
+                const ket = `Pengajuan Diskon - Order Offline Banua | Customer: ${customer} | Item: ${diskonKeterangan.join(', ')}`;
+                db.query("INSERT INTO approvals (tipe, keterangan, nominal, diajukan_oleh, status, tanggal_pengajuan, reference_id) VALUES ('diskon_order', ?, ?, 'Marketing Offline Banua', 'pending', CURRENT_TIMESTAMP, ?)", [ket, grand_total || (harga * qty), result.insertId]);
+            } else if (payment_type === 'Non DP') {
                 const ket = `Pengajuan Order NON DP - Cabang Banua | Customer: ${customer} | Total: Rp ${Number(grand_total || (harga * qty)).toLocaleString('id-ID')}`;
                 db.query("INSERT INTO approvals (tipe, keterangan, nominal, diajukan_oleh, status, tanggal_pengajuan, reference_id) VALUES ('nondp_order', ?, ?, 'Marketing Offline Banua', 'pending', CURRENT_TIMESTAMP, ?)", [ket, grand_total || (harga * qty), result.insertId]);
             }
@@ -243,17 +263,44 @@ exports.updateOrder = (req, res) => {
         harga = req.body.harga || 0;
     }
 
+    let isNeedOwnerApproval = false;
+    let diskonKeterangan = [];
+    if (items && items.length > 0) {
+        items.forEach(i => {
+            const hSatuan = Number(i.harga_satuan || 0);
+            const hSpv = Number(i.harga_spv || 0);
+            if (hSpv > 0 && hSatuan < hSpv) {
+                isNeedOwnerApproval = true;
+                diskonKeterangan.push(`${i.rincian} (Harga: Rp ${hSatuan}, SPV: Rp ${hSpv})`);
+            }
+        });
+    }
+
+    let nextStatus = status;
+    if (isNeedOwnerApproval && status !== 'Approved by Owner') {
+        nextStatus = 'Menunggu Approval Owner';
+    }
+
     db.query(
         "UPDATE marketing_orders_offline SET customer=?, alamat_pt=?, up_penagihan=?, cp_penagihan=?, email=?, items=?, subtotal=?, ppn_persen=?, jumlah_ppn=?, diskon=?, diskon_persen=?, grand_total=?, produk=?, qty=?, harga=?, deadline=?, status=?, jenis_pembayaran=?, status_produksi=?, lokasi_proses=?, catatan=? WHERE id=? AND type='offline' AND branch='Banua'",
         [
             customer, alamat_pt, up_penagihan, cp_penagihan, email,
             itemsJson, subtotal || 0, ppn_persen || 0, jumlah_ppn || 0, diskon || 0, diskon_persen || 0, grand_total || (harga * qty),
-            produk, qty, harga, parseDate(deadline), status, payment_type, 
+            produk, qty, harga, parseDate(deadline), nextStatus, payment_type, 
             status_produksi, lokasi_proses, catatan, req.params.id
         ],
         (err) => {
             if (err) return res.status(500).json({ message: err.message });
             
+            if (isNeedOwnerApproval && nextStatus === 'Menunggu Approval Owner') {
+                db.query("SELECT id FROM approvals WHERE tipe='diskon_order' AND reference_id=? AND status='pending'", [req.params.id], (errApp, resApp) => {
+                    if (!errApp && resApp.length === 0) {
+                        const ket = `Pengajuan Diskon - Order Offline Banua | Customer: ${customer} | Item: ${diskonKeterangan.join(', ')}`;
+                        db.query("INSERT INTO approvals (tipe, keterangan, nominal, diajukan_oleh, status, tanggal_pengajuan, reference_id) VALUES ('diskon_order', ?, ?, 'Marketing Offline Banua', 'pending', CURRENT_TIMESTAMP, ?)", [ket, grand_total || (harga * qty), req.params.id]);
+                    }
+                });
+            }
+
             // Auto save customer on update if not exists
             if (customer) {
                 db.query("SELECT id FROM marketing_customers WHERE nama_customer = ? AND type = 'offline' AND branch = 'Banua'", [customer], (errCust, resCust) => {

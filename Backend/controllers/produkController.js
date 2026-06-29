@@ -14,8 +14,8 @@ exports.tambahProduk = (req, res) => {
         harga_direktur, harga_gm, harga_manager, harga_spv 
     } = req.body;
 
-    if (!nama_produk || !hpp_satuan) {
-        return res.status(400).json({ message: "Data produk tidak lengkap! Pastikan nama_produk dan hpp_satuan terisi." });
+    if (!nama_produk) {
+        return res.status(400).json({ message: "Data produk tidak lengkap! Pastikan nama_produk terisi." });
     }
 
     const sql = `INSERT INTO produk 

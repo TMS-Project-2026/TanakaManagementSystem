@@ -15,7 +15,7 @@ const Login = () => {
         if (userRole === 'finance') navigate('/finance');
         else if (userRole === 'gudang') navigate('/gudang');
         else if (userRole === 'admin_it') navigate('/it/dashboard');
-        else if (userRole === 'owner') navigate('/marketing-online/dashboard');
+        else if (userRole === 'owner') navigate('/owner/dashboard');
         else if (userRole === 'marketing_online') navigate('/marketing-online/dashboard');
         else if (userRole === 'marketing_offline') navigate('/marketing-offline/dashboard');
         else if (userRole === 'marketing_offline_tanaka') navigate('/marketing-offline-tanaka/dashboard');

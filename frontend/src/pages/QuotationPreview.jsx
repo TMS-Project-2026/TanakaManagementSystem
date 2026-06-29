@@ -109,9 +109,10 @@ const QuotationPreview = () => {
                 const hargaSatuanGabung = Number(item.harga_satuan || 0);
                 const totalBaris = Number(item.qty || 0) * hargaSatuanGabung;
                 const diskonItem = Number(item.diskon_item || 0);
+                const cleanRincian = (item.rincian || '').replace(/^\[.*?\]\s*/, '');
                 const namaProduk = item.bordir
-                    ? `${item.rincian || ''}\nBordir: ${item.bordir}`
-                    : (item.rincian || '');
+                    ? `${cleanRincian}\nBordir: ${item.bordir}`
+                    : cleanRincian;
                 return [
                     namaProduk, item.ukuran || '-', item.qty || 0, item.satuan || 'Pcs',
                     fmtRp(hargaSatuanGabung + diskonItem),
@@ -309,7 +310,7 @@ const QuotationPreview = () => {
                                     return (
                                         <tr key={index} className={`border-b border-gray-100 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
                                             <td className="p-3 text-gray-800 align-top text-sm">
-                                                <p className="font-medium">{item.rincian}</p>
+                                                <p className="font-medium">{(item.rincian || '').replace(/^\[.*?\]\s*/, '')}</p>
                                                 {item.bordir && (
                                                     <p className="text-xs text-gray-500 mt-0.5">Bordir: {item.bordir}</p>
                                                 )}

@@ -18,6 +18,7 @@ const QuotationForm = () => {
     const [products, setProducts] = useState([]);
     const [filteredProducts, setFilteredProducts] = useState([]);
     const [activeItemIndex, setActiveItemIndex] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [form, setForm] = useState({
         no_quotation: '', cabang: 'Banua',
@@ -151,11 +152,17 @@ const QuotationForm = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (isSubmitting) return;
+        setIsSubmitting(true);
         try {
             if (isEdit) { await updateQuotation(id, form); alert("Quotation berhasil diperbarui!"); }
             else { await createQuotation(form); alert("Quotation berhasil dibuat!"); }
             navigate('/quotation');
-        } catch (err) { console.error("Gagal menyimpan quotation", err); alert("Gagal menyimpan quotation"); }
+        } catch (err) { 
+            console.error("Gagal menyimpan quotation", err); 
+            alert("Gagal menyimpan quotation"); 
+            setIsSubmitting(false);
+        }
     };
 
     const inputClass = "w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-sm";
@@ -333,8 +340,10 @@ const QuotationForm = () => {
 
                         {/* Actions */}
                         <div className="flex items-center justify-end gap-4 pb-10">
-                            <button type="button" onClick={() => navigate(-1)} className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium flex items-center gap-2"><X size={18} /> Batal</button>
-                            <button type="submit" className="px-8 py-3 bg-blue-700 text-white rounded-xl shadow-lg hover:bg-blue-800 active:scale-95 font-bold flex items-center gap-2"><Save size={18} /> {isEdit ? 'Simpan Perubahan' : 'Simpan Quotation'}</button>
+                            <button type="button" onClick={() => navigate(-1)} disabled={isSubmitting} className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 font-medium flex items-center gap-2 disabled:opacity-50"><X size={18} /> Batal</button>
+                            <button type="submit" disabled={isSubmitting} className="px-8 py-3 bg-blue-700 text-white rounded-xl shadow-lg hover:bg-blue-800 active:scale-95 font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <Save size={18} /> {isSubmitting ? 'Menyimpan...' : (isEdit ? 'Simpan Perubahan' : 'Simpan Quotation')}
+                            </button>
                         </div>
                     </form>
                 </div>
