@@ -17,7 +17,7 @@ const BarangKeluar = () => {
     // Form state
     const [namaBrand, setNamaBrand] = useState('');
     const [namaBarang, setNamaBarang] = useState('');
-    const [cabangId, setCabangId] = useState(userRole === 'gudang_accestret' ? 'Acestreet' : 'Tanaka');
+    const [cabangId, setCabangId] = useState(userRole === 'gudang_accestret' ? 'Acestreet' : userRole === 'gudang' ? 'Global' : 'Tanaka');
     const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
     const [tujuan, setTujuan] = useState(''); // diisi manual: shopee, tiktok, offline dll
     const [items, setItems] = useState([{ ukuran: 'S', jumlah: '' }]);
@@ -127,7 +127,7 @@ const BarangKeluar = () => {
             // Reset form
             setNamaBrand('');
             setNamaBarang('');
-            setCabangId(userRole === 'gudang_accestret' ? 'Acestreet' : 'Tanaka');
+            setCabangId(userRole === 'gudang_accestret' ? 'Acestreet' : userRole === 'gudang' ? 'Global' : 'Tanaka');
             setTujuan('');
             setItems([{ ukuran: 'S', jumlah: '' }]);
         } catch (error) {
@@ -238,7 +238,7 @@ const BarangKeluar = () => {
                                         <th className="p-4 font-semibold">Tanggal</th>
                                         <th className="p-4 font-semibold">Brand</th>
                                         <th className="p-4 font-semibold">Nama Barang</th>
-                                        <th className="p-4 font-semibold">Cabang</th>
+                                        {userRole !== 'gudang' && <th className="p-4 font-semibold">Cabang</th>}
                                         <th className="p-4 font-semibold">Detail Ukuran</th>
                                         <th className="p-4 font-semibold text-center w-36">Total Keluar</th>
                                         <th className="p-4 font-semibold">Tujuan</th>
@@ -250,7 +250,7 @@ const BarangKeluar = () => {
                                             <td className="p-4 whitespace-nowrap">{new Date(item.tanggal).toLocaleDateString('id-ID')}</td>
                                             <td className="p-4 font-medium text-gray-600">{item.nama_brand}</td>
                                             <td className="p-4 font-bold text-gray-800">{item.nama_barang}</td>
-                                            <td className="p-4">{item.cabang_id}</td>
+                                            {userRole !== 'gudang' && <td className="p-4">{item.cabang_id}</td>}
                                             <td className="p-4">
                                                 <div className="flex flex-wrap gap-1.5">
                                                     {item.details.map((detail, idx) => (

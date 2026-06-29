@@ -41,6 +41,8 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef(null);
 
+  const userRole = (JSON.parse(localStorage.getItem('user')) || {}).role || '';
+
   // Ambil pre-fill search dari query param ?q=... (dipakai saat redirect dari Promo)
   const searchParams = new URLSearchParams(location.search);
   const promoHighlight = searchParams.get('q') || '';
@@ -296,9 +298,10 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
   const fetchInventory = async () => {
     setLoading(true);
     try {
-      const res = await getStok('Banua');
+      const res = await getStok();
       if (res.data.status === 'success') {
-        setInventory(res.data.data);
+        const filteredData = res.data.data.filter(s => ['Banua', 'Tanaka', 'Global'].includes(s.cabang_id));
+        setInventory(filteredData);
       }
     } catch (err) {
       console.error(err);
@@ -355,8 +358,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
             })
             .reduce((sum, o) => {
               const total_price = parseFloat(o.total_price) || 0;
-              const potongan_shopee = parseFloat(o.potongan_shopee) || 0;
-              return sum + (total_price - potongan_shopee);
+              return sum + total_price;
             }, 0);
         };
 
@@ -399,8 +401,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
             })
             .reduce((sum, o) => {
               const total_price = parseFloat(o.total_price) || 0;
-              const potongan_shopee = parseFloat(o.potongan_shopee) || 0;
-              return sum + (total_price - potongan_shopee);
+              return sum + total_price;
             }, 0);
         };
 
@@ -442,7 +443,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
           allOrders.forEach(order => {
             if ((order.akun_toko || 'Unknown') !== acc) return;
             const orderDate = new Date(order.order_date);
-            const revenue = parseFloat(order.total_price || 0) - parseFloat(order.potongan_shopee || 0);
+            const revenue = parseFloat(order.total_price || 0);
 
             if (orderDate >= startCurrent && orderDate <= endCurrent) currentRev += revenue;
             if (orderDate >= startPrevYear && orderDate <= endPrevYear) prevYearRev += revenue;
@@ -503,8 +504,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
               })
               .reduce((sum, o) => {
                 const total_price = parseFloat(o.total_price) || 0;
-                const potongan_shopee = parseFloat(o.potongan_shopee) || 0;
-                return sum + (total_price - potongan_shopee);
+                return sum + total_price;
               }, 0);
           };
 
@@ -1184,6 +1184,16 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
   };
 
   const handleSaveManual = async () => {
+    // Validasi field wajib
+    const errors = [];
+    if (!manualOrder.akun_toko) errors.push('Nama Toko');
+    if (!manualOrder.stok_id && !manualOrder.kode_produk) errors.push('Kode Produk');
+    if (!manualOrder.qty || parseInt(manualOrder.qty) <= 0) errors.push('Qty');
+    if (errors.length > 0) {
+      alert(`Field berikut wajib diisi:\n• ${errors.join('\n• ')}`);
+      return;
+    }
+
     const qty = parseInt(manualOrder.qty) || 0;
     const price_unit = parseFloat(manualOrder.price_unit) || 0;
     const hpp_aktual = parseFloat(manualOrder.hpp_aktual) || 0;
@@ -1191,7 +1201,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
 
     const total_price = qty * price_unit;
     const hpp = qty * hpp_aktual;
-    const total_hpp_aktual = hpp + potongan_shopee;
+    const total_hpp_aktual = hpp;
     const actual = total_price - potongan_shopee;
     const actual_satuan = qty > 0 ? actual / qty : 0;
     const profit = actual - hpp;
@@ -1350,32 +1360,36 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
             {/* Action Buttons (As per screenshot colors) */}
             {activeTab === 'orders' && (
               <div className="flex items-center gap-3">
-                <button
-                  onClick={handleExportExcel}
-                  className="flex items-center gap-2 bg-[#2563eb] text-white px-4 py-2.5 rounded-xl text-xs font-black hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-100"
-                >
-                  <Download size={18} /> Eksport Excel
-                </button>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-2 bg-[#059669] text-white px-4 py-2.5 rounded-xl text-xs font-black hover:bg-emerald-700 transition-all active:scale-95 shadow-lg shadow-emerald-100"
-                >
-                  <Upload size={18} /> Import Shopee
-                </button>
-                <button
-                  onClick={() => {
-                    setManualOrder({
-                      customer_name: '', akun_toko: '', kode_produk: '', product_name: '', qty: '', price_unit: '',
-                      potongan_shopee: '', hpp_aktual: '', order_date: new Date().toISOString().split('T')[0],
-                      address: '', status: 'Pesanan Selesai'
-                    });
-                    setShowManualModal(true);
-                  }}
-                  className="flex items-center gap-2 bg-[#990000] text-white px-4 py-2.5 rounded-xl text-xs font-black hover:bg-red-800 transition-all active:scale-95 shadow-lg shadow-red-100"
-                >
-                  <Plus size={18} /> Tambah Manual
-                </button>
-                <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".xlsx, .xls" className="hidden" />
+                {!userRole.includes('gudang') && (
+                  <>
+                    <button
+                      onClick={handleExportExcel}
+                      className="flex items-center gap-2 bg-[#2563eb] text-white px-4 py-2.5 rounded-xl text-xs font-black hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-100"
+                    >
+                      <Download size={18} /> Eksport Excel
+                    </button>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center gap-2 bg-[#059669] text-white px-4 py-2.5 rounded-xl text-xs font-black hover:bg-emerald-700 transition-all active:scale-95 shadow-lg shadow-emerald-100"
+                    >
+                      <Upload size={18} /> Import Shopee
+                    </button>
+                    <button
+                      onClick={() => {
+                        setManualOrder({
+                          customer_name: '', akun_toko: '', kode_produk: '', product_name: '', qty: '', price_unit: '',
+                          potongan_shopee: '', hpp_aktual: '', order_date: new Date().toISOString().split('T')[0],
+                          address: '', status: 'Pesanan Selesai'
+                        });
+                        setShowManualModal(true);
+                      }}
+                      className="flex items-center gap-2 bg-[#990000] text-white px-4 py-2.5 rounded-xl text-xs font-black hover:bg-red-800 transition-all active:scale-95 shadow-lg shadow-red-100"
+                    >
+                      <Plus size={18} /> Tambah Manual
+                    </button>
+                    <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".xlsx, .xls" className="hidden" />
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -1744,10 +1758,10 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
 
                         const total_price = order.total_price || (qty * price_unit);
                         const hpp = order.hpp || (qty * hpp_aktual);
-                        const total_hpp_aktual = order.total_hpp_aktual || (hpp + potongan_shopee);
-                        const actual_satuan = order.actual_satuan || (price_unit - potongan_shopee);
-                        const actual = order.actual || (total_price - (potongan_shopee * qty));
-                        const profit = order.profit || (total_price - total_hpp_aktual);
+                        const total_hpp_aktual = order.total_hpp_aktual || hpp;
+                        const actual = order.actual || (total_price - potongan_shopee);
+                        const actual_satuan = order.actual_satuan || (qty > 0 ? actual / qty : 0);
+                        const profit = order.profit || (actual - hpp);
 
                         return (
                           <tr
@@ -2840,7 +2854,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                 const hpp = parseFloat(editOrder.hpp_aktual) || 0;
                 const totalHarga   = q * pu;
                 const hppTotal     = q * hpp;
-                const totalHppAkt  = hppTotal + ps;
+                const totalHppAkt  = hppTotal;
                 const actual       = totalHarga - ps;
                 const profit       = actual - hppTotal;
                 return (
@@ -3179,7 +3193,7 @@ const ManualOrderModal = ({ show, onClose, onSave, order, setOrder, loading, for
               <input type="date" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-100 outline-none font-medium" value={order.order_date} onChange={e => setOrder({ ...order, order_date: e.target.value })} />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Akun Toko</label>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Akun Toko <span className="text-red-500">*</span></label>
               <select className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-100 outline-none font-medium text-gray-800" value={order.akun_toko} onChange={e => setOrder({ ...order, akun_toko: e.target.value })}>
                 <option value="">-- Pilih Akun Toko --</option>
                 {availableAccounts && availableAccounts.map((acc, idx) => (
@@ -3190,77 +3204,58 @@ const ManualOrderModal = ({ show, onClose, onSave, order, setOrder, loading, for
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-indigo-500 uppercase mb-2">Kode Produk <span className="font-normal text-gray-400 normal-case">(opsional)</span></label>
-            <select
-              className="w-full p-3 bg-indigo-50 border border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-100 outline-none font-bold text-indigo-700 tracking-wide text-sm"
-              value={order.kode_produk || ''}
+            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Kode Produk <span className="text-red-500">*</span></label>
+            <select 
+              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-100 outline-none font-medium text-gray-800 text-sm" 
+              value={order.stok_id || ''} 
               onChange={e => {
-                const kode = e.target.value;
-                setOrder({ ...order, kode_produk: kode });
-                if (!kode) return;
-                const matched = pricelistOnlineData?.find(p => p.kode === kode);
-                if (matched) {
-                  setOrder(prev => ({ 
-                    ...prev,
+                const selectedId = e.target.value;
+                if (!selectedId) {
+                  setOrder({ ...order, stok_id: null, kode_produk: '', product_name: '' });
+                  return;
+                }
+                const selectedItem = inventory.find(item => item.id.toString() === selectedId);
+                if (selectedItem) {
+                  const sizeText = selectedItem.ukuran && selectedItem.ukuran !== '-' ? ` - ${selectedItem.ukuran}` : '';
+                  const fullName = `${selectedItem.nama_barang}${sizeText}`;
+                  const kode = selectedItem.kode_produk || '';
+                  // Cari harga dari pricelist berdasarkan kode produk
+                  const priceMatch = kode && pricelistOnlineData?.find(p => p.kode?.toLowerCase() === kode.toLowerCase());
+                  setOrder({ 
+                    ...order, 
+                    stok_id: selectedItem.id, 
                     kode_produk: kode,
-                    product_name: matched.nama_produk || prev.product_name,
-                    hpp_aktual: matched.hpp || prev.hpp_aktual,
-                    price_unit: matched.harga_jual || prev.price_unit,
-                    potongan_shopee: matched.pot_shopee || prev.potongan_shopee
-                  }));
+                    product_name: fullName,
+                    ...(priceMatch ? {
+                      hpp_aktual: parseFloat(priceMatch.hpp) || order.hpp_aktual,
+                      price_unit: parseFloat(priceMatch.harga_jual) || order.price_unit,
+                      potongan_shopee: parseFloat(priceMatch.pot_shopee) || order.potongan_shopee,
+                    } : {})
+                  });
                 }
               }}
             >
-              <option value="">-- Pilih Kode Produk --</option>
-              {pricelistOnlineData?.map(item => (
-                <option key={item.id} value={item.kode}>{item.kode} - {item.nama_produk}</option>
-              ))}
+              <option value="">-- Pilih Kode Produk (Autolink Gudang) --</option>
+              {inventory && inventory.map(item => {
+                const sizeText = item.ukuran && item.ukuran !== '-' ? ` (${item.ukuran})` : '';
+                return (
+                  <option key={item.id} value={item.id} disabled={item.jumlah <= 0}>
+                    {item.kode_produk ? `${item.kode_produk} - ` : ''}{item.nama_barang}{sizeText} - Stok: {item.jumlah}
+                  </option>
+                );
+              })}
             </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Nama Produk (Sesuai Stok Gudang)</label>
-            <div className="flex flex-col gap-2">
-              <input 
-                type="text" 
-                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none font-bold text-gray-900 text-sm"
-                value={order.product_name || ''} 
-                onChange={e => setOrder({ ...order, product_name: e.target.value })}
-                placeholder="Nama Produk"
-              />
-              <select 
-                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-100 outline-none font-medium text-gray-800 text-sm" 
-                value={order.stok_id || ''} 
-                onChange={e => {
-                  const selectedId = e.target.value;
-                  if (!selectedId) {
-                    setOrder({ ...order, stok_id: null });
-                    return;
-                  }
-                  const selectedItem = inventory.find(item => item.id.toString() === selectedId);
-                  if (selectedItem) {
-                    const sizeText = selectedItem.ukuran && selectedItem.ukuran !== '-' ? ` - ${selectedItem.ukuran}` : '';
-                    const fullName = `${selectedItem.nama_barang}${sizeText}`;
-                    setOrder({ ...order, stok_id: selectedItem.id, product_name: fullName });
-                  }
-                }}
-              >
-                <option value="">-- Autolink ke Stok Gudang (Opsional) --</option>
-                {inventory && inventory.map(item => {
-                  const sizeText = item.ukuran && item.ukuran !== '-' ? ` (Ukuran: ${item.ukuran})` : '';
-                  return (
-                    <option key={item.id} value={item.id} disabled={item.jumlah <= 0}>
-                      {item.nama_barang}{sizeText} - Stok: {item.jumlah}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
+            {order.product_name && (
+              <p className="mt-2 text-xs text-gray-500 font-medium px-1">
+                📦 <span className="text-gray-800 font-bold">{order.product_name}</span>
+                {order.kode_produk && <span className="ml-2 text-indigo-500 font-bold">({order.kode_produk})</span>}
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Qty</label>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Qty <span className="text-red-500">*</span></label>
               <input type="number" className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-100 outline-none font-bold text-[#990000]" value={order.qty} onChange={e => setOrder({ ...order, qty: e.target.value })} placeholder="0" />
             </div>
             <div>

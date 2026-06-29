@@ -150,7 +150,7 @@ const AccestretGudangDashboard = ({ embedded = false }) => {
                                                 <div className="flex items-center gap-2">
                                                     <span className="bg-red-50 text-[#990000] text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shrink-0">{idx + 1}</span>
                                                     <div className="relative flex-1 min-w-0">
-                                                        <span className="text-xs font-bold text-gray-800 truncate w-full block">{item.nama_barang}</span>
+                                                        <span className="text-xs font-bold text-gray-800 truncate w-full block">{item.nama_barang} {item.ukuran ? `- ${item.ukuran}` : ''}</span>
                                                         <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider block">Cabang: {item.cabang_id}</span>
                                                     </div>
                                                     <span className="text-xs font-black text-red-600 shrink-0">{item.jumlah} Pcs</span>
@@ -187,7 +187,7 @@ const AccestretGudangDashboard = ({ embedded = false }) => {
                                                 <div className="flex items-center gap-2">
                                                     <span className="bg-emerald-50 text-emerald-700 text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shrink-0">{idx + 1}</span>
                                                     <div className="relative flex-1 min-w-0">
-                                                        <span className="text-xs font-bold text-gray-800 truncate w-full block">{item.nama_barang}</span>
+                                                        <span className="text-xs font-bold text-gray-800 truncate w-full block">{item.nama_barang} {item.ukuran ? `- ${item.ukuran}` : ''}</span>
                                                         <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider block">Sisa Stok: {item.jumlah}</span>
                                                     </div>
                                                     <span className="text-xs font-black text-emerald-600 shrink-0">{item.total_terjual} Pcs</span>
@@ -226,7 +226,7 @@ const AccestretGudangDashboard = ({ embedded = false }) => {
                                         data.deadStock.map((item, idx) => (
                                             <div key={idx} className="bg-gray-50/50 hover:bg-gray-50 p-4 rounded-2xl border border-gray-100 flex justify-between items-center transition-all">
                                                 <div className="min-w-0 flex-1 pr-3">
-                                                    <p className="font-bold text-gray-800 text-xs truncate">{item.nama_barang}</p>
+                                                    <p className="font-bold text-gray-800 text-xs truncate">{item.nama_barang} {item.ukuran ? `- ${item.ukuran}` : ''}</p>
                                                     <p className="text-[10px] text-red-500 font-bold mt-1">⚠️ Mengendap &gt; 2 Bulan</p>
                                                 </div>
                                                 <div className="text-right shrink-0">

@@ -69,6 +69,7 @@ const UserManagement = () => {
             owner: 'bg-yellow-100 text-yellow-800 border-yellow-200',
             admin_it: 'bg-blue-100 text-blue-800 border-blue-200',
             marketing_online: 'bg-purple-100 text-purple-800 border-purple-200',
+            marketing_online_tanaka: 'bg-indigo-100 text-indigo-800 border-indigo-200',
             marketing_offline: 'bg-purple-100 text-purple-800 border-purple-200',
             marketing_offline_tanaka: 'bg-purple-100 text-purple-800 border-purple-200',
             marketing_accestret: 'bg-purple-100 text-purple-800 border-purple-200',
@@ -172,7 +173,8 @@ const UserManagement = () => {
                                     <select value={form.role} onChange={e => setForm({...form, role: e.target.value})} className="w-full border border-gray-300 rounded-lg p-2">
                                         <option value="owner">Owner</option>
                                         <option value="admin_it">Admin IT</option>
-                                        <option value="marketing_online">Marketing Online</option>
+                                        <option value="marketing_online">Marketing Online (Banua)</option>
+                                        <option value="marketing_online_tanaka">Marketing Online Tanaka</option>
                                         <option value="marketing_offline">Marketing Offline</option>
                                         <option value="marketing_offline_tanaka">Marketing Offline Tanaka</option>
                                         <option value="marketing_accestret">Marketing Accestret</option>

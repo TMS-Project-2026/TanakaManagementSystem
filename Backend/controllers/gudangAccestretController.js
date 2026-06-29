@@ -67,7 +67,7 @@ exports.getDashboard = async (req, res) => {
 
         // Barang hampir habis (Accestret)
         const [hampirHabis] = await promiseDb.query(`
-            SELECT nama_barang, jumlah, cabang_id, minimum_stok
+            SELECT nama_barang, ukuran, jumlah, cabang_id, minimum_stok
             FROM stok
             WHERE jumlah <= minimum_stok AND cabang_id = ?
             ORDER BY jumlah ASC LIMIT 5
@@ -90,23 +90,24 @@ exports.getAnalisis = async (req, res) => {
         // Fast Moving: barang paling banyak keluar 30 hari (Accestret)
         const [fastMoving] = await promiseDb.query(`
             SELECT bk.nama_barang, SUM(bk.jumlah) as total_terjual,
+                   (SELECT s.ukuran FROM stok s WHERE s.nama_barang = bk.nama_barang AND s.cabang_id = ? LIMIT 1) as ukuran,
                    COALESCE((SELECT SUM(s.jumlah) FROM stok s WHERE s.nama_barang = bk.nama_barang AND s.cabang_id = ?), 0) as jumlah
             FROM barang_keluar bk
             WHERE bk.tanggal >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) AND bk.cabang_id = ?
             GROUP BY bk.nama_barang
             ORDER BY total_terjual DESC LIMIT 10
-        `, [BRANCH, BRANCH]);
+        `, [BRANCH, BRANCH, BRANCH]);
 
         // Dead Stock: barang tidak pernah keluar > 60 hari (Accestret)
         const [deadStock] = await promiseDb.query(`
-            SELECT s.nama_barang, SUM(s.jumlah) as jumlah
+            SELECT s.nama_barang, s.ukuran, SUM(s.jumlah) as jumlah
             FROM stok s
             WHERE s.cabang_id = ?
               AND s.nama_barang NOT IN (
                 SELECT DISTINCT nama_barang FROM barang_keluar
                 WHERE tanggal >= DATE_SUB(CURDATE(), INTERVAL 60 DAY) AND cabang_id = ?
               )
-            GROUP BY s.nama_barang
+            GROUP BY s.nama_barang, s.ukuran
             HAVING jumlah > 0
             ORDER BY jumlah DESC LIMIT 10
         `, [BRANCH, BRANCH]);

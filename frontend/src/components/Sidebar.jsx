@@ -119,6 +119,26 @@ const Sidebar = () => {
         { title: 'Laporan Tahun Berjalan', path: '/marketing-online/reports/berjalan-tahunan' }
       ]
     },
+    { name: 'Dashboard Online', path: '/marketing-online-tanaka/dashboard', icon: <LayoutDashboard size={20} />, roles: ['marketing_online_tanaka', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE TANAKA' },
+    { name: 'Order Marketplace', path: '/marketing-online-tanaka/orders', icon: <ShoppingBag size={20} />, roles: ['marketing_online_tanaka', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE TANAKA' },
+    { name: 'Stok Inventory', path: '/marketing-online-tanaka/inventory', icon: <Package size={20} />, roles: ['marketing_online_tanaka', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE TANAKA' },
+    { name: 'Promo Online', path: '/marketing-online-tanaka/promo', icon: <Gift size={20} />, roles: ['marketing_online_tanaka', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE TANAKA' },
+    { name: 'Pricelist Harga', path: '/pricelist-online', icon: <Tag size={20} />, roles: ['marketing_online_tanaka', 'Admin', 'Manager', 'Marketing'], group: 'MARKETPLACE TANAKA' },
+    {
+      name: 'Report',
+      path: '/marketing-online-tanaka/reports',
+      icon: <FileText size={20} />,
+      roles: ['marketing_online_tanaka', 'Admin', 'Manager', 'Marketing'],
+      group: 'MARKETPLACE TANAKA',
+      subMenu: [
+        { title: 'Laporan Harian', path: '/marketing-online-tanaka/reports/harian' },
+        { title: 'Laporan Harian Berjalan', path: '/marketing-online-tanaka/reports/bulanan' },
+        { title: 'Laporan Bulanan', path: '/marketing-online-tanaka/reports/bulanan-monthly' },
+        { title: 'Laporan Bulan Berjalan', path: '/marketing-online-tanaka/reports/berjalan-monthly' },
+        { title: 'Laporan Tahunan', path: '/marketing-online-tanaka/reports/tahunan' },
+        { title: 'Laporan Tahun Berjalan', path: '/marketing-online-tanaka/reports/berjalan-tahunan' }
+      ]
+    },
     { name: 'Dashboard Gudang', path: '/gudang', icon: <LayoutDashboard size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Order Marketplace', path: '/gudang/order-marketplace', icon: <ShoppingBag size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Approval Permintaan', path: '/permintaan-stok', icon: <Bell size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse', hasPermintaanBadge: true },

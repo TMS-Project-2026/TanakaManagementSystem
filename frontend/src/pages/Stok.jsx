@@ -14,7 +14,7 @@ const Stok = () => {
     const [form, setForm] = useState({
         id: 0, kode_produk: '', nama_brand: '', nama_barang: '', bahan: '',
         jumlah: '', kategori: 'Reguler',
-        cabang_id: userRole === 'gudang_accestret' ? 'Acestreet' : 'Banua',
+        cabang_id: userRole === 'gudang_accestret' ? 'Acestreet' : userRole === 'gudang' ? 'Global' : 'Banua',
         kode_rak: '', ukuran: 'All Size', minimum_stok: '5',
         created_at: new Date().toISOString().split('T')[0]
     });
@@ -80,7 +80,7 @@ const Stok = () => {
     const resetForm = () => {
         setIsEdit(false);
         setForm({ id:0, kode_produk:'', nama_brand:'', nama_barang:'', bahan:'', jumlah:'', kategori:'Reguler',
-            cabang_id: userRole === 'gudang_accestret' ? 'Acestreet' : 'Banua',
+            cabang_id: userRole === 'gudang_accestret' ? 'Acestreet' : userRole === 'gudang' ? 'Global' : 'Banua',
             kode_rak:'', ukuran:'All Size', minimum_stok:'5', created_at: new Date().toISOString().split('T')[0] });
         setShowAddModal(false);
     };
@@ -170,16 +170,18 @@ const Stok = () => {
                         </div>
 
                         {/* Filter Cabang */}
-                        <div className="flex items-center gap-2 mb-4">
-                            <Filter className="text-gray-400" size={20} />
-                            <select value={filterCabang} onChange={e => setFilterCabang(e.target.value)}
-                                className="border border-gray-300 rounded-lg p-2 bg-white text-sm focus:ring-red-500 focus:border-red-500">
-                                <option value="">Semua Cabang</option>
-                                <option value="Tanaka">Tanaka</option>
-                                <option value="Banua">Banua</option>
-                                <option value="Acestreet">Acestreet</option>
-                            </select>
-                        </div>
+                        {userRole !== 'gudang' && (
+                            <div className="flex items-center gap-2 mb-4">
+                                <Filter className="text-gray-400" size={20} />
+                                <select value={filterCabang} onChange={e => setFilterCabang(e.target.value)}
+                                    className="border border-gray-300 rounded-lg p-2 bg-white text-sm focus:ring-red-500 focus:border-red-500">
+                                    <option value="">Semua Cabang</option>
+                                    <option value="Tanaka">Tanaka</option>
+                                    <option value="Banua">Banua</option>
+                                    <option value="Acestreet">Acestreet</option>
+                                </select>
+                            </div>
+                        )}
 
                         {/* TABEL */}
                         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
@@ -191,7 +193,7 @@ const Stok = () => {
                                             <th className="px-3 py-3 border-r border-gray-700">JENIS / KATEGORI</th>
                                             <th className="px-3 py-3 border-r border-gray-700">NAMA PRODUK</th>
                                             <th className="px-3 py-3 border-r border-gray-700">BAHAN</th>
-                                            <th className="px-3 py-3 border-r border-gray-700">CABANG</th>
+                                            {userRole !== 'gudang' && <th className="px-3 py-3 border-r border-gray-700">CABANG</th>}
                                             {sizesArray.map(sz => (
                                                 <th key={sz} className="px-2 py-3 text-center border-r border-gray-700 w-14">{sz}</th>
                                             ))}
@@ -211,7 +213,7 @@ const Stok = () => {
                                                     </td>
                                                     <td className="px-3 py-2.5 font-semibold text-gray-800 border-r border-gray-100 whitespace-nowrap">{item.nama_barang}</td>
                                                     <td className="px-3 py-2.5 text-gray-500 border-r border-gray-100">{item.bahan}</td>
-                                                    <td className="px-3 py-2.5 text-gray-600 border-r border-gray-100">{item.cabang_id}</td>
+                                                    {userRole !== 'gudang' && <td className="px-3 py-2.5 text-gray-600 border-r border-gray-100">{item.cabang_id}</td>}
                                                     {sizesArray.map(sz => {
                                                         const qty = item.sizes[sz]?.qty || 0;
                                                         return (
@@ -288,15 +290,18 @@ const Stok = () => {
                                         {['PDH','PDL','WEARPACK','CELANA','TOPI','APRON','KEMEJA','FULL SET','Reguler'].map(v => <option key={v} value={v} />)}
                                     </datalist>
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-700 mb-1">CABANG</label>
-                                    <select value={form.cabang_id} onChange={e => setForm({...form, cabang_id: e.target.value}) }
-                                        className="w-full border border-gray-200 rounded-xl p-2.5 outline-none text-sm bg-white">
-                                        <option value="Banua">Banua</option>
-                                        <option value="Tanaka">Tanaka</option>
-                                        <option value="Acestreet">Acestreet</option>
-                                    </select>
-                                </div>
+                                {userRole !== 'gudang' && (
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-700 mb-1">CABANG</label>
+                                        <select value={form.cabang_id} onChange={e => setForm({...form, cabang_id: e.target.value}) }
+                                            className="w-full border border-gray-200 rounded-xl p-2.5 outline-none text-sm bg-white">
+                                            <option value="Banua">Banua</option>
+                                            <option value="Tanaka">Tanaka</option>
+                                            <option value="Acestreet">Acestreet</option>
+                                            <option value="Global">Global</option>
+                                        </select>
+                                    </div>
+                                )}
                                 <div>
                                     <label className="block text-xs font-bold text-gray-700 mb-1">UKURAN</label>
                                     <select value={form.ukuran} onChange={e => setForm({...form, ukuran: e.target.value})}
