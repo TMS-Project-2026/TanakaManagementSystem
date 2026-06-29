@@ -196,12 +196,20 @@ export default function OwnerDashboard() {
                     <div className="flex flex-col gap-1">
                       <p className="text-xs font-black text-gray-900">{item.no_quotation || item.keterangan || `REQ-2025-${item.id.toString().padStart(3, '0')}`}</p>
                       <p className="text-[10px] text-gray-500 font-medium truncate max-w-[150px]">{item.diajukan_oleh}</p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <p className="text-xs font-black text-gray-900">{fmt(item.nominal || 0)}</p>
-                      <span className="text-[9px] font-black px-2 py-1 rounded bg-orange-50 text-orange-600 w-12 text-center">
+                      <span className="text-[9px] font-black px-2 py-0.5 mt-1 rounded bg-orange-50 text-orange-600 max-w-fit">
                         {item.tipe === 'quotation_to_invoice' ? 'INV' : (item.tipe?.includes('po') ? 'PO' : 'REQ')}
                       </span>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <p className="text-xs font-black text-gray-900">{fmt(item.nominal || 0)}</p>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => handleApproval(item.id, 'rejected')} className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors tooltip" title="Tolak">
+                          <X size={14} strokeWidth={3} />
+                        </button>
+                        <button onClick={() => handleApproval(item.id, 'approved')} className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg transition-colors tooltip" title="Setujui">
+                          <Check size={14} strokeWidth={3} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -225,10 +233,13 @@ export default function OwnerDashboard() {
                     <div className="flex flex-col gap-1">
                       <p className="text-xs font-black text-gray-900">REQ-2025-{item.id.toString().padStart(3, '0')}</p>
                       <p className="text-[10px] text-gray-500 font-medium truncate max-w-[150px]">{item.nama_barang}</p>
+                      <span className="text-[9px] font-black px-2 py-0.5 mt-1 rounded bg-blue-50 text-blue-600 max-w-fit">Baru</span>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-col items-end gap-2">
                       <p className="text-xs font-black text-gray-900">{item.jumlah} <span className="text-[10px] text-gray-500 font-medium">pcs</span></p>
-                      <span className="text-[9px] font-black px-2 py-1 rounded bg-blue-50 text-blue-600 w-12 text-center">Baru</span>
+                      <button onClick={() => handleApprovePermintaan(item.id)} className="flex items-center gap-1 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 text-[10px] font-black rounded-lg transition-colors">
+                        <Check size={12} strokeWidth={3} /> Setujui
+                      </button>
                     </div>
                   </div>
                 ))}

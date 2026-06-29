@@ -214,7 +214,7 @@ const Sidebar = () => {
       ]
     },
     {
-      name: 'Marketing Offline',
+      name: 'Marketing Offline Banua',
       icon: <Users size={20} />,
       roles: ['owner'],
       group: 'Owner Dashboard',
@@ -235,6 +235,32 @@ const Sidebar = () => {
             { title: 'Laporan Bulan Berjalan', path: '/marketing-offline/reports/berjalan-monthly' },
             { title: 'Laporan Tahunan', path: '/marketing-offline/reports/tahunan' },
             { title: 'Laporan Tahun Berjalan', path: '/marketing-offline/reports/berjalan-tahunan' }
+          ]
+        }
+      ]
+    },
+    {
+      name: 'Marketing Offline Tanaka',
+      icon: <Users size={20} />,
+      roles: ['owner'],
+      group: 'Owner Dashboard',
+      subMenu: [
+        { title: 'Dashboard Offline', path: '/marketing-offline-tanaka/dashboard' },
+        { title: 'Order Offline', path: '/marketing-offline-tanaka/orders' },
+        { title: 'Stok Inventory', path: '/marketing-offline-tanaka/inventory' },
+        { title: 'Customer', path: '/marketing-offline-tanaka/customers' },
+        { title: 'Promo', path: '/marketing-offline-tanaka/promo' },
+        { title: 'Pricelist Harga', path: '/pricelist' },
+        {
+          title: 'Report',
+          path: '/marketing-offline-tanaka/reports',
+          subMenu: [
+            { title: 'Laporan Harian', path: '/marketing-offline-tanaka/reports/harian' },
+            { title: 'Laporan Harian Berjalan', path: '/marketing-offline-tanaka/reports/bulanan' },
+            { title: 'Laporan Bulanan', path: '/marketing-offline-tanaka/reports/bulanan-monthly' },
+            { title: 'Laporan Bulan Berjalan', path: '/marketing-offline-tanaka/reports/berjalan-monthly' },
+            { title: 'Laporan Tahunan', path: '/marketing-offline-tanaka/reports/tahunan' },
+            { title: 'Laporan Tahun Berjalan', path: '/marketing-offline-tanaka/reports/berjalan-tahunan' }
           ]
         }
       ]
