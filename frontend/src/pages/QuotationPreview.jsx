@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getQuotationById } from '../api/quotationApi';
-import { ArrowLeft, Printer, Download } from 'lucide-react';
+import { ArrowLeft, Printer, Upload } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import Sidebar from '../components/Sidebar';
@@ -13,6 +13,43 @@ const addresses = {
     Banua: 'Geblagan, Tamantirto, Kasihan, Bantul Regency,\nSpecial Region of Yogyakarta 55184\nMarketing: +62 895-2912-2786 | Finance: +62 857 2768 4722',
     Tanaka: 'Jl. Demakan Jl. Wiratama No.50, Tegalrejo, Kec. Tegalrejo,\nKota Yogyakarta, Daerah Istimewa Yogyakarta 55244\nMarketing: +62 851 6975 9267 | Finance: +62 857 2768 4722',
     Acestreet: 'Jl. Ambarbinangun, Brajan, Tamantirto, Kec. Kasihan,\nKabupaten Bantul, Daerah Istimewa Yogyakarta 55184\nMarketing: +62 838 2236 7608 | Finance: +62 857 2768 4722'
+};
+
+const groupPreviewItems = (rawItems) => {
+    if (!Array.isArray(rawItems)) return [];
+    
+    const grouped = {};
+    const order = [];
+    
+    rawItems.forEach(item => {
+        const cleanRincian = (item.rincian || '').replace(/^\[.*?\]\s*/, '').trim();
+        const key = cleanRincian;
+        if (!grouped[key]) {
+            grouped[key] = [];
+            order.push(key);
+        }
+        grouped[key].push(item);
+    });
+    
+    const displayRows = [];
+    order.forEach(key => {
+        const items = grouped[key];
+        items.forEach((item, idx) => {
+            displayRows.push({
+                ...item,
+                rincianDisplay: idx === 0 ? item.rincian : '',
+                isFirstInGroup: idx === 0,
+                ukuranDisplay: item.ukuran || '-',
+                qtyDisplay: item.qty || 0,
+                satuanDisplay: item.satuan || 'Pcs',
+                hargaSatuanDisplay: Number(item.harga_satuan || 0),
+                diskonItemDisplay: Number(item.diskon_item || 0),
+                totalDisplay: Number(item.qty || 0) * Number(item.harga_satuan || 0)
+            });
+        });
+    });
+    
+    return displayRows;
 };
 
 const QuotationPreview = () => {
@@ -103,18 +140,19 @@ const QuotationPreview = () => {
                 doc.setTextColor(50); doc.text(quotation.deskripsi_pesanan, 14, 97 + yOffset, { maxWidth: 170 });
             }
 
-            const items = quotation.items_detail || [];
+            const rawItems = quotation.items_detail || [];
+            const items = groupPreviewItems(rawItems);
             const tableColumn = ["Nama Produk", "Detail", "Qty", "Unit", "Harga Satuan", "Diskon/Item", "Total"];
             const tableRows = items.map(item => {
-                const hargaSatuanGabung = Number(item.harga_satuan || 0);
-                const totalBaris = Number(item.qty || 0) * hargaSatuanGabung;
-                const diskonItem = Number(item.diskon_item || 0);
-                const cleanRincian = (item.rincian || '').replace(/^\[.*?\]\s*/, '');
-                const namaProduk = item.bordir
-                    ? `${cleanRincian}\nBordir: ${item.bordir}`
-                    : cleanRincian;
+                const hargaSatuanGabung = Number(item.hargaSatuanDisplay || 0);
+                const totalBaris = Number(item.totalDisplay || 0);
+                const diskonItem = Number(item.diskonItemDisplay || 0);
+                const cleanRincian = (item.rincianDisplay || '').replace(/^\[.*?\]\s*/, '');
+                const namaProduk = item.isFirstInGroup 
+                    ? (item.bordir ? `${cleanRincian}\nBordir: ${item.bordir}` : cleanRincian)
+                    : '';
                 return [
-                    namaProduk, item.ukuran || '-', item.qty || 0, item.satuan || 'Pcs',
+                    namaProduk, item.ukuranDisplay || '-', item.qtyDisplay || 0, item.satuanDisplay || 'Pcs',
                     fmtRp(hargaSatuanGabung + diskonItem),
                     diskonItem > 0 ? `- ${fmtRp(diskonItem)}` : '-',
                     fmtRp(totalBaris)
@@ -209,7 +247,7 @@ const QuotationPreview = () => {
                     </button>
                     <div className="flex items-center gap-3">
                         <button onClick={handlePrint} className="flex items-center gap-2 px-5 py-2.5 bg-gray-800 text-white rounded-lg shadow hover:bg-gray-900 font-medium"><Printer size={18} /> Print</button>
-                        <button onClick={handleDownloadPdf} className="flex items-center gap-2 px-5 py-2.5 bg-[#990000] text-white rounded-lg shadow hover:bg-red-800 font-medium"><Download size={18} /> Download PDF</button>
+                        <button onClick={handleDownloadPdf} className="flex items-center gap-2 px-5 py-2.5 bg-[#990000] text-white rounded-lg shadow hover:bg-red-800 font-medium"><Upload size={18} /> Download PDF</button>
                     </div>
                 </div>
 
@@ -303,46 +341,50 @@ const QuotationPreview = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {items.map((item, index) => {
-                                    const diskonItem = Number(item.diskon_item || 0);
-                                    const hargaSebelumDiskon = Number(item.harga_satuan || 0) + diskonItem;
-                                    const itemTotal = Number(item.qty || 0) * Number(item.harga_satuan || 0);
-                                    return (
-                                        <tr key={index} className={`border-b border-gray-100 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
-                                            <td className="p-3 text-gray-800 align-top text-sm">
-                                                <p className="font-medium">{(item.rincian || '').replace(/^\[.*?\]\s*/, '')}</p>
-                                                {item.bordir && (
-                                                    <p className="text-xs text-gray-500 mt-0.5">Bordir: {item.bordir}</p>
-                                                )}
-                                            </td>
-                                            <td className="p-3 text-gray-700 align-top text-center text-sm font-semibold">{item.ukuran || '-'}</td>
-                                            <td className="p-3 text-gray-700 align-top text-center text-sm">{item.qty}</td>
-                                            <td className="p-3 text-gray-500 align-top text-center text-sm">{item.satuan || 'Pcs'}</td>
-                                            <td className="p-3 text-gray-800 align-top text-right text-sm">
-                                                <div className="flex justify-between">
-                                                    <span className="text-gray-400">Rp</span>
-                                                    <span>{Number(hargaSebelumDiskon).toLocaleString('id-ID')}</span>
-                                                </div>
-                                            </td>
-                                            <td className="p-3 align-top text-right text-sm">
-                                                {diskonItem > 0 ? (
-                                                    <div className="flex justify-between text-red-600 font-semibold">
-                                                        <span>-Rp</span>
-                                                        <span>{Number(diskonItem).toLocaleString('id-ID')}</span>
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-gray-300 text-center block">-</span>
-                                                )}
-                                            </td>
-                                            <td className="p-3 text-gray-900 align-top text-right text-sm font-semibold">
-                                                <div className="flex justify-between">
-                                                    <span className="text-gray-400">Rp</span>
-                                                    <span>{Number(itemTotal).toLocaleString('id-ID')}</span>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
+                                 {groupPreviewItems(items).map((item, index) => {
+                                     const diskonItem = Number(item.diskonItemDisplay || 0);
+                                     const hargaSebelumDiskon = Number(item.hargaSatuanDisplay || 0) + diskonItem;
+                                     const itemTotal = Number(item.totalDisplay || 0);
+                                     return (
+                                         <tr key={index} className={`border-b border-gray-100 ${item.isFirstInGroup ? 'border-t border-gray-200' : ''} ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+                                             <td className="p-3 text-gray-800 align-top text-sm">
+                                                 {item.isFirstInGroup && (
+                                                     <>
+                                                         <p className="font-medium">{(item.rincianDisplay || '').replace(/^\[.*?\]\s*/, '')}</p>
+                                                         {item.bordir && (
+                                                             <p className="text-xs text-gray-500 mt-0.5">Bordir: {item.bordir}</p>
+                                                         )}
+                                                     </>
+                                                 )}
+                                             </td>
+                                             <td className="p-3 text-gray-700 align-top text-center text-sm font-semibold">{item.ukuranDisplay}</td>
+                                             <td className="p-3 text-gray-700 align-top text-center text-sm">{item.qtyDisplay}</td>
+                                             <td className="p-3 text-gray-500 align-top text-center text-sm">{item.satuanDisplay}</td>
+                                             <td className="p-3 text-gray-800 align-top text-right text-sm">
+                                                 <div className="flex justify-between">
+                                                     <span className="text-gray-400">Rp</span>
+                                                     <span>{Number(hargaSebelumDiskon).toLocaleString('id-ID')}</span>
+                                                 </div>
+                                             </td>
+                                             <td className="p-3 align-top text-right text-sm">
+                                                 {diskonItem > 0 ? (
+                                                     <div className="flex justify-between text-red-600 font-semibold">
+                                                         <span>-Rp</span>
+                                                         <span>{Number(diskonItem).toLocaleString('id-ID')}</span>
+                                                     </div>
+                                                 ) : (
+                                                     <span className="text-gray-300 text-center block">-</span>
+                                                 )}
+                                             </td>
+                                             <td className="p-3 text-gray-900 align-top text-right text-sm font-semibold">
+                                                 <div className="flex justify-between">
+                                                     <span className="text-gray-400">Rp</span>
+                                                     <span>{Number(itemTotal).toLocaleString('id-ID')}</span>
+                                                 </div>
+                                             </td>
+                                         </tr>
+                                     );
+                                 })}
                             </tbody>
                         </table>
                     </div>

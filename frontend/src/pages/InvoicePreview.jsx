@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getInvoiceById } from '../api/invoiceApi';
-import { ArrowLeft, Printer, Download, Receipt } from 'lucide-react';
+import { ArrowLeft, Printer, Upload, Receipt } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import Sidebar from '../components/Sidebar';
@@ -14,6 +14,43 @@ const addresses = {
     Tanaka: 'Jl. Demakan Jl. Wiratama No.50, Tegalrejo, Kec. Tegalrejo,\nKota Yogyakarta, Daerah Istimewa Yogyakarta 55244\nMarketing: +62 851 6975 9267 | Finance: +62 857 2768 4722',
     'PT TANAKA RIZQI BAROKAH': 'Jl. Demakan Jl. Wiratama No.50, Tegalrejo, Kec. Tegalrejo,\nKota Yogyakarta, Daerah Istimewa Yogyakarta 55244\nMarketing: +62 851 6975 9267 | Finance: +62 857 2768 4722',
     Acestreet: 'Jl. Ambarbinangun, Brajan, Tamantirto, Kec. Kasihan,\nKabupaten Bantul, Daerah Istimewa Yogyakarta 55184\nMarketing: +62 838 2236 7608 | Finance: +62 857 2768 4722'
+};
+
+const groupPreviewItems = (rawItems) => {
+    if (!Array.isArray(rawItems)) return [];
+    
+    const grouped = {};
+    const order = [];
+    
+    rawItems.forEach(item => {
+        const cleanRincian = (item.rincian || '').replace(/^\[.*?\]\s*/, '').trim();
+        const key = cleanRincian;
+        if (!grouped[key]) {
+            grouped[key] = [];
+            order.push(key);
+        }
+        grouped[key].push(item);
+    });
+    
+    const displayRows = [];
+    order.forEach(key => {
+        const items = grouped[key];
+        items.forEach((item, idx) => {
+            displayRows.push({
+                ...item,
+                rincianDisplay: idx === 0 ? item.rincian : '',
+                isFirstInGroup: idx === 0,
+                ukuranDisplay: item.ukuran || '-',
+                qtyDisplay: item.qty || 0,
+                satuanDisplay: item.satuan || 'Pcs',
+                hargaSatuanDisplay: Number(item.harga_satuan || 0),
+                diskonItemDisplay: Number(item.diskon_item || 0),
+                totalDisplay: Number(item.qty || 0) * Number(item.harga_satuan || 0)
+            });
+        });
+    });
+    
+    return displayRows;
 };
 
 const InvoicePreview = () => {
@@ -163,17 +200,21 @@ const InvoicePreview = () => {
             }
 
             if (items && items.length > 0) {
-                items.forEach((item, index) => {
-                    const diskonItem = Number(item.diskon_item || 0);
-                    const hargaSebelumDiskon = Number(item.harga_satuan || 0) + diskonItem;
+                const groupedItems = groupPreviewItems(items);
+                groupedItems.forEach((item, index) => {
+                    const diskonItem = Number(item.diskonItemDisplay || 0);
+                    const hargaSebelumDiskon = Number(item.hargaSatuanDisplay || 0) + diskonItem;
+                    const rincianName = item.isFirstInGroup 
+                        ? (item.rincianDisplay || '').replace(/^\[.*?\]\s*/, '')
+                        : '';
                     tableRows.push([
-                        (item.rincian || '').replace(/^\[.*?\]\s*/, ''),
-                        item.ukuran || '-',
-                        item.qty || 0,
-                        item.satuan || 'Pcs',
+                        rincianName,
+                        item.ukuranDisplay || '-',
+                        item.qtyDisplay || 0,
+                        item.satuanDisplay || 'Pcs',
                         fmtRp(hargaSebelumDiskon),
                         diskonItem > 0 ? `- ${fmtRp(diskonItem)}` : '-',
-                        fmtRp(Number(item.qty || 0) * Number(item.harga_satuan || 0))
+                        fmtRp(item.totalDisplay || 0)
                     ]);
                 });
             } else {
@@ -208,7 +249,7 @@ const InvoicePreview = () => {
             doc.text(':', 158, finalY + 10);
             doc.text(fmtRp(invoice.subtotal), 196, finalY + 10, { align: 'right' });
 
-            doc.text('PPN', 130, finalY + 16);
+            doc.text(`PPN (${invoice.ppn_persen || 0}%)`, 130, finalY + 16);
             doc.text(':', 158, finalY + 16);
             doc.text(fmtRp(invoice.jumlah_ppn), 196, finalY + 16, { align: 'right' });
 
@@ -311,6 +352,77 @@ const InvoicePreview = () => {
                 doc.text(invoice.jabatan || "Accounting", 150, sigY + 35, { align: 'center' });
             }
 
+            // Add supporting attachments as new pages in the PDF
+            let supportingFiles = [];
+            if (invoice.file_supporting) {
+                try {
+                    supportingFiles = typeof invoice.file_supporting === 'string'
+                        ? JSON.parse(invoice.file_supporting)
+                        : invoice.file_supporting;
+                } catch (e) {
+                    console.error('Error parsing file_supporting', e);
+                }
+            }
+
+            if (Array.isArray(supportingFiles) && supportingFiles.length > 0) {
+                for (const file of supportingFiles) {
+                    const ext = (file.path || '').split('.').pop().toLowerCase();
+                    const isImg = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(ext);
+                    
+                    if (isImg) {
+                        const fileUrl = `http://${window.location.hostname}:3000${file.path}`;
+                        const imgData = await loadImageBase64(fileUrl);
+                        if (imgData) {
+                            doc.addPage();
+                            
+                            const pageWidth = 210;
+                            const pageHeight = 297;
+                            const margin = 10;
+                            const maxW = pageWidth - (margin * 2);
+                            const maxH = pageHeight - (margin * 2);
+                            
+                            let w = imgData.w;
+                            let h = imgData.h;
+                            
+                            const ratio = w / h;
+                            if (w > maxW) {
+                                w = maxW;
+                                h = w / ratio;
+                            }
+                            if (h > maxH) {
+                                h = maxH;
+                                w = h * ratio;
+                            }
+                            
+                            const x = margin + (maxW - w) / 2;
+                            const y = margin + (maxH - h) / 2;
+                            
+                            doc.setFontSize(8);
+                            doc.setTextColor(150, 150, 150);
+                            doc.text(`Attachment: ${file.originalname || file.filename}`, margin, 8);
+                            
+                            doc.addImage(imgData.dataUrl, ext.toUpperCase() === 'PNG' ? 'PNG' : 'JPEG', x, y, w, h);
+                        }
+                    } else if (ext === 'pdf') {
+                        doc.addPage();
+                        doc.setFontSize(14);
+                        doc.setFont('helvetica', 'bold');
+                        doc.setTextColor(50, 50, 50);
+                        doc.text("Supporting Attachment (PDF Document)", 14, 30);
+                        doc.setFontSize(10);
+                        doc.setFont('helvetica', 'normal');
+                        doc.text(`File Name: ${file.originalname || file.filename}`, 14, 40);
+                        doc.text("Since PDF merging is done on the client, you can open/download this attachment directly:", 14, 46);
+                        
+                        const fileUrl = `http://${window.location.hostname}:3000${file.path}`;
+                        doc.setTextColor(30, 64, 175);
+                        doc.textWithLink(fileUrl, 14, 54, { url: fileUrl });
+                        doc.setTextColor(100, 100, 100);
+                        doc.text("(Click the link above to view/download)", 14, 60);
+                    }
+                }
+            }
+
             doc.save(`${(invoice.no_invoice || 'invoice').replace(/\//g, '_')}.pdf`);
         } catch (error) {
             console.error('PDF generation error:', error);
@@ -347,7 +459,7 @@ const InvoicePreview = () => {
                             <Printer size={18} /> Print
                         </button>
                         <button onClick={handleDownloadPdf} className="flex items-center gap-2 px-5 py-2.5 bg-[#990000] text-white rounded-lg shadow hover:bg-red-800 font-medium">
-                            <Download size={18} /> Download PDF
+                            <Upload size={18} /> Download PDF
                         </button>
                     </div>
                 </div>
@@ -463,41 +575,43 @@ const InvoicePreview = () => {
                                     }
 
                                     if (items && items.length > 0) {
-                                        return items.map((item, index) => {
-                                            const diskonItem = Number(item.diskon_item || 0);
-                                            const hargaSebelumDiskon = Number(item.harga_satuan || 0) + diskonItem;
-                                            const totalItem = Number(item.qty || 0) * Number(item.harga_satuan || 0);
-                                            return (
-                                                <tr key={index} className={`border-b border-gray-100 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
-                                                    <td className="p-3 text-gray-800 align-top text-sm">{(item.rincian || '').replace(/^\[.*?\]\s*/, '')}</td>
-                                                    <td className="p-3 text-gray-700 align-top text-center text-sm font-semibold">{item.ukuran || '-'}</td>
-                                                    <td className="p-3 text-gray-700 align-top text-center text-sm">{item.qty}</td>
-                                                    <td className="p-3 text-gray-500 align-top text-center text-sm">{item.satuan || 'Pcs'}</td>
-                                                    <td className="p-3 text-gray-800 align-top text-right text-sm">
-                                                        <div className="flex justify-between">
-                                                            <span className="text-gray-400">Rp</span>
-                                                            <span>{Number(hargaSebelumDiskon).toLocaleString('id-ID')}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td className="p-3 align-top text-right text-sm">
-                                                        {diskonItem > 0 ? (
-                                                            <div className="flex justify-between text-red-600 font-semibold">
-                                                                <span>-Rp</span>
-                                                                <span>{Number(diskonItem).toLocaleString('id-ID')}</span>
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-gray-300 text-center block">-</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="p-3 text-gray-900 align-top text-right text-sm font-semibold">
-                                                        <div className="flex justify-between">
-                                                            <span className="text-gray-400">Rp</span>
-                                                            <span>{Number(totalItem).toLocaleString('id-ID')}</span>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        });
+                                         return groupPreviewItems(items).map((item, index) => {
+                                             const diskonItem = Number(item.diskonItemDisplay || 0);
+                                             const hargaSebelumDiskon = Number(item.hargaSatuanDisplay || 0) + diskonItem;
+                                             const totalItem = Number(item.totalDisplay || 0);
+                                             return (
+                                                 <tr key={index} className={`border-b border-gray-100 ${item.isFirstInGroup ? 'border-t border-gray-200' : ''} ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}>
+                                                     <td className="p-3 text-gray-800 align-top text-sm">
+                                                         {item.isFirstInGroup ? (item.rincianDisplay || '').replace(/^\[.*?\]\s*/, '') : ''}
+                                                     </td>
+                                                     <td className="p-3 text-gray-700 align-top text-center text-sm font-semibold">{item.ukuranDisplay}</td>
+                                                     <td className="p-3 text-gray-700 align-top text-center text-sm">{item.qtyDisplay}</td>
+                                                     <td className="p-3 text-gray-500 align-top text-center text-sm">{item.satuanDisplay}</td>
+                                                     <td className="p-3 text-gray-800 align-top text-right text-sm">
+                                                         <div className="flex justify-between">
+                                                             <span className="text-gray-400">Rp</span>
+                                                             <span>{Number(hargaSebelumDiskon).toLocaleString('id-ID')}</span>
+                                                         </div>
+                                                     </td>
+                                                     <td className="p-3 align-top text-right text-sm">
+                                                         {diskonItem > 0 ? (
+                                                             <div className="flex justify-between text-red-600 font-semibold">
+                                                                 <span>-Rp</span>
+                                                                 <span>{Number(diskonItem).toLocaleString('id-ID')}</span>
+                                                             </div>
+                                                         ) : (
+                                                             <span className="text-gray-300 text-center block">-</span>
+                                                         )}
+                                                     </td>
+                                                     <td className="p-3 text-gray-900 align-top text-right text-sm font-semibold">
+                                                         <div className="flex justify-between">
+                                                             <span className="text-gray-400">Rp</span>
+                                                             <span>{Number(totalItem).toLocaleString('id-ID')}</span>
+                                                         </div>
+                                                     </td>
+                                                 </tr>
+                                             );
+                                         });
                                     } else {
                                         return (
                                             <tr className="border-b border-gray-100">
@@ -591,7 +705,7 @@ const InvoicePreview = () => {
                                         <td className="py-2 text-right font-semibold text-gray-800"><PriceCell value={invoice.subtotal} /></td>
                                     </tr>
                                     <tr className="border-b border-gray-100">
-                                        <td className="py-2 text-gray-600">PPN</td>
+                                        <td className="py-2 text-gray-600">PPN ({invoice.ppn_persen || 0}%)</td>
                                         <td className="py-2 text-gray-600">:</td>
                                         <td className="py-2 text-right font-semibold text-gray-800"><PriceCell value={invoice.jumlah_ppn} /></td>
                                     </tr>
@@ -651,6 +765,59 @@ const InvoicePreview = () => {
                     )}
 
                 </div>
+
+                {/* Attachments Section - Hidden in Print */}
+                {(() => {
+                    let supportingFiles = [];
+                    if (invoice.file_supporting) {
+                        try {
+                            supportingFiles = typeof invoice.file_supporting === 'string'
+                                ? JSON.parse(invoice.file_supporting)
+                                : invoice.file_supporting;
+                        } catch (e) {}
+                    }
+                    if (supportingFiles && supportingFiles.length > 0) {
+                        return (
+                            <div className="max-w-4xl mx-auto mt-6 bg-white p-6 rounded-2xl shadow-lg border border-gray-100 print:hidden">
+                                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                    <Receipt className="text-[#990000]" /> Dokumen Pendukung / Lampiran
+                                </h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {supportingFiles.map((file, idx) => {
+                                        const ext = (file.path || '').split('.').pop().toLowerCase();
+                                        const isImg = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'].includes(ext);
+                                        const fileUrl = `http://${window.location.hostname}:3000${file.path}`;
+                                        return (
+                                            <div key={idx} className="border border-gray-200 rounded-xl p-4 flex flex-col justify-between hover:border-blue-500 transition-colors">
+                                                <div className="flex items-start gap-3">
+                                                    {isImg ? (
+                                                        <div className="w-16 h-16 shrink-0 rounded bg-gray-50 border border-gray-100 overflow-hidden">
+                                                            <img src={fileUrl} alt={file.originalname} className="w-full h-full object-cover" />
+                                                        </div>
+                                                    ) : (
+                                                        <div className="w-16 h-16 shrink-0 rounded bg-red-50 border border-red-100 flex items-center justify-center font-bold text-red-600 text-xs">
+                                                            PDF
+                                                        </div>
+                                                    )}
+                                                    <div className="overflow-hidden">
+                                                        <p className="font-semibold text-sm text-gray-800 truncate">{file.originalname || file.filename}</p>
+                                                        <p className="text-xs text-gray-500 mt-0.5">Size: {((file.size || 0) / 1024 / 1024).toFixed(2)} MB</p>
+                                                    </div>
+                                                </div>
+                                                <div className="mt-4 flex gap-2">
+                                                    <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-blue-600 hover:underline bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
+                                                        Lihat File
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    }
+                    return null;
+                })()}
 
                 {/* Print Styles */}
                 <style dangerouslySetInnerHTML={{

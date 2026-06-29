@@ -14,3 +14,9 @@ export const createInvoice = (data) => api.post('/invoice', data);
 export const updateInvoice = (id, data) => api.put(`/invoice/${id}`, data);
 export const deleteInvoice = (id) => api.delete(`/invoice/${id}`);
 export const requestRevision = (id, data) => api.put(`/invoice/${id}/request-revision`, data);
+
+export const uploadInvoiceFiles = (id, files) => {
+    const formData = new FormData();
+    files.forEach(file => formData.append('files', file));
+    return api.post(`/invoice/${id}/upload`, formData);
+};

@@ -8,7 +8,7 @@ import { getStok, createPermintaanStok } from '../api/gudangApi';
 import {
   LayoutDashboard, ShoppingBag, Package, FileText, Upload, Gift,
   TrendingUp, Users, DollarSign, Calendar, Search, Loader2,
-  CheckCircle, AlertTriangle, ArrowRight, X, Download, Send, UserCircle, Plus, ChevronDown, PieChart
+  CheckCircle, AlertTriangle, ArrowRight, X, Send, UserCircle, Plus, ChevronDown, PieChart
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer,
@@ -1339,7 +1339,7 @@ const MarketingOnlineTanaka = ({ embedded = false, forcedTab = null }) => {
                       onClick={handleExportExcel}
                       className="flex items-center gap-2 bg-[#2563eb] text-white px-4 py-2.5 rounded-xl text-xs font-black hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-100"
                     >
-                      <Download size={18} /> Eksport Excel
+                      <Upload size={18} /> Eksport Excel
                     </button>
                     <button
                       onClick={() => fileInputRef.current?.click()}

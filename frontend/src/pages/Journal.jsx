@@ -2,7 +2,7 @@ import NotificationBell from '../components/NotificationBell';
 import { Bell } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Plus, Edit2, Trash2, Search, FileText, Download, Printer, Activity, AlertTriangle, UserCircle, RefreshCcw, DollarSign, TrendingUp, CreditCard, PiggyBank, X, ShoppingBag, ShoppingCart, ArrowUpRight, ArrowDownRight, Eye } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, FileText, Upload, Printer, Activity, AlertTriangle, UserCircle, RefreshCcw, DollarSign, TrendingUp, CreditCard, PiggyBank, X, ShoppingBag, ShoppingCart, ArrowUpRight, ArrowDownRight, Eye } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { journalApi } from '../api/journalApi';
 import { accountApi } from '../api/accountApi';
@@ -663,7 +663,7 @@ const Journal = () => {
                 <button 
                   onClick={() => { setExportType('download'); setShowExportModal(true); }}
                   className="bg-red-700 hover:bg-red-800 text-white px-4 py-2.5 rounded-xl font-medium flex items-center gap-2 shadow-sm transition-all">
-                  <Download size={18} /> Download PDF
+                  <Upload size={18} /> Download PDF
                 </button>
                 <button
                   onClick={() => { resetForm(); setShowModal(true); }}
@@ -903,7 +903,7 @@ const Journal = () => {
                         <td className="px-6 py-4">
                           <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button onClick={() => setViewJournal(j)} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg border border-transparent hover:border-emerald-100" title="Lihat Detail"><Eye size={16} /></button>
-                            <button onClick={() => printJournalReport(j)} className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-lg border border-transparent hover:border-gray-200" title="Unduh Laporan PDF"><Download size={16} /></button>
+                            <button onClick={() => printJournalReport(j)} className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-lg border border-transparent hover:border-gray-200" title="Unduh Laporan PDF"><Upload size={16} /></button>
                             {!j._source && <button onClick={() => handleEdit(j)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg border border-transparent hover:border-blue-100" title="Edit"><Edit2 size={16} /></button>}
                             {!j._source && <button onClick={() => handleDelete(j.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg border border-transparent hover:border-red-100" title="Delete"><Trash2 size={16} /></button>}
                           </div>
@@ -1375,7 +1375,7 @@ const Journal = () => {
                   >
                     {exportType === 'download' ? (
                       <>
-                        <Download size={18} /> Download PDF
+                        <Upload size={18} /> Download PDF
                       </>
                     ) : (
                       <>

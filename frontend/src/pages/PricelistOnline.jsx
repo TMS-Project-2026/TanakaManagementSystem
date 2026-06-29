@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Download, Tag, UserCircle, Edit2, Check, X, Plus, Loader2, Trash2 } from 'lucide-react';
+import { Search, Upload, Tag, UserCircle, Edit2, Check, X, Plus, Loader2, Trash2 } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import NotificationBell from '../components/NotificationBell';
 import api from '../api/axios';
@@ -199,7 +199,7 @@ export default function PricelistOnline() {
               </div>
               <div className="flex gap-3">
                 <button onClick={handleDownload} className="flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-gray-700 transition-all shadow-sm text-sm">
-                  <Download size={16} /> Download PDF
+                  <Upload size={16} /> Download PDF
                 </button>
                 <button onClick={() => { setAddForm(EMPTY_FORM); setAddError(''); setShowAdd(true); }} className="flex items-center gap-2 bg-[#990000] text-white px-5 py-2.5 rounded-xl font-bold hover:bg-red-800 transition-all shadow-sm text-sm">
                   <Plus size={16} /> Tambah Produk

@@ -1,4 +1,13 @@
 const db = require('../config/db');
+const path = require('path');
+const fs = require('fs');
+
+// Ensure uploads directory exists
+const uploadsDir = path.join(__dirname, '..', 'uploads', 'invoices');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
 
 exports.getAllInvoice = (req, res) => {
     // Optional filtering
@@ -162,8 +171,8 @@ exports.updateInvoice = (req, res) => {
     for (const [key, value] of Object.entries(fields)) {
         if (value === undefined || value === null) continue; // skip empty fields
         setClause.push(`${key} = ?`);
-        if (key === 'items' && typeof value === 'object') {
-            // Ensure items are stored as JSON string
+        if ((key === 'items' || key === 'file_supporting') && typeof value === 'object') {
+            // Ensure items and file_supporting are stored as JSON string
             values.push(JSON.stringify(value));
         } else {
             values.push(value);
@@ -273,3 +282,40 @@ exports.requestRevision = async (req, res) => {
         res.status(500).json({ status: "error", message: err.message });
     }
 };
+
+exports.uploadFiles = (req, res) => {
+    const { id } = req.params;
+    if (!req.files || req.files.length === 0) {
+        return res.status(400).json({ status: "error", message: "Tidak ada file yang diupload!" });
+    }
+
+    // Get existing files
+    db.query("SELECT file_supporting FROM invoice WHERE id = ?", [id], (err, results) => {
+        if (err) return res.status(500).json({ status: "error", message: err.message });
+        if (results.length === 0) return res.status(404).json({ status: "error", message: "Invoice tidak ditemukan!" });
+
+        let existingFiles = [];
+        try {
+            existingFiles = JSON.parse(results[0].file_supporting) || [];
+        } catch (e) { existingFiles = []; }
+
+        const newFiles = req.files.map(f => ({
+            filename: f.filename,
+            originalname: f.originalname,
+            path: `/uploads/invoices/${f.filename}`,
+            size: f.size,
+            uploaded_at: new Date().toISOString()
+        }));
+
+        const allFiles = [...existingFiles, ...newFiles];
+
+        db.query("UPDATE invoice SET file_supporting = ? WHERE id = ?",
+            [JSON.stringify(allFiles), id],
+            (err2) => {
+                if (err2) return res.status(500).json({ status: "error", message: err2.message });
+                res.status(200).json({ status: "success", message: "File berhasil diupload!", files: allFiles });
+            }
+        );
+    });
+};
+

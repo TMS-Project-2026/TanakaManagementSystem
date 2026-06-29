@@ -5,7 +5,7 @@ import axios from 'axios';
 import Sidebar from '../components/Sidebar';
 import * as XLSX from 'xlsx';
 import {
-  Search, Plus, X, Trash2, Loader2, ShoppingBag, TrendingUp, DollarSign, UserCircle, Download, Upload
+  Search, Plus, X, Trash2, Loader2, ShoppingBag, TrendingUp, DollarSign, UserCircle, Upload
 } from 'lucide-react';
 
 const SalesOnline = () => {
@@ -442,7 +442,7 @@ const SalesOnline = () => {
                 onClick={handleExportExcel}
                 className="bg-green-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 shadow-sm hover:bg-green-700 hover:shadow-md transition-all active:scale-95 whitespace-nowrap w-full sm:w-auto"
               >
-                <Download size={18} /> Export Excel
+                <Upload size={18} /> Export Excel
               </button>
 
               <button

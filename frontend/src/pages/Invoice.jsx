@@ -2,7 +2,7 @@ import NotificationBell from '../components/NotificationBell';
 import { Bell } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { getInvoices, deleteInvoice, updateInvoice } from '../api/invoiceApi';
-import { PlusCircle, Edit, Trash2, Eye, Printer, Download, Search, Filter, Receipt, UserCircle } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Eye, Printer, Search, Filter, Receipt, UserCircle } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { useNavigate } from 'react-router-dom';
 

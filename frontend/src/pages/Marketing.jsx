@@ -5,7 +5,7 @@ import Sidebar from '../components/Sidebar';
 import * as XLSX from 'xlsx';
 import {
   Search, Calendar, UserCircle, Plus,
-  X, Trash2, Loader2, Edit2, Package, Clock, Download, Upload, Send
+  X, Trash2, Loader2, Edit2, Package, Clock, Upload, Send
 } from 'lucide-react';
 
 const Marketing = () => {
@@ -366,7 +366,7 @@ const Marketing = () => {
                   onClick={handleExportExcel}
                   className="bg-green-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 shadow-sm hover:bg-green-700 hover:shadow-md transition-all active:scale-95 whitespace-nowrap w-full sm:w-auto"
                 >
-                  <Download size={18} /> Export Excel
+                  <Upload size={18} /> Export Excel
                 </button>
 
                 <button

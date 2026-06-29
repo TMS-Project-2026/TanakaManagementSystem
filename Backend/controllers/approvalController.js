@@ -83,7 +83,7 @@ exports.updateApproval = async (req, res) => {
             if (status === 'rejected') {
                 if (diajukanOleh === 'Marketing Offline Banua' || diajukanOleh === 'Marketing Offline Tanaka' || diajukanOleh === 'Marketing Accestret') {
                     await db.promise().query("UPDATE marketing_quotations SET status='Rejected', alasan_penolakan=? WHERE id=?", [alasan_penolakan || null, leadId]);
-                    await db.promise().query("UPDATE marketing_orders_offline SET status='Rejected' WHERE id=(SELECT order_id FROM marketing_quotations WHERE id=?)", [leadId]);
+                    await db.promise().query("UPDATE marketing_orders_offline SET status='Rejected', approval_status='Belum Disetujui' WHERE id=(SELECT order_id FROM marketing_quotations WHERE id=?)", [leadId]);
                 }
             } else if (status === 'approved') {
                 if (leadId) {
@@ -159,7 +159,7 @@ exports.updateApproval = async (req, res) => {
                             // Update status to 'Diproses Produksi'
                             await db.promise().query("UPDATE marketing_quotations SET status='Diproses Produksi' WHERE id=?", [leadId]);
                             if (q.order_id) {
-                                await db.promise().query("UPDATE marketing_orders_offline SET status='Diproses Produksi' WHERE id=?", [q.order_id]);
+                                await db.promise().query("UPDATE marketing_orders_offline SET status='Diproses Produksi', approval_status='Sudah Disetujui' WHERE id=?", [q.order_id]);
                                 
                                 const [orderInfoRows] = await db.promise().query("SELECT deadline FROM marketing_orders_offline WHERE id=?", [q.order_id]);
                                 const orderDeadline = orderInfoRows.length > 0 ? orderInfoRows[0].deadline : null;
@@ -230,29 +230,29 @@ exports.updateApproval = async (req, res) => {
                             order.ppn_persen || 0, order.jumlah_ppn || 0, order.grand_total || 0, order.catatan || '', order.catatan || ''
                         ]);
                         
-                        await db.promise().query("UPDATE marketing_orders_offline SET status='Invoice Created' WHERE id=?", [orderId]);
+                        await db.promise().query("UPDATE marketing_orders_offline SET status='Invoice Created', approval_status='Sudah Disetujui' WHERE id=?", [orderId]);
                     }
                 } else if (status === 'rejected') {
-                    await db.promise().query("UPDATE marketing_orders_offline SET status='Rejected' WHERE id=?", [orderId]);
+                    await db.promise().query("UPDATE marketing_orders_offline SET status='Rejected', approval_status='Belum Disetujui' WHERE id=?", [orderId]);
                 }
             }
         } else if (appData.length > 0 && appData[0].tipe === 'nondp_order') {
             const orderId = appData[0].reference_id;
             if (orderId) {
                 if (status === 'approved') {
-                    await db.promise().query("UPDATE marketing_orders_offline SET status='New Order' WHERE id=?", [orderId]);
+                    await db.promise().query("UPDATE marketing_orders_offline SET status='New Order', approval_status='Sudah Disetujui' WHERE id=?", [orderId]);
                 } else if (status === 'rejected') {
-                    await db.promise().query("UPDATE marketing_orders_offline SET status='Rejected' WHERE id=?", [orderId]);
+                    await db.promise().query("UPDATE marketing_orders_offline SET status='Rejected', approval_status='Belum Disetujui' WHERE id=?", [orderId]);
                 }
             }
         } else if (appData.length > 0 && appData[0].tipe === 'diskon_order') {
             const orderId = appData[0].reference_id;
             if (orderId) {
                 if (status === 'approved') {
-                    await db.promise().query("UPDATE marketing_orders_offline SET status='Approved by Owner' WHERE id=?", [orderId]);
+                    await db.promise().query("UPDATE marketing_orders_offline SET status='Approved by Owner', approval_status='Sudah Disetujui' WHERE id=?", [orderId]);
                     await db.promise().query("UPDATE marketing_quotations SET status='draft' WHERE order_id=?", [orderId]);
                 } else if (status === 'rejected') {
-                    await db.promise().query("UPDATE marketing_orders_offline SET status='Rejected' WHERE id=?", [orderId]);
+                    await db.promise().query("UPDATE marketing_orders_offline SET status='Rejected', approval_status='Belum Disetujui' WHERE id=?", [orderId]);
                     await db.promise().query("UPDATE marketing_quotations SET status='rejected' WHERE order_id=?", [orderId]);
                 }
             }

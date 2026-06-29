@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../api/axios';
 import { createQuotation, getNextQuotationNumber, updateQuotation, getQuotationById } from '../api/quotationApi';
 import Sidebar from '../components/Sidebar';
-import { Save, X, ArrowLeft, ShoppingCart, Users, FileText, Upload, CreditCard, Settings, PenTool } from 'lucide-react';
+import { Save, X, ArrowLeft, ShoppingCart, Users, FileText, Upload, CreditCard, Settings, PenTool, Plus } from 'lucide-react';
 import { assignDisplayKode } from '../utils/productUtils';
 
 
@@ -23,7 +23,7 @@ const CreateOrderOfflineBanua = () => {
         cp_penagihan: '',
         up_penagihan: '',
         email: '',
-        items: [{ rincian: '', ukuran: '', qty: 1, harga_satuan: 0, satuan: 'Pcs', diskon_item: 0, status_approval: '', harga_spv: 0, harga_jual: 0, base_harga_jual: 0, base_harga_spv: 0, bahan: '', bordir: '', harga_bordir: 0 }],
+        items: [{ groupId: 'group-initial-0', rincian: '', ukuran: '', qty: 1, harga_satuan: 0, satuan: 'Pcs', diskon_item: 0, status_approval: '', harga_spv: 0, harga_jual: 0, base_harga_jual: 0, base_harga_spv: 0, bahan: '', bordir: '', harga_bordir: 0 }],
         subtotal: 0,
         ppn_persen: 0,
         jumlah_ppn: 0,
@@ -36,6 +36,8 @@ const CreateOrderOfflineBanua = () => {
         lokasi_proses: 'Internal',
         catatan: '',
         status: 'New Order',
+        approval_status: 'Belum Disetujui',
+        kategori_pelanggan: 'Pelanggan Baru',
         // Quotation fields
         tanggal_quotation: new Date().toISOString().split('T')[0],
         tanggal_berlaku: '',
@@ -58,6 +60,8 @@ const CreateOrderOfflineBanua = () => {
     const [customers, setCustomers] = useState([]);
     const [filteredCustomers, setFilteredCustomers] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
+
+    // size helper modal states removed
 
     useEffect(() => {
         const fetchCustomers = async () => {
@@ -110,6 +114,35 @@ const CreateOrderOfflineBanua = () => {
             fetchQuo();
         }
     }, []);
+
+    useEffect(() => {
+        if (editData && form.items) {
+            const newItems = [];
+            const groupMap = new Map();
+            form.items.forEach(item => {
+                const key = `${item.rincian}-${item.bahan}-${item.bordir}-${item.harga_bordir}`;
+                let gId = groupMap.get(key);
+                if (!gId) {
+                    gId = `group-${Date.now()}-${Math.random()}`;
+                    groupMap.set(key, gId);
+                }
+                newItems.push({
+                    ...item,
+                    groupId: item.groupId || gId
+                });
+            });
+            const hasChanges = form.items.some((item, idx) => item.groupId !== newItems[idx].groupId);
+            if (hasChanges) {
+                setForm(prev => ({ ...prev, items: newItems }));
+            }
+        } else if (!editData && form.items && form.items.length > 0 && !form.items[0].groupId) {
+            const newItems = form.items.map((item, idx) => ({
+                ...item,
+                groupId: item.groupId || `group-initial-${idx}`
+            }));
+            setForm(prev => ({ ...prev, items: newItems }));
+        }
+    }, [editData]);
 
     // Helper: check if item needs approval (harga_satuan < harga_spv)
     const needsApproval = (item) => {
@@ -317,31 +350,37 @@ const CreateOrderOfflineBanua = () => {
     };
 
     const selectProduct = (index, prod) => {
+        const targetItem = form.items[index];
+        const groupKey = targetItem.groupId;
         const newItems = [...form.items];
-        // Sesuai Juklak: gunakan nama_produk asli dari database
         const kodeDisplay = prod.displayKode ? `[${prod.displayKode}] ` : (prod.kode ? `[${prod.kode}] ` : '');
-        newItems[index].rincian = `${kodeDisplay}${prod.nama_produk || prod.nama}`;
-        newItems[index].kode_produk = prod.displayKode || prod.kode || '';  // simpan kode untuk referensi
+        const rincian = `${kodeDisplay}${prod.nama_produk || prod.nama}`;
+        const kode_produk = prod.displayKode || prod.kode || '';
         
         const hJual = Number(prod.harga_jual || prod.hpp_satuan || 0);
         const hSpv = Number(prod.harga_spv || 0);
         
-        newItems[index].base_harga_jual = hJual;
-        newItems[index].base_harga_spv = hSpv;
-        
-        newItems[index].harga_satuan = hJual;
-        newItems[index].harga_spv = hSpv;
-        newItems[index].harga_jual = hJual;
-        newItems[index].diskon_item = 0;
-        newItems[index].status_approval = '';
-        
-        // Trigger resize logic in case ukuran was already filled
-        if (newItems[index].ukuran) {
-            const multiplier = calculateSizeMultiplier(newItems[index].ukuran);
-            newItems[index].harga_jual = hJual * multiplier;
-            newItems[index].harga_spv = hSpv * multiplier;
-            newItems[index].harga_satuan = hJual * multiplier;
-        }
+        form.items.forEach((item, idx) => {
+            if (item.groupId === groupKey) {
+                newItems[idx].rincian = rincian;
+                newItems[idx].kode_produk = kode_produk;
+                newItems[idx].base_harga_jual = hJual;
+                newItems[idx].base_harga_spv = hSpv;
+                
+                newItems[idx].harga_satuan = hJual;
+                newItems[idx].harga_spv = hSpv;
+                newItems[idx].harga_jual = hJual;
+                newItems[idx].diskon_item = 0;
+                newItems[idx].status_approval = '';
+                
+                if (newItems[idx].ukuran) {
+                    const multiplier = calculateSizeMultiplier(newItems[idx].ukuran);
+                    newItems[idx].harga_jual = hJual * multiplier;
+                    newItems[idx].harga_spv = hSpv * multiplier;
+                    newItems[idx].harga_satuan = hJual * multiplier;
+                }
+            }
+        });
         
         setForm({ ...form, items: newItems });
         setFilteredProducts([]);
@@ -355,15 +394,80 @@ const CreateOrderOfflineBanua = () => {
         setForm({ ...form, items: newItems });
     };
 
-    const addItem = () => {
-        setForm({ ...form, items: [...form.items, { rincian: '', ukuran: '', qty: 1, harga_satuan: 0, satuan: 'Pcs', diskon_item: 0, status_approval: '', harga_spv: 0, harga_jual: 0, base_harga_jual: 0, base_harga_spv: 0, bahan: '', bordir: '', harga_bordir: 0 }] });
+    const getGroupedItems = () => {
+        const groups = [];
+        if (!form.items) return groups;
+        form.items.forEach((item, index) => {
+            const key = item.groupId || `group-fallback-${item.rincian}-${item.bahan}-${item.bordir}-${item.harga_bordir}`;
+            let existing = groups.find(g => g.groupId === key);
+            if (!existing) {
+                existing = {
+                    groupId: key,
+                    bahan: item.bahan || '',
+                    rincian: item.rincian || '',
+                    bordir: item.bordir || '',
+                    harga_bordir: item.harga_bordir || 0,
+                    indices: []
+                };
+                groups.push(existing);
+            }
+            existing.indices.push(index);
+        });
+        return groups;
     };
 
-    const removeItem = (index) => {
+    const handleGroupFieldChange = (groupIndices, field, value) => {
+        const newItems = [...form.items];
+        groupIndices.forEach(idx => {
+            newItems[idx][field] = value;
+            if (field === 'rincian' && idx === groupIndices[0]) {
+                filterProducts(idx, value);
+            }
+        });
+        setForm({ ...form, items: newItems });
+    };
+
+    const addSizeRow = (groupIndices) => {
+        const template = form.items[groupIndices[0]];
+        const newItem = {
+            ...template,
+            ukuran: '',
+            qty: 1,
+            status_approval: '',
+            diskon_item: 0,
+        };
+        const lastIdx = groupIndices[groupIndices.length - 1];
+        const newItems = [...form.items];
+        newItems.splice(lastIdx + 1, 0, newItem);
+        setForm({ ...form, items: newItems });
+    };
+
+    const removeSizeRow = (indexToRemove) => {
         if (form.items.length > 1) {
-            const newItems = form.items.filter((_, i) => i !== index);
+            const newItems = form.items.filter((_, idx) => idx !== indexToRemove);
             setForm({ ...form, items: newItems });
         }
+    };
+
+    const removeProductGroup = (groupIndices) => {
+        if (form.items.length > groupIndices.length) {
+            const newItems = form.items.filter((_, idx) => !groupIndices.includes(idx));
+            setForm({ ...form, items: newItems });
+        } else {
+            const newGroupId = `group-${Date.now()}`;
+            setForm({
+                ...form,
+                items: [{ groupId: newGroupId, rincian: '', ukuran: '', qty: 1, harga_satuan: 0, satuan: 'Pcs', diskon_item: 0, status_approval: '', harga_spv: 0, harga_jual: 0, base_harga_jual: 0, base_harga_spv: 0, bahan: '', bordir: '', harga_bordir: 0 }]
+            });
+        }
+    };
+
+    const addItem = () => {
+        const newGroupId = `group-${Date.now()}-${Math.random()}`;
+        setForm({
+            ...form,
+            items: [...form.items, { groupId: newGroupId, rincian: '', ukuran: '', qty: 1, harga_satuan: 0, satuan: 'Pcs', diskon_item: 0, status_approval: '', harga_spv: 0, harga_jual: 0, base_harga_jual: 0, base_harga_spv: 0, bahan: '', bordir: '', harga_bordir: 0 }]
+        });
     };
 
     const handleSubmit = async (e) => {
@@ -518,6 +622,14 @@ const CreateOrderOfflineBanua = () => {
                                     <textarea name="alamat_pt" value={form.alamat_pt} onChange={handleChange} required rows={2} placeholder="Alamat lengkap..." className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none resize-none"></textarea>
                                 </div>
                                 <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Kategori Pelanggan</label>
+                                    <select name="kategori_pelanggan" value={form.kategori_pelanggan} onChange={handleChange} className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none bg-white">
+                                        <option value="Pelanggan Baru">Pelanggan Baru</option>
+                                        <option value="Prospek">Prospek</option>
+                                        <option value="Hot Prospek">Hot Prospek</option>
+                                    </select>
+                                </div>
+                                <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">UP (Nama Penagihan)</label>
                                     <input type="text" name="up_penagihan" value={form.up_penagihan} onChange={handleChange} placeholder="Bpk/Ibu ..." className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none" />
                                 </div>
@@ -555,121 +667,165 @@ const CreateOrderOfflineBanua = () => {
                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                             <h3 className="text-lg font-bold border-b border-gray-100 pb-3 mb-4 text-[#990000]">DETAIL PEMESANAN</h3>
                             
-                            <div className="space-y-4 mb-6">
-                                {form.items && form.items.map((item, index) => (
-                                    <div key={index} className="grid grid-cols-12 gap-3 bg-gray-50 p-4 rounded-lg border border-gray-200 relative pt-8 md:pt-4">
-                                        <div className="col-span-12 md:col-span-4 relative">
-                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Jenis Bahan (Filter Produk)</label>
-                                            <select name="bahan" value={item.bahan || ''} onChange={(e) => handleItemChange(index, e)} className="w-full p-2 border border-red-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none bg-red-50/30 text-sm font-semibold text-[#990000]">
-                                                <option value="">-- Semua Bahan --</option>
-                                                <option value="NAGATA">NAGATA</option>
-                                                <option value="UNIONE">UNIONE</option>
-                                                <option value="MACAN DRILL">MACAN DRILL</option>
-                                                <option value="JAPAN DRILL">JAPAN DRILL</option>
-                                                <option value="ERRO">ERRO</option>
-                                                <option value="OXFORD">OXFORD</option>
-                                                <option value="RISPTOP">RISPTOP</option>
-                                                <option value="RIPSTOP">RIPSTOP</option>
-                                                <option value="KAOS">KAOS</option>
-                                                <option value="LACOSTE">LACOSTE</option>
-                                                <option value="DRY FIT">DRY FIT</option>
-                                                <option value="HIGH TWIST">HIGH TWIST</option>
-                                                <option value="CANVAS">CANVAS</option>
-                                                <option value="JEANS">JEANS</option>
-                                                <option value="PARAGON">PARAGON</option>
-                                                <option value="PARASUT">PARASUT</option>
-                                                <option value="PIQUE">PIQUE</option>
-                                                <option value="SERENA">SERENA</option>
-                                                <option value="TASLAN MILKY">TASLAN MILKY</option>
-                                            </select>
-                                        </div>
-                                        <div className="col-span-12 md:col-span-8 relative">
-                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Nama Produk {item.bahan && <span className="text-[#990000] lowercase">(Filter: {item.bahan})</span>}</label>
-                                            <input 
-                                                type="text" 
-                                                name="rincian" 
-                                                value={item.rincian || item.nama_barang} 
-                                                onChange={(e) => handleItemChange(index, e)} 
-                                                onFocus={() => filterProducts(index, item.rincian || item.nama_barang)}
-                                                onBlur={() => setTimeout(() => setActiveItemIndex(null), 200)}
-                                                placeholder="Nama Produk" 
-                                                required 
-                                                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-sm" 
-                                                autoComplete="off" 
-                                            />
-                                            {activeItemIndex === index && filteredProducts.length > 0 && (
-                                                <ul className="absolute z-20 w-72 bg-white border border-gray-200 mt-1 rounded-lg shadow-xl max-h-60 overflow-y-auto">
-                                                    {filteredProducts.map(prod => (
-                                                        <li key={prod.id} onClick={() => selectProduct(index, prod)} className="p-2.5 hover:bg-red-50 cursor-pointer border-b border-gray-100 last:border-0">
-                                                            <div className="flex items-center gap-2">
-                                                                {(prod.displayKode || prod.kode) && (
-                                                                    <span className="text-[10px] font-black text-white bg-[#990000] px-1.5 py-0.5 rounded font-mono shrink-0">
-                                                                        {prod.displayKode || prod.kode}
-                                                                    </span>
-                                                                )}
-                                                                <span className="text-xs font-semibold text-gray-800 truncate">{prod.nama_produk}</span>
-                                                            </div>
-                                                            <div className="flex justify-between mt-1">
-                                                                <span className="text-[10px] text-gray-400">{prod.bahan || '-'} {prod.variasi ? `| ${prod.variasi}` : ''}</span>
-                                                                <span className="text-[10px] font-bold text-[#990000]">Rp {Math.round(Number(prod.harga_jual || prod.hpp_satuan || 0)).toLocaleString('id-ID')}</span>
-                                                            </div>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            )}
-                                        </div>
-                                        <div className="col-span-6 md:col-span-2">
-                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 text-center">Detail</label>
-                                            <input type="text" name="ukuran" value={item.ukuran || ''} onChange={(e) => handleItemChange(index, e)} placeholder="Cth: XL" className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-center text-sm" />
-                                        </div>
-                                        <div className="col-span-3 md:col-span-1">
-                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 text-center">Qty</label>
-                                            <input type="text" inputMode="decimal" name="qty" value={item.qty} onChange={(e) => handleItemChange(index, e)} required className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-center text-sm" />
-                                        </div>
-                                        <div className="col-span-3 md:col-span-1">
-                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 text-center">Unit</label>
-                                            <input type="text" name="satuan" value={item.satuan || 'Pcs'} onChange={(e) => handleItemChange(index, e)} placeholder="Pcs" className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-center text-sm" />
-                                        </div>
-                                        <div className="col-span-6 md:col-span-2">
-                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 text-right">Harga Satuan</label>
-                                            <input type="text" inputMode="decimal" name="harga_satuan" value={item.harga_satuan} onChange={(e) => handleItemChange(index, e)} required className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-right text-sm font-semibold" />
-                                        </div>
-                                        <div className="col-span-6 md:col-span-2">
-                                            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 text-right">Diskon Item</label>
-                                            <div className="flex gap-1 items-center">
-                                                <input type="text" inputMode="decimal" name="diskon_item" value={item.diskon_item || ''} onChange={(e) => handleItemChange(index, e)} placeholder="0" className={`w-full p-2 border rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-right text-sm ${needsApproval(item) ? 'border-red-400 bg-red-50 text-red-700' : 'border-gray-300 text-red-600'}`} />
-                                                {needsApproval(item) && item.status_approval !== 'Menunggu Approval Owner' && (
-                                                    <button type="button" onClick={() => sendApprove(index)} className="p-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded text-[10px] font-bold shrink-0 whitespace-nowrap">Approve</button>
-                                                )}
-                                            </div>
-                                            {needsApproval(item) && !item.status_approval && (
-                                                <p className="text-[9px] text-red-500 font-bold mt-1 text-right">⚠ Harga di bawah SPV (Rp {Math.round(Number(item.harga_spv)).toLocaleString('id-ID')}), butuh approval Owner</p>
-                                            )}
-                                            {!needsApproval(item) && Number(item.diskon_item) > 0 && (
-                                                <p className="text-[9px] text-green-600 font-bold mt-1 text-right">✓ Diskon OK, harga masih di atas SPV</p>
-                                            )}
-                                            {item.status_approval && <p className="text-[9px] text-yellow-600 font-bold mt-1 text-right">⏳ {item.status_approval}</p>}
-                                        </div>
-                                        <div className="absolute top-2 right-2 md:static md:col-span-1 flex items-end justify-center">
-                                            <button type="button" onClick={() => removeItem(index)} className="text-red-400 hover:text-red-600 transition-colors p-2">
-                                                <X size={18} />
-                                            </button>
-                                        </div>
-                                        <div className="col-span-12 grid grid-cols-12 gap-3 mt-2 border-t border-gray-100 pt-3">
-                                            <div className="col-span-12 md:col-span-4">
-                                                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Bordir (Keterangan)</label>
-                                                <input type="text" name="bordir" value={item.bordir || ''} onChange={(e) => handleItemChange(index, e)} placeholder="Contoh: Logo dada kiri" className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-sm" />
-                                            </div>
-                                            <div className="col-span-12 md:col-span-3">
-                                                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Harga Bordir/pcs</label>
-                                                <input type="text" inputMode="decimal" name="harga_bordir" value={item.harga_bordir || ''} onChange={(e) => handleItemChange(index, e)} placeholder="0" className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-right text-sm text-orange-600 font-semibold" />
-                                                {Number(item.harga_bordir) > 0 && <p className="text-[9px] text-orange-500 mt-1 text-right">+Rp {Math.round(Number(item.qty||1)*Number(item.harga_bordir)).toLocaleString('id-ID')}</p>}
+                            <div className="space-y-6 mb-6">
+                                {getGroupedItems().map((group, groupIdx) => {
+                                    const firstItem = form.items[group.indices[0]];
+                                    return (
+                                        <div key={group.groupId} className="bg-gray-55 p-5 rounded-2xl border border-gray-300 space-y-4 shadow-sm relative pt-4">
+                                            {/* Header: Product Title & Delete Card Button */}
+                                            <div className="flex justify-between items-center border-b border-gray-200 pb-3">
+                                                <span className="text-xs font-black text-white bg-[#990000] px-2.5 py-1 rounded-lg">
+                                                    PRODUK #{groupIdx + 1}
+                                                </span>
+                                                <button type="button" onClick={() => removeProductGroup(group.indices)} className="text-red-500 hover:text-red-750 text-xs font-bold flex items-center gap-1 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
+                                                    <X size={14} /> Hapus Produk
+                                                </button>
                                             </div>
 
+                                            {/* Row 1: Bahan & Nama Produk */}
+                                            <div className="grid grid-cols-12 gap-3">
+                                                <div className="col-span-12 md:col-span-4 relative">
+                                                     <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Jenis Bahan (Filter Produk)</label>
+                                                     <select name="bahan" value={firstItem.bahan || ''} onChange={(e) => handleGroupFieldChange(group.indices, 'bahan', e.target.value)} className="w-full p-2 border border-red-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none bg-red-50/30 text-sm font-semibold text-[#990000]">
+                                                         <option value="">-- Semua Bahan --</option>
+                                                         <option value="NAGATA">NAGATA</option>
+                                                         <option value="UNIONE">UNIONE</option>
+                                                         <option value="MACAN DRILL">MACAN DRILL</option>
+                                                         <option value="JAPAN DRILL">JAPAN DRILL</option>
+                                                         <option value="ERRO">ERRO</option>
+                                                         <option value="OXFORD">OXFORD</option>
+                                                         <option value="RISPTOP">RISPTOP</option>
+                                                         <option value="RIPSTOP">RIPSTOP</option>
+                                                         <option value="KAOS">KAOS</option>
+                                                         <option value="LACOSTE">LACOSTE</option>
+                                                         <option value="DRY FIT">DRY FIT</option>
+                                                         <option value="HIGH TWIST">HIGH TWIST</option>
+                                                         <option value="CANVAS">CANVAS</option>
+                                                         <option value="JEANS">JEANS</option>
+                                                         <option value="PARAGON">PARAGON</option>
+                                                         <option value="PARASUT">PARASUT</option>
+                                                         <option value="PIQUE">PIQUE</option>
+                                                         <option value="SERENA">SERENA</option>
+                                                         <option value="TASLAN MILKY">TASLAN MILKY</option>
+                                                     </select>
+                                                </div>
+                                                <div className="col-span-12 md:col-span-8 relative">
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Nama Produk {firstItem.bahan && <span className="text-[#990000] lowercase">(Filter: {firstItem.bahan})</span>}</label>
+                                                    <input 
+                                                         type="text" 
+                                                         name="rincian" 
+                                                         value={firstItem.rincian || firstItem.nama_barang || ''} 
+                                                         onChange={(e) => handleGroupFieldChange(group.indices, 'rincian', e.target.value)} 
+                                                         onFocus={() => filterProducts(group.indices[0], firstItem.rincian || firstItem.nama_barang)}
+                                                         onBlur={() => setTimeout(() => setActiveItemIndex(null), 200)}
+                                                         placeholder="Nama Produk" 
+                                                         required 
+                                                         className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-sm font-medium" 
+                                                         autoComplete="off" 
+                                                    />
+                                                    {activeItemIndex === group.indices[0] && filteredProducts.length > 0 && (
+                                                         <ul className="absolute z-20 w-72 bg-white border border-gray-250 mt-1 rounded-xl shadow-2xl max-h-60 overflow-y-auto">
+                                                             {filteredProducts.map(prod => (
+                                                                 <li key={prod.id} onClick={() => selectProduct(group.indices[0], prod)} className="p-2.5 hover:bg-red-50 cursor-pointer border-b border-gray-100 last:border-0">
+                                                                     <div className="flex items-center gap-2">
+                                                                         {(prod.displayKode || prod.kode) && (
+                                                                             <span className="text-[10px] font-black text-white bg-[#990000] px-1.5 py-0.5 rounded font-mono shrink-0">
+                                                                                 {prod.displayKode || prod.kode}
+                                                                             </span>
+                                                                         )}
+                                                                         <span className="text-xs font-semibold text-gray-800 truncate">{prod.nama_produk}</span>
+                                                                     </div>
+                                                                     <div className="flex justify-between mt-1">
+                                                                         <span className="text-[10px] text-gray-400">{prod.bahan || '-'} {prod.variasi ? `| ${prod.variasi}` : ''}</span>
+                                                                         <span className="text-[10px] font-bold text-[#990000]">Rp {Math.round(Number(prod.harga_jual || prod.hpp_satuan || 0)).toLocaleString('id-ID')}</span>
+                                                                     </div>
+                                                                 </li>
+                                                             ))}
+                                                         </ul>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Row 2: Sub-rows (Variations) section */}
+                                            <div className="space-y-3 border-t border-b border-gray-150 py-3">
+                                                 <div className="hidden md:grid grid-cols-12 gap-2 text-center text-[10px] font-bold text-gray-400 uppercase">
+                                                     <div className="col-span-3">Detail (Ukuran)</div>
+                                                     <div className="col-span-2">Qty</div>
+                                                     <div className="col-span-2">Unit</div>
+                                                     <div className="col-span-2">Harga Satuan</div>
+                                                     <div className="col-span-2">Diskon Item</div>
+                                                     <div className="col-span-1">Aksi</div>
+                                                 </div>
+
+                                                 {group.indices.map((idx) => {
+                                                     const item = form.items[idx];
+                                                     return (
+                                                         <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-gray-50/50 p-2 rounded-lg border border-gray-150 relative">
+                                                             <div className="col-span-6 md:col-span-3">
+                                                                 <label className="block md:hidden text-[9px] font-bold text-gray-400 mb-0.5">Detail (Ukuran)</label>
+                                                                 <input type="text" name="ukuran" value={item.ukuran || ''} onChange={(e) => handleItemChange(idx, e)} placeholder="Cth: S" className="w-full p-2 border border-gray-300 rounded-lg text-center text-sm" />
+                                                             </div>
+                                                             <div className="col-span-6 md:col-span-2">
+                                                                 <label className="block md:hidden text-[9px] font-bold text-gray-400 mb-0.5">Qty</label>
+                                                                 <input type="text" inputMode="decimal" name="qty" value={item.qty} onChange={(e) => handleItemChange(idx, e)} required className="w-full p-2 border border-gray-300 rounded-lg text-center text-sm" />
+                                                             </div>
+                                                             <div className="col-span-6 md:col-span-2">
+                                                                 <label className="block md:hidden text-[9px] font-bold text-gray-400 mb-0.5">Unit</label>
+                                                                 <input type="text" name="satuan" value={item.satuan || 'Pcs'} onChange={(e) => handleItemChange(idx, e)} className="w-full p-2 border border-gray-300 rounded-lg text-center text-sm" />
+                                                             </div>
+                                                             <div className="col-span-6 md:col-span-2">
+                                                                 <label className="block md:hidden text-[9px] font-bold text-gray-400 mb-0.5 text-right">Harga Satuan</label>
+                                                                 <input type="text" inputMode="decimal" name="harga_satuan" value={item.harga_satuan} onChange={(e) => handleItemChange(idx, e)} required className="w-full p-2 border border-gray-300 rounded-lg text-right text-sm font-semibold" />
+                                                             </div>
+                                                             <div className="col-span-12 md:col-span-2">
+                                                                 <label className="block md:hidden text-[9px] font-bold text-gray-400 mb-0.5 text-right">Diskon Item</label>
+                                                                 <div className="flex gap-1 items-center">
+                                                                     <input type="text" inputMode="decimal" name="diskon_item" value={item.diskon_item || ''} onChange={(e) => handleItemChange(idx, e)} placeholder="0" className={`w-full p-2 border rounded-lg text-right text-sm ${needsApproval(item) ? 'border-red-400 bg-red-50 text-red-700' : 'border-gray-300 text-red-600'}`} />
+                                                                     {needsApproval(item) && item.status_approval !== 'Menunggu Approval Owner' && (
+                                                                         <button type="button" onClick={() => sendApprove(idx)} className="p-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded text-[10px] font-bold shrink-0 whitespace-nowrap">Approve</button>
+                                                                     )}
+                                                                 </div>
+                                                                 {needsApproval(item) && !item.status_approval && (
+                                                                     <p className="text-[9px] text-red-500 font-bold mt-1 text-right">⚠ Harga di bawah SPV (Rp {Math.round(Number(item.harga_spv)).toLocaleString('id-ID')}), butuh approval Owner</p>
+                                                                 )}
+                                                                 {!needsApproval(item) && Number(item.diskon_item) > 0 && (
+                                                                     <p className="text-[9px] text-green-600 font-bold mt-1 text-right">✓ Diskon OK</p>
+                                                                 )}
+                                                                 {item.status_approval && <p className="text-[9px] text-yellow-600 font-bold mt-1 text-right">⏳ {item.status_approval}</p>}
+                                                             </div>
+                                                             <div className="col-span-12 md:col-span-1 flex justify-center gap-2 mt-2 md:mt-0">
+                                                                 <button type="button" onClick={() => addSizeRow(group.indices)} title="Tambah Ukuran" className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg transition-colors">
+                                                                     <Plus size={16} />
+                                                                 </button>
+                                                                 {form.items.length > 1 && (
+                                                                     <button type="button" onClick={() => removeSizeRow(idx)} title="Hapus Ukuran" className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                                                                         <X size={16} />
+                                                                     </button>
+                                                                 )}
+                                                             </div>
+                                                         </div>
+                                                     );
+                                                 })}
+                                            </div>
+
+                                            {/* Row 3: Bordir */}
+                                            <div className="grid grid-cols-12 gap-3 pt-2">
+                                                 <div className="col-span-12 md:col-span-6">
+                                                     <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Bordir (Keterangan)</label>
+                                                     <input type="text" name="bordir" value={firstItem.bordir || ''} onChange={(e) => handleGroupFieldChange(group.indices, 'bordir', e.target.value)} placeholder="Contoh: Logo dada kiri" className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-sm" />
+                                                 </div>
+                                                 <div className="col-span-12 md:col-span-6">
+                                                     <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Harga Bordir/pcs</label>
+                                                     <input type="text" inputMode="decimal" name="harga_bordir" value={firstItem.harga_bordir || ''} onChange={(e) => handleGroupFieldChange(group.indices, 'harga_bordir', e.target.value)} placeholder="0" className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-right text-sm text-orange-600 font-semibold" />
+                                                     {Number(firstItem.harga_bordir) > 0 && <p className="text-[9px] text-orange-500 mt-1 text-right">+Rp {Math.round(group.indices.reduce((s, i) => s + (Number(form.items[i].qty || 1) * Number(firstItem.harga_bordir)), 0)).toLocaleString('id-ID')}</p>}
+                                                 </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
-                                <button type="button" onClick={addItem} className="text-sm font-semibold text-[#990000] bg-red-50 px-4 py-2 rounded-lg border border-red-100 hover:bg-red-100 transition-colors">+ Tambah Item</button>
+                                    );
+                                })}
+                                <button type="button" onClick={addItem} className="text-sm font-bold text-[#990000] bg-red-50 hover:bg-red-100 px-5 py-2.5 rounded-xl border border-red-150 transition-colors flex items-center gap-1.5">
+                                    <Plus size={16} /> Tambah Produk
+                                </button>
                             </div>
 
                             <div className="flex justify-end">
@@ -771,12 +927,21 @@ const CreateOrderOfflineBanua = () => {
                                         <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Marketing (TTD)</label>
                                         <select name="nama_marketing" value={form.nama_marketing} onChange={handleChange} className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none bg-white">
                                             <option value="">-- Pilih Marketing --</option>
+                                            <option value="Noa">Noa</option>
                                             <option value="Banu">Banu</option>
                                         </select>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-700 mb-1">Nama Client (TTD)</label>
                                         <input type="text" name="nama_client_ttd" value={form.nama_client_ttd} onChange={handleChange} placeholder="Nama client yang menandatangani" className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Status Persetujuan Order</label>
+                                        <select name="approval_status" value={form.approval_status} onChange={handleChange} disabled className="w-full p-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none bg-gray-100 cursor-not-allowed">
+                                            <option value="Belum Disetujui">Belum Disetujui</option>
+                                            <option value="Sudah Disetujui">Sudah Disetujui</option>
+                                        </select>
+                                        <p className="text-[10px] text-gray-500 mt-1">Status ini otomatis berubah ketika disetujui oleh Finance/Owner.</p>
                                     </div>
                                 </div>
                                 <div className="border-2 border-dashed border-gray-300 rounded-2xl p-6 flex flex-col items-center justify-center text-center bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer" onClick={() => document.getElementById('quo_files_upload').click()}>

@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
-import { createInvoice, getInvoiceById, updateInvoice, requestRevision } from '../api/invoiceApi';
+import { createInvoice, getInvoiceById, updateInvoice, requestRevision, uploadInvoiceFiles, getNextInvoiceNumber } from '../api/invoiceApi';
 import { Save, X, ArrowLeft, Receipt, CreditCard, PenTool, Upload, Send } from 'lucide-react';
 import api from '../api/axios';
 import { formatPhoneNumber } from '../utils/formatters';
-import { getNextInvoiceNumber } from '../api/invoiceApi';
 
 const InvoiceForm = () => {
     const { id } = useParams();
@@ -18,6 +17,7 @@ const InvoiceForm = () => {
     const [filteredProducts, setFilteredProducts] = useState([]);
     const [activeItemIndex, setActiveItemIndex] = useState(null);
     const [invoiceFiles, setInvoiceFiles] = useState([]);
+    const [existingFiles, setExistingFiles] = useState([]);
     const [originalData, setOriginalData] = useState(null);
     const [alasanRevisi, setAlasanRevisi] = useState('');
 
@@ -210,6 +210,14 @@ Atas Nama                 : ACCESTREAT`;
                 const parsedItems = typeof data.items === 'string' ? JSON.parse(data.items) : (data.items || [{ rincian: '', qty: data.qty || 1, harga_satuan: data.harga_satuan || 0, diskon_item: 0, satuan: 'Pcs' }]);
                 const inferredOngkir = Math.max(0, Number(data.grand_total || 0) - Number(data.subtotal || 0) - Number(data.jumlah_ppn || 0) + Number(data.diskon || 0));
 
+                let filesArr = [];
+                if (data.file_supporting) {
+                    try {
+                        filesArr = typeof data.file_supporting === 'string' ? JSON.parse(data.file_supporting) : data.file_supporting;
+                    } catch (e) { console.error(e); }
+                }
+                setExistingFiles(filesArr || []);
+
                 setForm({
                     ...data,
                     tanggal_transaksi: data.tanggal_transaksi ? data.tanggal_transaksi.split('T')[0] : '',
@@ -224,6 +232,10 @@ Atas Nama                 : ACCESTREAT`;
         } catch (error) {
             console.error('Gagal memuat data invoice', error);
         }
+    };
+
+    const handleRemoveExistingFile = (idx) => {
+        setExistingFiles(prev => prev.filter((_, i) => i !== idx));
     };
 
     const handleChange = (e) => {
@@ -244,7 +256,9 @@ Atas Nama                 : ACCESTREAT`;
                 payload.status = targetStatus;
             }
             delete payload.Diskon; // Strip any invalid fields just in case
+            payload.file_supporting = existingFiles;
 
+            let invoiceId = id;
             if (isReduced) {
                 if (!alasanRevisi) {
                     alert("Harap isi alasan revisi/pengurangan.");
@@ -256,9 +270,17 @@ Atas Nama                 : ACCESTREAT`;
                 await updateInvoice(id, payload);
                 alert("Invoice berhasil diperbarui!");
             } else {
-                await createInvoice(payload);
+                const res = await createInvoice(payload);
+                if (res.data && res.data.id) {
+                    invoiceId = res.data.id;
+                }
                 alert("Invoice berhasil dibuat!");
             }
+
+            if (invoiceFiles.length > 0 && invoiceId) {
+                await uploadInvoiceFiles(invoiceId, invoiceFiles);
+            }
+
             navigate('/invoice');
         } catch (error) {
             console.error("Gagal menyimpan invoice", error);
@@ -479,7 +501,7 @@ Atas Nama                 : ACCESTREAT`;
                                     </div>
                                     <div className="flex items-center justify-between gap-4">
                                         <label className="text-sm font-semibold text-gray-700 w-1/3">PPN (%)</label>
-                                        <input type="number" name="ppn_persen" value={form.ppn_persen} onChange={handleChange} min="0" max="100" className="w-1/3 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-right" />
+                                        <input type="number" step="any" name="ppn_persen" value={form.ppn_persen} onChange={handleChange} min="0" max="100" className="w-1/3 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#990000]/20 outline-none text-right" />
                                         <span className="w-1/3 text-right text-sm text-gray-600">Rp {form.jumlah_ppn.toLocaleString('id-ID')}</span>
                                     </div>
                                     <div className="flex items-center justify-between gap-4">
@@ -564,12 +586,30 @@ Atas Nama                 : ACCESTREAT`;
                                         <p className="text-xs text-gray-500 mt-1 mb-4">Klik untuk memilih file PDF, gambar bukti transfer, dll.</p>
                                         <input type="file" id="inv_files_upload" multiple onChange={(e) => setInvoiceFiles(prev => [...prev, ...Array.from(e.target.files)])} className="hidden" />
                                     </div>
+
+                                    {existingFiles.length > 0 && (
+                                        <div className="mt-3 space-y-2">
+                                            <h5 className="text-xs font-bold text-gray-500">File Terupload Sebelumnya:</h5>
+                                            {existingFiles.map((file, idx) => (
+                                                <div key={idx} className="flex items-center justify-between bg-gray-50 p-2 rounded border border-gray-100 shadow-sm">
+                                                    <a href={`http://${window.location.hostname}:3000${file.path}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline truncate flex-1 mr-2 font-medium">
+                                                        {file.originalname || file.filename}
+                                                    </a>
+                                                    <button type="button" onClick={() => handleRemoveExistingFile(idx)} className="text-red-500 hover:bg-[#990000]/10 p-1 rounded">
+                                                        <X size={14} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
                                     {invoiceFiles.length > 0 && (
                                         <div className="mt-3 space-y-2">
+                                            <h5 className="text-xs font-bold text-gray-500">File Baru Siap Upload:</h5>
                                             {invoiceFiles.map((file, idx) => (
                                                 <div key={idx} className="flex items-center justify-between bg-white p-2 rounded border border-gray-100 shadow-sm">
                                                     <span className="text-xs text-gray-700 font-medium truncate flex-1 mr-2">{file.name}</span>
-                                                    <button type="button" onClick={() => setInvoiceFiles(prev => prev.filter((_, i) => i !== idx))} className="text-red-500 hover:bg-red-50 p-1 rounded">
+                                                    <button type="button" onClick={() => setInvoiceFiles(prev => prev.filter((_, i) => i !== idx))} className="text-red-500 hover:bg-[#990000]/10 p-1 rounded">
                                                         <X size={14} />
                                                     </button>
                                                 </div>

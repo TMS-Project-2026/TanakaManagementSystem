@@ -2,7 +2,7 @@ import NotificationBell from '../components/NotificationBell';
 import { Bell } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { getApprovals, getApprovalDetail, updateApprovalStatus, deleteApproval } from '../api/ownerApi';
-import { Check, X, Clock, Eye, Trash2, FileText, Download, ExternalLink, Search, UserCircle } from 'lucide-react';
+import { Check, X, Clock, Eye, Trash2, FileText, Upload, ExternalLink, Search, UserCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 
@@ -330,7 +330,7 @@ const ApprovalCenter = () => {
                                             <div className="flex flex-wrap gap-2">
                                                 {files.map((f, i) => (
                                                     <a key={i} href={`http://localhost:3000${f.path}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-2 bg-white text-green-700 rounded-lg text-sm hover:bg-green-100 border border-green-300 font-medium">
-                                                        <Download size={14} /> {f.originalname}
+                                                        <Upload size={14} /> {f.originalname}
                                                     </a>
                                                 ))}
                                             </div>

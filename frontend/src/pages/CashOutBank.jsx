@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import { getAllCashOutBank, getCashOutBankSummary, createCashOutBank, updateCashOutBank, deleteCashOutBank } from '../api/cashOutBankApi';
-import { Plus, Search, Edit, Trash2, TrendingDown, Clock, UserCircle, X, Download, AlertCircle } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, TrendingDown, Clock, UserCircle, X, AlertCircle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend } from 'recharts';
 
 const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);

@@ -5,7 +5,7 @@ import Sidebar from '../components/Sidebar';
 import NotificationBell from '../components/NotificationBell';
 import {
   Users, FileText, ShoppingBag, Plus, Edit, Trash2, Send, X, Search, UserCircle, ChevronDown, Gift,
-  Loader2, Download, TrendingUp, TrendingDown, Activity, AlertTriangle, CheckCircle, Package, Eye, Upload, DollarSign
+  Loader2, TrendingUp, TrendingDown, Activity, AlertTriangle, CheckCircle, Package, Eye, Upload, DollarSign
 } from 'lucide-react';
 import { submitQuotationToFinance, uploadQuotationFiles } from '../api/quotationApi';
 import { getStok, createPermintaanStok } from '../api/gudangApi';
@@ -99,9 +99,9 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
     const d = new Date(); const m = d.getMonth() === 0 ? 12 : d.getMonth(); const y = d.getMonth() === 0 ? d.getFullYear() - 1 : d.getFullYear();
     return `${y}-${String(m).padStart(2, '0')}`;
   });
-  const [targetHarian] = useState(2400000);
-  const [targetBulanan] = useState(70000000);
-  const [targetTahunan] = useState(840000000);
+  const [targetHarian] = useState(3800000);
+  const [targetBulanan] = useState(95000000);
+  const [targetTahunan] = useState(1140000000);
   const [expandedProduct, setExpandedProduct] = useState(null);
   const [tooltipProduk, setTooltipProduk] = useState(null);
 
@@ -837,7 +837,7 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
                       <div className="bg-violet-50 border border-violet-100 p-2 rounded-lg shadow-sm">
                         <TrendingUp className="text-violet-600" size={20} />
                       </div>
-                      {reportSubTab === 'tahunan' ? 'Laporan Tahunan Offline' : reportSubTab === 'berjalan-tahunan' ? 'Laporan Tahun Berjalan Offline' : reportSubTab === 'bulanan-monthly' ? 'Laporan Bulanan Offline' : reportSubTab === 'berjalan-monthly' ? 'Laporan Bulan Berjalan Offline' : reportSubTab === 'bulanan' ? 'Laporan Harian Berjalan Offline' : reportSubTab === 'berjalan' ? 'Laporan Bulan Berjalan Offline' : 'Laporan Harian Offline'}
+                      {reportSubTab === 'tahunan' ? 'Laporan Tahunan Offline' : reportSubTab === 'berjalan-tahunan' ? 'Laporan Tahun Berjalan Offline' : reportSubTab === 'bulanan-monthly' ? 'Laporan Bulanan Offline' : reportSubTab === 'berjalan-monthly' ? 'Laporan Bulan Berjalan Offline' : reportSubTab === 'bulanan' ? 'Laporan Harian Berjalan Offline' : reportSubTab === 'berjalan' ? 'Laporan Bulan Berjalan Offline' : 'Laporan Harian Offline (Senin - Jumat)'}
                     </>
                   )}
                 </h1>
@@ -859,7 +859,7 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
                   onClick={handleExportExcel}
                   className="flex items-center gap-2 bg-[#2563eb] text-white px-4 py-2.5 rounded-xl text-xs font-black hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-100"
                 >
-                  <Download size={18} /> Eksport Excel
+                  <Upload size={18} /> Eksport Excel
                 </button>
                 <button
                   onClick={() => navigate('/marketing-offline-tanaka/create-order')}
@@ -1061,7 +1061,14 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
                     const getDaysDiff = (d1, d2) => {
                         const start = new Date(d1);
                         const end = new Date(d2);
-                        return Math.max(1, Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1);
+                        let count = 0;
+                        const current = new Date(start);
+                        while (current <= end) {
+                            const day = current.getDay();
+                            if (day !== 0 && day !== 6) count++; // Senin-Jumat saja
+                            current.setDate(current.getDate() + 1);
+                        }
+                        return Math.max(1, count);
                     };
                     const getMonthsDiff = (d1, d2) => {
                         const start = new Date(d1); const end = new Date(d2);
@@ -1155,16 +1162,25 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
                 ) : reportSubTab === 'harian' ? (
                   <>
                     <div className="flex-1 min-w-[200px] p-3 bg-gray-50 border border-gray-200 rounded-xl">
-                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Pilih Tanggal</label>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Pilih Tanggal (Senin - Jumat)</label>
                       <input
                         type="date"
                         className="w-full p-2 bg-white border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-100 text-sm font-medium"
                         value={filterDate1}
-                        onChange={e => setFilterDate1(e.target.value)}
+                        onChange={e => {
+                          const d = new Date(e.target.value);
+                          const day = d.getDay();
+                          if (day === 0 || day === 6) {
+                            alert('Laporan harian hanya tersedia untuk hari kerja (Senin - Jumat). Silakan pilih hari kerja.');
+                            return;
+                          }
+                          setFilterDate1(e.target.value);
+                        }}
                       />
+                      {(() => { const d = new Date(filterDate1); const day = d.getDay(); return (day === 0 || day === 6) ? <p className="text-[10px] text-red-500 font-bold mt-1">⚠ Hari ini adalah akhir pekan</p> : null; })()}
                     </div>
                     <div className="flex-1 min-w-[200px] p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
-                      <label className="block text-xs font-bold text-emerald-600 uppercase mb-2">Target Pendapatan</label>
+                      <label className="block text-xs font-bold text-emerald-600 uppercase mb-2">Target Harian (25 Hari Kerja/Bulan)</label>
                       <div className="w-full py-1 text-emerald-700 font-bold text-lg">
                         {formatRupiah(targetHarian)}
                       </div>
@@ -1819,6 +1835,7 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
         <thead className="bg-gray-900 text-white">
           <tr>
             <th className="py-4 px-5 text-[10px] font-black uppercase tracking-widest">Instansi</th>
+            <th className="py-4 px-5 text-[10px] font-black uppercase tracking-widest">Kategori</th>
             <th className="py-4 px-5 text-[10px] font-black uppercase tracking-widest">Produk</th>
             <th className="py-4 px-5 text-[10px] font-black uppercase tracking-widest text-center">QTY</th>
             <th className="py-4 px-5 text-[10px] font-black uppercase tracking-widest text-right">Harga Satuan</th>
@@ -1829,6 +1846,7 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
             <th className="py-4 px-5 text-[10px] font-black uppercase tracking-widest">Status Produksi</th>
             <th className="py-4 px-5 text-[10px] font-black uppercase tracking-widest">Lokasi</th>
             <th className="py-4 px-5 text-[10px] font-black uppercase tracking-widest">Catatan</th>
+            <th className="py-4 px-5 text-[10px] font-black uppercase tracking-widest text-center">Persetujuan</th>
             <th className="py-4 px-5 text-[10px] font-black uppercase tracking-widest text-center">Status</th>
             <th className="py-4 px-5 text-[10px] font-black uppercase tracking-widest text-center">Aksi</th>
           </tr>
@@ -1839,6 +1857,7 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
           ) : filteredOrders.map(o => (
             <tr key={o.id} className={`hover:bg-gray-50 transition-colors ${o.sisa_hari < 5 ? 'bg-red-50/50' : ''}`}>
               <td className="py-4 px-6 font-bold text-slate-900">{o.customer}</td>
+              <td className="py-4 px-6 text-xs text-slate-600 font-semibold">{o.kategori_pelanggan || '-'}</td>
               <td
                 className={`py-4 px-6 font-bold text-slate-900 cursor-pointer select-none transition-all ${expandedProduct === o.id ? 'max-w-none whitespace-normal text-[#990000]' : 'max-w-[180px] truncate hover:text-[#990000]'}`}
                 onClick={() => setExpandedProduct(expandedProduct === o.id ? null : o.id)}
@@ -1873,6 +1892,11 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
               </td>
               <td className="py-4 px-6 text-xs text-slate-500">{o.lokasi_proses}</td>
               <td className="py-4 px-6 text-xs text-slate-400 italic max-w-[150px] truncate" title={o.catatan}>{o.catatan || '-'}</td>
+              <td className="py-4 px-5 text-center">
+                 <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wide whitespace-nowrap ${o.approval_status === 'Sudah Disetujui' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
+                    {o.approval_status || '-'}
+                 </span>
+              </td>
               <td className="py-4 px-5 text-center">
                 <span
                   title={o.status === 'Rejected' ? `Alasan: ${o.quotation_alasan_penolakan || 'Tidak ada alasan'}` : o.status}

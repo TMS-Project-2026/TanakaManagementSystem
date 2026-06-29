@@ -11,7 +11,7 @@ import {
 } from '../api/cashOutBankApi';
 import { 
     Plus, Search, Edit, Trash2,
-    TrendingUp, DollarSign, UserCircle, FileText, Download, X,
+    TrendingUp, DollarSign, UserCircle, FileText, Upload, X,
     Eye, Ban
 } from 'lucide-react';
 
@@ -305,7 +305,7 @@ const CashBank = () => {
                         </button>
                         <button onClick={exportExcel}
                             className="bg-green-50 border border-green-100 hover:bg-green-100 hover:border-green-200 text-green-700 px-4 py-2.5 rounded-xl font-semibold flex items-center gap-2 shadow-sm transition-all text-sm">
-                            <Download size={16} /> Export Excel
+                            <Upload size={16} /> Export Excel
                         </button>
                         <button onClick={() => handleOpenModal()}
                             className="bg-[#990000] hover:bg-red-800 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 shadow-lg shadow-red-900/20 transition-all hover:scale-105 text-sm">
@@ -721,7 +721,7 @@ runningBal += masuk - keluar;
                                         onClick={downloadLaporanKoran}
                                         className="flex items-center gap-2 bg-[#990000] hover:bg-red-800 text-white px-5 py-2 rounded-xl font-semibold text-sm transition-all shadow-md"
                                     >
-                                        <Download size={16} /> Download PDF
+                                        <Upload size={16} /> Download PDF
                                     </button>
                                 </div>
                             </div>

@@ -2,7 +2,7 @@ import NotificationBell from '../components/NotificationBell';
 import { Bell } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
-import { Plus, Edit, Trash2, Search, Package, DollarSign, Loader2, UploadCloud, Download, UserCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Package, DollarSign, Loader2, UploadCloud, Upload, UserCircle } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -458,7 +458,7 @@ const Pricelist = () => {
                       onClick={handleDownload}
                       className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-sm"
                     >
-                      <Download size={20} />
+                      <Upload size={20} />
                       Download
                     </button>
                     {canCrud && (

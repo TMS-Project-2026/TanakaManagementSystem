@@ -166,7 +166,8 @@ exports.createOrder = (req, res) => {
     const { 
         customer, alamat_pt, up_penagihan, cp_penagihan, email,
         items, subtotal, ppn_persen, jumlah_ppn, diskon, diskon_persen, grand_total, 
-        deadline, status, payment_type, status_produksi, lokasi_proses, catatan 
+        deadline, status, payment_type, status_produksi, lokasi_proses, catatan,
+        approval_status, kategori_pelanggan 
     } = req.body;
     
     const itemsJson = items ? JSON.stringify(items) : null;
@@ -205,12 +206,13 @@ exports.createOrder = (req, res) => {
     }
 
     db.query(
-        "INSERT INTO marketing_orders_offline (customer, alamat_pt, up_penagihan, cp_penagihan, email, items, subtotal, ppn_persen, jumlah_ppn, diskon, diskon_persen, grand_total, produk, qty, harga, deadline, status, jenis_pembayaran, status_produksi, lokasi_proses, catatan, type, branch) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'offline', 'Tanaka')",
+        "INSERT INTO marketing_orders_offline (customer, alamat_pt, up_penagihan, cp_penagihan, email, items, subtotal, ppn_persen, jumlah_ppn, diskon, diskon_persen, grand_total, produk, qty, harga, deadline, status, jenis_pembayaran, status_produksi, lokasi_proses, catatan, approval_status, kategori_pelanggan, type, branch) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'offline', 'Tanaka')",
         [
             customer, alamat_pt, up_penagihan, cp_penagihan, email,
             itemsJson, subtotal || 0, ppn_persen || 0, jumlah_ppn || 0, diskon || 0, diskon_persen || 0, grand_total || (harga * qty),
             produk, qty, harga, parseDate(deadline), initialStatus, payment_type || 'DP', 
-            status_produksi || 'Beli Kain', lokasi_proses || 'Internal', catatan
+            status_produksi || 'Beli Kain', lokasi_proses || 'Internal', catatan,
+            approval_status || 'Belum Disetujui', kategori_pelanggan || 'Pelanggan Baru'
         ],
         (err, result) => {
             if (err) return res.status(500).json({ message: err.message });
@@ -242,7 +244,8 @@ exports.updateOrder = (req, res) => {
     const { 
         customer, alamat_pt, up_penagihan, cp_penagihan, email,
         items, subtotal, ppn_persen, jumlah_ppn, diskon, diskon_persen, grand_total, 
-        deadline, status, payment_type, status_produksi, lokasi_proses, catatan 
+        deadline, status, payment_type, status_produksi, lokasi_proses, catatan,
+        approval_status, kategori_pelanggan 
     } = req.body;
 
     const itemsJson = items ? JSON.stringify(items) : null;
@@ -279,12 +282,12 @@ exports.updateOrder = (req, res) => {
     }
 
     db.query(
-        "UPDATE marketing_orders_offline SET customer=?, alamat_pt=?, up_penagihan=?, cp_penagihan=?, email=?, items=?, subtotal=?, ppn_persen=?, jumlah_ppn=?, diskon=?, diskon_persen=?, grand_total=?, produk=?, qty=?, harga=?, deadline=?, status=?, jenis_pembayaran=?, status_produksi=?, lokasi_proses=?, catatan=? WHERE id=? AND type='offline' AND branch='Tanaka'",
+        "UPDATE marketing_orders_offline SET customer=?, alamat_pt=?, up_penagihan=?, cp_penagihan=?, email=?, items=?, subtotal=?, ppn_persen=?, jumlah_ppn=?, diskon=?, diskon_persen=?, grand_total=?, produk=?, qty=?, harga=?, deadline=?, status=?, jenis_pembayaran=?, status_produksi=?, lokasi_proses=?, catatan=?, approval_status=?, kategori_pelanggan=? WHERE id=? AND type='offline' AND branch='Tanaka'",
         [
             customer, alamat_pt, up_penagihan, cp_penagihan, email,
             itemsJson, subtotal || 0, ppn_persen || 0, jumlah_ppn || 0, diskon || 0, diskon_persen || 0, grand_total || (harga * qty),
             produk, qty, harga, parseDate(deadline), nextStatus, payment_type, 
-            status_produksi, lokasi_proses, catatan, req.params.id
+            status_produksi, lokasi_proses, catatan, approval_status || 'Belum Disetujui', kategori_pelanggan || 'Pelanggan Baru', req.params.id
         ],
         (err) => {
             if (err) return res.status(500).json({ message: err.message });

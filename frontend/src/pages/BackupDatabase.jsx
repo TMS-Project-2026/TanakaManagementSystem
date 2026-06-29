@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getBackupHistory, generateBackup, downloadBackup } from '../api/itApi';
-import { Database, Download, FileText, CheckCircle } from 'lucide-react';
+import { Database, Upload, FileText, CheckCircle } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 
 const BackupDatabase = () => {
@@ -102,7 +102,7 @@ const BackupDatabase = () => {
                                                     rel="noopener noreferrer"
                                                     className="bg-gray-900 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 transition-colors"
                                                 >
-                                                    <Download size={14} /> Unduh
+                                                    <Upload size={14} /> Unduh
                                                 </a>
                                             </td>
                                         </tr>

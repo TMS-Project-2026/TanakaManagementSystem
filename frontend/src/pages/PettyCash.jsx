@@ -3,7 +3,7 @@ import { Bell } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import { getAllPettyCash, getPettyCashSummary, createPettyCash, replenishPettyCash, voidPettyCash } from '../api/pettyCashApi';
-import { Plus, Search, Eye, Ban, Download, RefreshCw, X, AlertTriangle, DollarSign, UserCircle } from 'lucide-react';
+import { Plus, Search, Eye, Ban, Upload, RefreshCw, X, AlertTriangle, DollarSign, UserCircle } from 'lucide-react';
 
 const fmt = (n) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n || 0);
 const today = () => new Date().toISOString().split('T')[0];
@@ -115,7 +115,7 @@ export default function PettyCash() {
               <p className="text-gray-500 mt-2 text-sm font-medium">Pengelolaan kas kecil per cabang</p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button onClick={exportCSV} className="bg-green-50 border border-green-100 hover:bg-green-100 hover:border-green-200 text-green-700 px-4 py-2 rounded-xl font-semibold flex items-center gap-2 text-sm shadow-sm transition-all"><Download size={16}/> Export</button>
+              <button onClick={exportCSV} className="bg-green-50 border border-green-100 hover:bg-green-100 hover:border-green-200 text-green-700 px-4 py-2 rounded-xl font-semibold flex items-center gap-2 text-sm shadow-sm transition-all"><Upload size={16}/> Export</button>
               <button onClick={()=>{ setRepForm(emptyReplenish); setReplenishOpen(true); }} className="bg-blue-50 border border-blue-100 hover:bg-blue-100 hover:border-blue-200 text-blue-700 px-4 py-2 rounded-xl font-semibold flex items-center gap-2 text-sm shadow-sm transition-all"><RefreshCw size={16}/> Isi Ulang</button>
               <button onClick={()=>{ setForm(emptyForm); setFormError(''); setModalOpen(true); }} className="bg-[#990000] hover:bg-red-800 text-white px-4 py-2 rounded-xl font-semibold flex items-center gap-2 text-sm shadow-lg shadow-red-900/20 transition-all hover:scale-105"><Plus size={16}/> Tambah</button>
             </div>

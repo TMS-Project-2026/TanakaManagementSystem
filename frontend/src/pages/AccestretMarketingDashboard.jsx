@@ -6,7 +6,7 @@ import {
   Package, Truck, CheckCircle, DollarSign, ShoppingCart, TrendingUp,
   LayoutDashboard, ShoppingBag, FileText, Upload, Gift,
   Users, Calendar, Search, Loader2,
-  AlertTriangle, ArrowRight, X, Download, Send, UserCircle, Plus, ChevronDown, PieChart
+  AlertTriangle, ArrowRight, X, Send, UserCircle, Plus, ChevronDown, PieChart
 } from 'lucide-react';
 import api from '../api/axios';
 import * as XLSX from 'xlsx';
@@ -1466,7 +1466,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                       onClick={handleExportExcel}
                       className="flex items-center gap-2 bg-[#2563eb] text-white px-4 py-2.5 rounded-xl text-xs font-black hover:bg-blue-700 transition-all active:scale-95 shadow-lg shadow-blue-100"
                     >
-                      <Download size={18} /> Eksport Excel
+                      <Upload size={18} /> Eksport Excel
                     </button>
                     <button
                       onClick={() => fileInputRef.current?.click()}

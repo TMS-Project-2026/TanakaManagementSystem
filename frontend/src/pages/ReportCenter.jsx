@@ -3,7 +3,7 @@ import { Bell } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
-import { FileText, PieChart, BarChart2, Activity, DollarSign, ArrowRightLeft, CreditCard, LayoutDashboard, Download, MapPin, UserCircle, Search, ArrowLeft, TrendingUp, Layers, BookOpen, Receipt, Wallet, ChevronRight } from 'lucide-react';
+import { FileText, PieChart, BarChart2, Activity, DollarSign, ArrowRightLeft, CreditCard, LayoutDashboard, Upload, MapPin, UserCircle, Search, ArrowLeft, TrendingUp, Layers, BookOpen, Receipt, Wallet, ChevronRight } from 'lucide-react';
 import { getCabangPerformance } from '../api/ownerApi';
 
 // Import sub-reports
@@ -48,7 +48,7 @@ const BranchReport = () => {
                     <p className="text-sm text-gray-500">Laporan komparatif revenue, profit, dan best seller untuk setiap cabang.</p>
                 </div>
                 <button className="inline-flex items-center gap-2 rounded-xl bg-[#990000] px-4 py-2 text-white font-bold hover:bg-[#7a0000] transition">
-                    <Download size={16} /> Download PDF
+                    <Upload size={16} /> Download PDF
                 </button>
             </div>
 
