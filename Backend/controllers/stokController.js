@@ -2,15 +2,20 @@ const db = require('../config/db');
 
 // ============ GET ALL STOK (dengan filter cabang opsional) ============
 exports.getAllStok = (req, res) => {
-    let query = "SELECT *, created_at FROM stok";
+    let query = `
+        SELECT s.*, 
+               COALESCE(SUM(bm.jumlah_reject), 0) AS total_reject
+        FROM stok s
+        LEFT JOIN barang_masuk bm ON bm.barang_id = s.id
+    `;
     const queryParams = [];
 
     if (req.query.cabang_id) {
-        query += " WHERE LOWER(cabang_id) = LOWER(?)";
+        query += " WHERE LOWER(s.cabang_id) = LOWER(?)";
         queryParams.push(req.query.cabang_id);
     }
 
-    query += " ORDER BY nama_brand ASC, nama_barang ASC";
+    query += " GROUP BY s.id ORDER BY s.nama_brand ASC, s.nama_barang ASC";
 
     db.query(query, queryParams, (error, results) => {
         if (error) {

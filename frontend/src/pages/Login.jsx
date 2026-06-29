@@ -68,10 +68,13 @@ const Login = () => {
             if (rememberMe) {
                 localStorage.setItem('savedNip', nip);
                 localStorage.setItem('savedPassword', password);
+                localStorage.setItem('remember_me', 'true');
             } else {
                 localStorage.removeItem('savedNip');
                 localStorage.removeItem('savedPassword');
+                localStorage.setItem('remember_me', 'false');
             }
+            sessionStorage.setItem('session_active', 'true');
 
             // Navigasi ke dashboard yang sesuai
             redirectUser(res.data.user.role);

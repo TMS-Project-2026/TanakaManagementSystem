@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { getStok, createStok, updateStok, deleteStok } from '../api/gudangApi';
-import { Search, Filter, Eye, Plus, X, Package, UserCircle } from 'lucide-react';
+import { getStok, createStok, updateStok, deleteStok, getBarangKeluar } from '../api/gudangApi';
+import { Search, Filter, Eye, Plus, X, Package, UserCircle, CheckCircle, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import api from '../api/axios';
@@ -23,8 +23,35 @@ const Stok = () => {
     const [showProfile, setShowProfile] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCabang, setFilterCabang] = useState(userRole === 'gudang_accestret' ? 'Acestreet' : '');
+    const [openRejectId, setOpenRejectId] = useState(null);
 
-    useEffect(() => { fetchStok(); fetchPricelist(); }, [filterCabang]);
+    const [barangKeluarHariIni, setBarangKeluarHariIni] = useState([]);
+
+    const getLocalDateString = (dateInput) => {
+        if (!dateInput) return '';
+        const d = new Date(dateInput);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    useEffect(() => { 
+        fetchStok(); 
+        fetchPricelist(); 
+        fetchBarangKeluarToday();
+    }, [filterCabang]);
+
+    const fetchBarangKeluarToday = async () => {
+        try {
+            const res = await getBarangKeluar();
+            if (res.data.status === 'success') {
+                const todayStr = getLocalDateString(new Date());
+                const todayOut = res.data.data.filter(item => getLocalDateString(item.tanggal) === todayStr);
+                setBarangKeluarHariIni(todayOut);
+            }
+        } catch (e) { console.error(e); }
+    };
 
     const fetchStok = async () => {
         try {
@@ -101,13 +128,16 @@ const Stok = () => {
                 cabang_id: curr.cabang_id,
                 kode_rak: curr.kode_rak || '-',
                 total_stok: 0,
+                total_reject: 0,
                 minimum_stok: curr.minimum_stok || 5,
                 sizes: sizesArray.reduce((o, sz) => { o[sz] = { qty: 0, id: null }; return o; }, {})
             };
         }
         acc[key].total_stok += Number(curr.jumlah) || 0;
+        acc[key].total_reject += Number(curr.total_reject) || 0;
         if (curr.ukuran && acc[key].sizes[curr.ukuran] !== undefined) {
             acc[key].sizes[curr.ukuran].qty += Number(curr.jumlah) || 0;
+            acc[key].sizes[curr.ukuran].rejectQty = (acc[key].sizes[curr.ukuran].rejectQty || 0) + (Number(curr.total_reject) || 0);
             if (!acc[key].sizes[curr.ukuran].id) acc[key].sizes[curr.ukuran].id = curr.id;
         }
         return acc;
@@ -163,10 +193,7 @@ const Stok = () => {
                                 </h1>
                                 <p className="text-sm text-gray-500 mt-1 font-medium">{filteredStok.length} produk terdaftar</p>
                             </div>
-                            <button onClick={() => { resetForm(); setShowAddModal(true); }}
-                                className="bg-[#990000] text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 shadow-sm hover:bg-red-800 transition-all">
-                                <Plus size={18} /> Tambah Barang
-                            </button>
+
                         </div>
 
                         {/* Filter Cabang */}
@@ -197,7 +224,8 @@ const Stok = () => {
                                             {sizesArray.map(sz => (
                                                 <th key={sz} className="px-2 py-3 text-center border-r border-gray-700 w-14">{sz}</th>
                                             ))}
-                                            <th className="px-3 py-3 text-center border-r border-gray-700">TOTAL</th>
+                                            <th className="px-3 py-3 text-center border-r border-gray-700">TOTAL STOK</th>
+                                            <th className="px-3 py-3 text-center border-r border-gray-700 text-red-400">REJECT</th>
                                             <th className="px-3 py-3 text-center border-r border-gray-700">MIN</th>
                                             <th className="px-3 py-3 text-center">AKSI</th>
                                         </tr>
@@ -211,7 +239,26 @@ const Stok = () => {
                                                     <td className="px-3 py-2.5 border-r border-gray-100">
                                                         <span className="bg-gray-100 text-gray-700 text-[11px] font-bold px-2 py-0.5 rounded-full">{item.kategori}</span>
                                                     </td>
-                                                    <td className="px-3 py-2.5 font-semibold text-gray-800 border-r border-gray-100 whitespace-nowrap">{item.nama_barang}</td>
+                                                    <td className="px-3 py-2.5 font-semibold text-gray-800 border-r border-gray-100 whitespace-nowrap">
+                                                        <div className="flex flex-col">
+                                                            <span>{item.nama_barang}</span>
+                                                            {(() => {
+                                                                const matchingOut = barangKeluarHariIni.filter(bk => 
+                                                                    bk.nama_barang.toLowerCase().trim() === item.nama_barang.toLowerCase().trim() &&
+                                                                    bk.cabang_id.toLowerCase().trim() === item.cabang_id.toLowerCase().trim()
+                                                                );
+                                                                if (matchingOut.length > 0) {
+                                                                    const outDetails = matchingOut.map(bk => `${bk.ukuran}: ${bk.jumlah}`).join(', ');
+                                                                    return (
+                                                                        <span className="inline-flex items-center gap-1 text-[10px] text-green-700 font-bold bg-green-50 px-1.5 py-0.5 rounded border border-green-100 w-max mt-0.5">
+                                                                            <CheckCircle size={10} className="text-green-600" /> Keluar Hari Ini ({outDetails})
+                                                                        </span>
+                                                                    );
+                                                                }
+                                                                return null;
+                                                            })()}
+                                                        </div>
+                                                    </td>
                                                     <td className="px-3 py-2.5 text-gray-500 border-r border-gray-100">{item.bahan}</td>
                                                     {userRole !== 'gudang' && <td className="px-3 py-2.5 text-gray-600 border-r border-gray-100">{item.cabang_id}</td>}
                                                     {sizesArray.map(sz => {
@@ -224,6 +271,31 @@ const Stok = () => {
                                                     })}
                                                     <td className={`px-3 py-2.5 text-center font-black text-base border-r border-gray-100 ${isLow ? 'text-red-600' : 'text-gray-900'}`}>
                                                         {item.total_stok}
+                                                    </td>
+                                                    <td className="px-3 py-2.5 text-center font-black border-r border-gray-100 relative">
+                                                        {item.total_reject > 0 ? (
+                                                            <div className="flex flex-col items-center">
+                                                                <button 
+                                                                    onClick={() => setOpenRejectId(openRejectId === item.id ? null : item.id)}
+                                                                    className="text-red-600 font-black hover:bg-red-50 px-2 py-1 rounded-md transition-colors flex items-center gap-1 cursor-pointer"
+                                                                >
+                                                                    -{item.total_reject}
+                                                                    <ChevronDown size={14} className={`transition-transform ${openRejectId === item.id ? 'rotate-180' : ''}`} />
+                                                                </button>
+                                                                
+                                                                {openRejectId === item.id && (
+                                                                    <div className="absolute z-50 bg-white border border-gray-200 shadow-sm rounded px-2 py-1.5 top-full left-1/2 -translate-x-1/2 mt-1 w-max">
+                                                                        <div className="flex flex-col gap-0.5 text-[10px] text-red-600 font-semibold text-left">
+                                                                            {sizesArray.filter(sz => item.sizes[sz]?.rejectQty > 0).map(sz => (
+                                                                                <div key={sz}>{sz}: {item.sizes[sz].rejectQty}</div>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-gray-300 font-normal">-</span>
+                                                        )}
                                                     </td>
                                                     <td className="px-3 py-2.5 text-center border-r border-gray-100">
                                                         <span className="bg-red-50 border border-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs font-bold">{item.minimum_stok}</span>

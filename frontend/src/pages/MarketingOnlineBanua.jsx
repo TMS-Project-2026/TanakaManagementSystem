@@ -42,6 +42,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
   const fileInputRef = useRef(null);
 
   const userRole = (JSON.parse(localStorage.getItem('user')) || {}).role || '';
+  const isOwner = userRole?.toLowerCase() === 'owner';
 
   // Ambil pre-fill search dari query param ?q=... (dipakai saat redirect dari Promo)
   const searchParams = new URLSearchParams(location.search);
@@ -62,11 +63,10 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
     salesChart: [],
     topToko: []
   });
-  
-  const isOwner = userRole?.toLowerCase() === 'owner';
   const [pendingApprovals, setPendingApprovals] = useState([]);
   const [orders, setOrders] = useState([]);
   const [inventory, setInventory] = useState([]);
+  const [barangKeluarHariIni, setBarangKeluarHariIni] = useState([]);
   const [stokGudang, setStokGudang] = useState([]);
   const [stokSearch, setStokSearch] = useState(promoHighlight);
   const [promoStock, setPromoStock] = useState([]);
@@ -294,6 +294,15 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
     }
   };
 
+  const getLocalDateString = (dateInput) => {
+    if (!dateInput) return '';
+    const d = new Date(dateInput);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const fetchInventory = async () => {
     setLoading(true);
     try {
@@ -301,6 +310,16 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
       if (res.data.status === 'success') {
         const filteredData = res.data.data.filter(s => ['Banua', 'Tanaka', 'Global'].includes(s.cabang_id));
         setInventory(filteredData);
+      }
+      
+      const token = localStorage.getItem('token');
+      const resBK = await axios.get('http://localhost:3000/api/barang-keluar', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (resBK.data.status === 'success') {
+        const todayStr = getLocalDateString(new Date());
+        const todayOut = resBK.data.data.filter(item => getLocalDateString(item.tanggal) === todayStr);
+        setBarangKeluarHariIni(todayOut);
       }
     } catch (err) {
       console.error(err);
@@ -1875,7 +1894,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                     <table className="w-full text-left border-collapse">
                       <thead className="bg-gray-900 text-xs text-white uppercase tracking-wider font-semibold sticky top-0 z-10">
                         <tr>
-                          <th className="p-4 text-[#990000]">Kode</th>
+                          <th className="p-4">Kode</th>
                           <th className="p-4">Jenis / Kategori</th>
                           <th className="p-4">Nama Produk</th>
                           <th className="p-4">Bahan</th>
@@ -1885,17 +1904,16 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                           ))}
                           <th className="p-4 text-center w-28">Total Stok</th>
                           <th className="p-4 text-center w-28">Min. Stok</th>
-                          <th className="p-4 text-center w-36">Aksi</th>
                         </tr>
                       </thead>
                       <tbody>
                         {loading ? (
-                          <tr><td colSpan={17} className="text-center py-16">
+                          <tr><td colSpan={16} className="text-center py-16">
                             <Loader2 className="animate-spin text-[#990000] mx-auto w-8 h-8" />
                             <p className="text-gray-400 text-sm mt-2 font-medium">Memuat data stok...</p>
                           </td></tr>
                         ) : filteredStok.length === 0 ? (
-                          <tr><td colSpan={17} className="text-center py-16 text-gray-400 font-medium">Belum ada data stok barang.</td></tr>
+                          <tr><td colSpan={16} className="text-center py-16 text-gray-400 font-medium">Belum ada data stok barang.</td></tr>
                         ) : (
                           filteredStok.map((item, idx) => (
                             <tr key={idx} className={`border-b border-gray-100 text-sm transition-colors ${
@@ -1909,7 +1927,26 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                                   {item.kategori}
                                 </span>
                               </td>
-                              <td className="p-4 font-bold text-gray-800">{item.nama_barang}</td>
+                              <td className="p-4 font-bold text-gray-800">
+                                <div className="flex flex-col">
+                                  <span>{item.nama_barang}</span>
+                                  {(() => {
+                                    const matchingOut = barangKeluarHariIni.filter(bk => 
+                                      bk.nama_barang.toLowerCase().trim() === item.nama_barang.toLowerCase().trim() &&
+                                      bk.cabang_id.toLowerCase().trim() === item.cabang_id.toLowerCase().trim()
+                                    );
+                                    if (matchingOut.length > 0) {
+                                      const outDetails = matchingOut.map(bk => `${bk.ukuran}: ${bk.jumlah}`).join(', ');
+                                      return (
+                                        <span className="inline-flex items-center gap-1 text-[10px] text-green-700 font-bold bg-green-50 px-1.5 py-0.5 rounded border border-green-100 w-max mt-0.5">
+                                          <CheckCircle size={10} className="text-green-600" /> Keluar Hari Ini ({outDetails})
+                                        </span>
+                                      );
+                                    }
+                                    return null;
+                                  })()}
+                                </div>
+                              </td>
                               <td className="p-4 text-gray-500">{item.bahan}</td>
                               <td className="p-4 text-gray-700 font-medium">{item.cabang_id}</td>
                               {sizesArray.map(size => {
@@ -1927,24 +1964,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                                 </span>
                               </td>
                               
-                              <td className="p-4 text-center">
-                                <div className="flex flex-col gap-1.5">
-                                  <button
-                                    onClick={() => {
-                                      setSelectedItemForRequest(item);
-                                      setShowRequestModal(true);
-                                    }}
-                                    disabled={item.total_stok <= 0}
-                                    className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 w-full ${
-                                      item.total_stok > 0
-                                        ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
-                                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                    }`}
-                                  >
-                                    <Package size={13} /> Ambil Stok
-                                  </button>
-                                </div>
-                              </td>
+
                             </tr>
                           ))
                         )}
@@ -3171,6 +3191,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
 
 // Sub-component for Manual Order Modal
 const ManualOrderModal = ({ show, onClose, onSave, order, setOrder, loading, formatRupiah, inventory, availableAccounts, pricelistOnlineData }) => {
+  const [showSuggest, setShowSuggest] = useState(false);
   if (!show) return null;
   return (
     <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -3202,54 +3223,121 @@ const ManualOrderModal = ({ show, onClose, onSave, order, setOrder, loading, for
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Kode Produk <span className="text-red-500">*</span></label>
-            <select 
-              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-100 outline-none font-medium text-gray-800 text-sm" 
-              value={order.stok_id || ''} 
-              onChange={e => {
-                const selectedId = e.target.value;
-                if (!selectedId) {
-                  setOrder({ ...order, stok_id: null, kode_produk: '', product_name: '' });
-                  return;
-                }
-                const selectedItem = inventory.find(item => item.id.toString() === selectedId);
-                if (selectedItem) {
-                  const sizeText = selectedItem.ukuran && selectedItem.ukuran !== '-' ? ` - ${selectedItem.ukuran}` : '';
-                  const fullName = `${selectedItem.nama_barang}${sizeText}`;
-                  const kode = selectedItem.kode_produk || '';
-                  // Cari harga dari pricelist berdasarkan kode produk
-                  const priceMatch = kode && pricelistOnlineData?.find(p => p.kode?.toLowerCase() === kode.toLowerCase());
-                  setOrder({ 
-                    ...order, 
-                    stok_id: selectedItem.id, 
-                    kode_produk: kode,
-                    product_name: fullName,
-                    ...(priceMatch ? {
-                      hpp_aktual: parseFloat(priceMatch.hpp) || order.hpp_aktual,
-                      price_unit: parseFloat(priceMatch.harga_jual) || order.price_unit,
-                      potongan_shopee: parseFloat(priceMatch.pot_shopee) || order.potongan_shopee,
-                    } : {})
-                  });
-                }
-              }}
-            >
-              <option value="">-- Pilih Kode Produk (Autolink Gudang) --</option>
-              {inventory && inventory.map(item => {
-                const sizeText = item.ukuran && item.ukuran !== '-' ? ` (${item.ukuran})` : '';
-                return (
-                  <option key={item.id} value={item.id} disabled={item.jumlah <= 0}>
-                    {item.kode_produk ? `${item.kode_produk} - ` : ''}{item.nama_barang}{sizeText} - Stok: {item.jumlah}
-                  </option>
-                );
-              })}
-            </select>
-            {order.product_name && (
-              <p className="mt-2 text-xs text-gray-500 font-medium px-1">
-                📦 <span className="text-gray-800 font-bold">{order.product_name}</span>
-                {order.kode_produk && <span className="ml-2 text-indigo-500 font-bold">({order.kode_produk})</span>}
-              </p>
-            )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="relative">
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Kode Produk <span className="text-red-500">*</span></label>
+              <input 
+                type="text"
+                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-100 outline-none font-medium text-gray-800 text-sm" 
+                placeholder="Ketik Kode Produk..."
+                value={order.kode_produk || ''} 
+                onFocus={() => setShowSuggest(true)}
+                onBlur={() => setTimeout(() => setShowSuggest(false), 200)}
+                onChange={e => {
+                  const val = e.target.value;
+                  const matchedItem = inventory?.find(item => item.kode_produk?.toLowerCase() === val.toLowerCase());
+                  if (matchedItem) {
+                    const sizeText = matchedItem.ukuran && matchedItem.ukuran !== '-' ? ` - ${matchedItem.ukuran}` : '';
+                    const fullName = `${matchedItem.nama_barang}${sizeText}`;
+                    const priceMatch = matchedItem.kode_produk && pricelistOnlineData?.find(p => p.kode?.toLowerCase() === matchedItem.kode_produk.toLowerCase());
+                    setOrder({
+                      ...order,
+                      stok_id: matchedItem.id,
+                      kode_produk: val,
+                      product_name: fullName,
+                      ...(priceMatch ? {
+                        hpp_aktual: parseFloat(priceMatch.hpp) || order.hpp_aktual,
+                        price_unit: parseFloat(priceMatch.harga_jual) || order.price_unit,
+                        potongan_shopee: parseFloat(priceMatch.pot_shopee) || order.potongan_shopee,
+                      } : {})
+                    });
+                  } else {
+                    setOrder({
+                      ...order,
+                      stok_id: null,
+                      kode_produk: val,
+                    });
+                  }
+                }}
+              />
+              {showSuggest && (
+                <div className="absolute z-50 left-0 right-0 bg-white border border-gray-200 rounded-xl mt-1 shadow-lg max-h-60 overflow-y-auto">
+                  {(() => {
+                    const pricelistItems = pricelistOnlineData || [];
+                    const combinedSuggestions = [...inventory];
+                    
+                    pricelistItems.forEach(p => {
+                      const existsInInventory = inventory.some(item => (item.kode_produk || '').toLowerCase() === (p.kode || '').toLowerCase());
+                      if (!existsInInventory && p.kode) {
+                        combinedSuggestions.push({
+                          id: `temp-${p.kode}`,
+                          isTemp: true,
+                          kode_produk: p.kode,
+                          nama_barang: p.nama_produk,
+                          ukuran: '-',
+                          jumlah: 0,
+                        });
+                      }
+                    });
+
+                    const filtered = combinedSuggestions.filter(item => {
+                      const searchStr = `${item.kode_produk || ''} ${item.nama_barang || ''}`.toLowerCase();
+                      return searchStr.includes((order.kode_produk || '').toLowerCase());
+                    });
+
+                    if (filtered.length === 0) {
+                      return <div className="p-3 text-sm text-gray-400 text-center font-medium">Tidak ada produk yang cocok. Silakan lanjut ketik manual.</div>;
+                    }
+
+                    return filtered.map(item => {
+                      const sizeText = item.ukuran && item.ukuran !== '-' ? ` (${item.ukuran})` : '';
+                      return (
+                        <div 
+                          key={item.id}
+                          className="p-3 hover:bg-red-50 hover:text-red-800 cursor-pointer text-sm font-medium border-b border-gray-100 last:border-0 flex justify-between items-center"
+                          onMouseDown={() => {
+                            const sizeText = item.ukuran && item.ukuran !== '-' ? ` - ${item.ukuran}` : '';
+                            const fullName = `${item.nama_barang}${sizeText}`;
+                            const priceMatch = item.kode_produk && pricelistOnlineData?.find(p => p.kode?.toLowerCase() === item.kode_produk.toLowerCase());
+                            setOrder({
+                              ...order,
+                              stok_id: item.isTemp ? null : item.id,
+                              kode_produk: item.kode_produk || '',
+                              product_name: fullName,
+                              ...(priceMatch ? {
+                                hpp_aktual: parseFloat(priceMatch.hpp) || order.hpp_aktual,
+                                price_unit: parseFloat(priceMatch.harga_jual) || order.price_unit,
+                                potongan_shopee: parseFloat(priceMatch.pot_shopee) || order.potongan_shopee,
+                              } : {})
+                            });
+                            setShowSuggest(false);
+                          }}
+                        >
+                          <div>
+                            <span className="font-bold text-red-700">{item.kode_produk ? `${item.kode_produk} - ` : ''}</span>
+                            <span>{item.nama_barang}{sizeText}</span>
+                          </div>
+                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-bold">
+                            {item.isTemp ? 'Belum Ada Stok' : `Stok: ${item.jumlah}`}
+                          </span>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Nama Produk <span className="text-red-500">*</span></label>
+              <input 
+                type="text" 
+                className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-100 outline-none font-medium text-gray-800 text-sm"
+                placeholder="Nama Produk..."
+                value={order.product_name || ''} 
+                onChange={e => setOrder({ ...order, product_name: e.target.value })}
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

@@ -141,7 +141,7 @@ const Sidebar = () => {
     },
     { name: 'Dashboard Gudang', path: '/gudang', icon: <LayoutDashboard size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Order Marketplace', path: '/gudang/order-marketplace', icon: <ShoppingBag size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
-    { name: 'Approval Permintaan', path: '/permintaan-stok', icon: <Bell size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse', hasPermintaanBadge: true },
+
     { name: 'Barang Masuk', path: '/barang-masuk', icon: <TrendingUp size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Barang Keluar', path: '/barang-keluar', icon: <TrendingDown size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Mutasi Barang', path: '/mutasi', icon: <ArrowRightLeft size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
@@ -247,7 +247,7 @@ const Sidebar = () => {
       subMenu: [
         { title: 'Dashboard Gudang', path: '/gudang' },
         { title: 'Order Marketplace', path: '/gudang/order-marketplace' },
-        { title: 'Approval Permintaan', path: '/permintaan-stok', hasPermintaanBadge: true },
+
         { title: 'Barang Masuk', path: '/barang-masuk' },
         { title: 'Barang Keluar', path: '/barang-keluar' },
         { title: 'Mutasi Barang', path: '/mutasi' },
@@ -320,7 +320,7 @@ const Sidebar = () => {
 
     // MENU ACCESTRET - GUDANG (identik dengan role Gudang standar)
     { name: 'Dashboard Gudang',    path: '/accestret/gudang/dashboard', icon: <LayoutDashboard size={20} />, roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
-    { name: 'Approval Permintaan', path: '/permintaan-stok',            icon: <Bell size={20} />,            roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret', hasPermintaanBadge: true },
+
     { name: 'Barang Masuk',        path: '/barang-masuk',               icon: <TrendingUp size={20} />,      roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
     { name: 'Barang Keluar',       path: '/barang-keluar',              icon: <TrendingDown size={20} />,    roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
     { name: 'Mutasi Barang',       path: '/mutasi',                     icon: <ArrowRightLeft size={20} />,  roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
@@ -357,7 +357,10 @@ const Sidebar = () => {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const handleLogout = () => {
-    localStorage.clear();
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('remember_me');
+    sessionStorage.removeItem('session_active');
     window.location.href = '/';
   };
 

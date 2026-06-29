@@ -88,7 +88,21 @@ export default function PricelistOnline() {
   };
 
   /* ── Tambah Produk ──────────────────────────────── */
-  const handleAddChange = (e) => setAddForm(p => ({ ...p, [e.target.name]: e.target.value }));
+  const handleAddChange = (e) => {
+    const { name, value } = e.target;
+    if (name === 'harga_jual') {
+      const val = Number(value) || 0;
+      setAddForm(p => ({
+        ...p,
+        harga_jual: value,
+        hpp: Math.round(val * 0.7),
+        pot_shopee: Math.round(val * 0.2),
+        margin: Math.round(val * 0.1)
+      }));
+    } else {
+      setAddForm(p => ({ ...p, [name]: value }));
+    }
+  };
 
   const handleAddSubmit = async () => {
     const { kode, jenis, nama_produk, harga_jual, hpp } = addForm;
@@ -149,7 +163,22 @@ export default function PricelistOnline() {
       className={`border border-[#990000] rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-red-200 ${cls}`} />
   );
   const NumInput = ({ field }) => (
-    <input type="number" value={editBuf[field] ?? ''} onChange={e => setEditBuf(p => ({ ...p, [field]: e.target.value }))}
+    <input type="number" value={editBuf[field] ?? ''} 
+      onChange={e => {
+        const val = e.target.value;
+        if (field === 'harga_jual') {
+          const numVal = Number(val) || 0;
+          setEditBuf(p => ({
+            ...p,
+            harga_jual: val,
+            hpp: Math.round(numVal * 0.7),
+            pot_shopee: Math.round(numVal * 0.2),
+            margin: Math.round(numVal * 0.1)
+          }));
+        } else {
+          setEditBuf(p => ({ ...p, [field]: val }));
+        }
+      }}
       className="w-28 border border-[#990000] rounded-lg px-2 py-1 text-xs text-right focus:outline-none focus:ring-2 focus:ring-red-200" />
   );
 
