@@ -115,6 +115,15 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   return children;
 };
 function App() {
+  // Jalankan pengecekan sesi baru saat aplikasi pertama kali dimuat
+  if (!sessionStorage.getItem('session_active')) {
+    if (localStorage.getItem('remember_me') !== 'true') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    }
+    sessionStorage.setItem('session_active', 'true');
+  }
+
   return (
     <Router>
       <Routes>

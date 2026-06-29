@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getBarangMasuk, createBarangMasuk, updateBarangMasuk, deleteBarangMasuk, getStok } from '../api/gudangApi';
-import { CheckCircle, Plus, X, Search, UserCircle, Download, Upload, Edit, Trash2 } from 'lucide-react';
+import { CheckCircle, Plus, X, Search, UserCircle, Download, Upload, Edit, Trash2, ChevronDown } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import * as XLSX from 'xlsx';
 import api from '../api/axios';
@@ -14,6 +14,8 @@ const BarangMasuk = () => {
     const [showAddModal, setShowAddModal] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [showKodeSuggest, setShowKodeSuggest] = useState(false);
+    const [openRejectId, setOpenRejectId] = useState(null);
 
     const [showEditModal, setShowEditModal] = useState(false);
     const [editForm, setEditForm] = useState(null);
@@ -31,16 +33,16 @@ const BarangMasuk = () => {
     const [minimumStok, setMinimumStok] = useState('5'); // Default minimal stok untuk transaksi ini
 
     const initialSizes = [
-        { ukuran: 'XS', jumlah: '' },
-        { ukuran: 'S', jumlah: '' },
-        { ukuran: 'M', jumlah: '' },
-        { ukuran: 'L', jumlah: '' },
-        { ukuran: 'XL', jumlah: '' },
-        { ukuran: 'XXL', jumlah: '' },
-        { ukuran: 'XXXL', jumlah: '' },
-        { ukuran: 'XXXXL', jumlah: '' },
-        { ukuran: 'XXXXXL', jumlah: '' },
-        { ukuran: 'All Size', jumlah: '' },
+        { ukuran: 'XS', jumlah: '', jumlah_reject: '' },
+        { ukuran: 'S', jumlah: '', jumlah_reject: '' },
+        { ukuran: 'M', jumlah: '', jumlah_reject: '' },
+        { ukuran: 'L', jumlah: '', jumlah_reject: '' },
+        { ukuran: 'XL', jumlah: '', jumlah_reject: '' },
+        { ukuran: 'XXL', jumlah: '', jumlah_reject: '' },
+        { ukuran: 'XXXL', jumlah: '', jumlah_reject: '' },
+        { ukuran: 'XXXXL', jumlah: '', jumlah_reject: '' },
+        { ukuran: 'XXXXXL', jumlah: '', jumlah_reject: '' },
+        { ukuran: 'All Size', jumlah: '', jumlah_reject: '' },
     ];
     const [sizeItems, setSizeItems] = useState(initialSizes);
 
@@ -99,6 +101,12 @@ const BarangMasuk = () => {
             alert("Harap masukkan jumlah masuk untuk setidaknya satu ukuran.");
             return;
         }
+        // Validasi: jumlah reject tidak boleh melebihi jumlah masuk
+        const invalidReject = validItems.find(item => Number(item.jumlah_reject) > Number(item.jumlah));
+        if (invalidReject) {
+            alert(`Jumlah reject ukuran ${invalidReject.ukuran} tidak boleh melebihi jumlah masuk!`);
+            return;
+        }
 
         try {
             await createBarangMasuk({
@@ -112,6 +120,7 @@ const BarangMasuk = () => {
                 items: validItems.map(item => ({
                     ukuran: item.ukuran,
                     jumlah: Number(item.jumlah),
+                    jumlah_reject: Number(item.jumlah_reject) || 0,
                     minimum_stok: Number(minimumStok) || 5
                 }))
             });
@@ -165,8 +174,9 @@ const BarangMasuk = () => {
             const items = sizesArray.map(size => ({
                 ukuran: size,
                 jumlah: Number(editForm.sizes[size]?.jumlah) || 0,
+                jumlah_reject: Number(editForm.sizes[size]?.reject) || 0,
                 minimum_stok: Number(editForm.sizes[size]?.min) || 5
-            })).filter(item => item.jumlah > 0);
+            })).filter(item => item.jumlah > 0 || item.jumlah_reject > 0);
 
             if (items.length === 0) {
                 alert("Harap masukkan setidaknya satu ukuran dengan kuantitas lebih dari 0.");
@@ -379,23 +389,26 @@ const BarangMasuk = () => {
                 kategori: curr.kategori || '-',
                 cabang_id: curr.cabang_id,
                 total_jumlah: 0,
+                total_reject: 0,
                 sizes: {
-                    XS: { jumlah: 0, min: 0 },
-                    S: { jumlah: 0, min: 0 },
-                    M: { jumlah: 0, min: 0 },
-                    L: { jumlah: 0, min: 0 },
-                    XL: { jumlah: 0, min: 0 },
-                    XXL: { jumlah: 0, min: 0 },
-                    XXXL: { jumlah: 0, min: 0 },
-                    XXXXL: { jumlah: 0, min: 0 },
-                    XXXXXL: { jumlah: 0, min: 0 },
-                    'All Size': { jumlah: 0, min: 0 }
+                    XS: { jumlah: 0, reject: 0, min: 0 },
+                    S: { jumlah: 0, reject: 0, min: 0 },
+                    M: { jumlah: 0, reject: 0, min: 0 },
+                    L: { jumlah: 0, reject: 0, min: 0 },
+                    XL: { jumlah: 0, reject: 0, min: 0 },
+                    XXL: { jumlah: 0, reject: 0, min: 0 },
+                    XXXL: { jumlah: 0, reject: 0, min: 0 },
+                    XXXXL: { jumlah: 0, reject: 0, min: 0 },
+                    XXXXXL: { jumlah: 0, reject: 0, min: 0 },
+                    'All Size': { jumlah: 0, reject: 0, min: 0 }
                 }
             };
         }
         acc[key].total_jumlah += curr.jumlah;
+        acc[key].total_reject += (curr.jumlah_reject || 0);
         if (curr.ukuran && acc[key].sizes[curr.ukuran] !== undefined) {
             acc[key].sizes[curr.ukuran].jumlah += curr.jumlah;
+            acc[key].sizes[curr.ukuran].reject += (curr.jumlah_reject || 0);
             acc[key].sizes[curr.ukuran].min = curr.minimum_stok || 0;
         }
         return acc;
@@ -507,25 +520,57 @@ const BarangMasuk = () => {
                                 
                                 <form onSubmit={handleCreate}>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
-                                        {/* KODE PRODUK — autofill */}
+                                        {/* KODE PRODUK — bisa ketik atau pilih */}
                                         <div className="md:col-span-2">
                                             <label className="block text-sm font-semibold text-gray-700 mb-1">
                                                 Kode Produk
-                                                <span className="ml-2 text-xs text-gray-400 font-normal">(pilih untuk autofill nama barang)</span>
+                                                <span className="ml-2 text-xs text-gray-400 font-normal">(ketik atau pilih untuk autofill nama barang)</span>
                                             </label>
-                                            <div className="flex gap-2">
-                                                <select
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
                                                     value={kodeProduk}
-                                                    onChange={e => handleKodeChange(e.target.value)}
-                                                    className="flex-1 border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-green-100 focus:border-green-600 outline-none bg-white text-sm"
-                                                >
-                                                    <option value="">-- Pilih Kode Produk --</option>
-                                                    {pricelist.map(p => (
-                                                        <option key={p.kode} value={p.kode}>
-                                                            {p.kode} — {p.nama_produk}
-                                                        </option>
-                                                    ))}
-                                                </select>
+                                                    onChange={e => {
+                                                        handleKodeChange(e.target.value);
+                                                        setShowKodeSuggest(true);
+                                                    }}
+                                                    onFocus={() => setShowKodeSuggest(true)}
+                                                    onBlur={() => setTimeout(() => setShowKodeSuggest(false), 150)}
+                                                    placeholder="Ketik kode produk..."
+                                                    autoComplete="off"
+                                                    className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-green-100 focus:border-green-600 outline-none bg-white text-sm font-mono uppercase"
+                                                />
+                                                {showKodeSuggest && (
+                                                    <ul className="absolute z-50 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1 max-h-52 overflow-y-auto">
+                                                        {pricelist
+                                                            .filter(p =>
+                                                                !kodeProduk ||
+                                                                p.kode?.toLowerCase().includes(kodeProduk.toLowerCase()) ||
+                                                                p.nama_produk?.toLowerCase().includes(kodeProduk.toLowerCase())
+                                                            )
+                                                            .map(p => (
+                                                                <li
+                                                                    key={p.kode}
+                                                                    onMouseDown={() => {
+                                                                        handleKodeChange(p.kode);
+                                                                        setShowKodeSuggest(false);
+                                                                    }}
+                                                                    className="px-4 py-2.5 cursor-pointer hover:bg-green-50 flex items-center gap-3 border-b border-gray-50 last:border-0"
+                                                                >
+                                                                    <span className="font-mono font-black text-[#990000] text-sm min-w-[80px]">{p.kode}</span>
+                                                                    <span className="text-gray-700 text-sm truncate">{p.nama_produk}</span>
+                                                                </li>
+                                                            ))
+                                                        }
+                                                        {pricelist.filter(p =>
+                                                            !kodeProduk ||
+                                                            p.kode?.toLowerCase().includes(kodeProduk.toLowerCase()) ||
+                                                            p.nama_produk?.toLowerCase().includes(kodeProduk.toLowerCase())
+                                                        ).length === 0 && (
+                                                            <li className="px-4 py-3 text-xs text-gray-400 italic text-center">Kode tidak ditemukan di pricelist</li>
+                                                        )}
+                                                    </ul>
+                                                )}
                                             </div>
                                         </div>
 
@@ -559,15 +604,16 @@ const BarangMasuk = () => {
 
                                     {/* TABEL GRID UKURAN */}
                                     <div className="bg-gray-50/50 p-5 rounded-2xl border border-gray-100 mb-6">
-                                        <h4 className="font-bold text-gray-800 mb-1 text-sm text-center">Rincian Ukuran & Jumlah Masuk</h4>
-                                        <p className="text-xs text-gray-400 mb-4 text-center">Masukkan kuantitas barang masuk untuk masing-masing ukuran di bawah ini.</p>
+                                        <h4 className="font-bold text-gray-800 mb-1 text-sm text-center">Rincian Ukuran, Jumlah Masuk & Reject</h4>
+                                        <p className="text-xs text-gray-400 mb-4 text-center">Masukkan kuantitas masuk dan reject (jika ada) untuk masing-masing ukuran.</p>
                                         
-                                        <div className="overflow-x-auto rounded-xl border border-gray-100 bg-white shadow-sm max-w-md mx-auto">
+                                        <div className="overflow-x-auto rounded-xl border border-gray-100 bg-white shadow-sm">
                                             <table className="w-full text-left border-collapse">
                                                 <thead className="bg-gray-50 text-xs text-gray-500 uppercase font-semibold">
                                                     <tr>
-                                                        <th className="p-3 pl-6">Ukuran</th>
-                                                        <th className="p-3 pr-6">Jumlah Masuk (Pcs)</th>
+                                                        <th className="p-3 pl-4">Ukuran</th>
+                                                        <th className="p-3 text-green-700">Masuk Bersih (Pcs)</th>
+                                                        <th className="p-3 pr-4 text-red-600">Reject (Pcs)</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-gray-100 text-sm">
@@ -575,15 +621,15 @@ const BarangMasuk = () => {
                                                         const existingStock = stokList.find(s => s.nama_barang === namaBarang && s.ukuran === item.ukuran && s.cabang_id === cabangId)?.jumlah || 0;
                                                         return (
                                                             <tr key={item.ukuran} className="hover:bg-gray-50/30 transition-colors">
-                                                                <td className="p-3 pl-6 font-bold text-gray-700">
-                                                                    Ukuran {item.ukuran}
+                                                                <td className="p-3 pl-4 font-bold text-gray-700">
+                                                                    {item.ukuran}
                                                                     {namaBarang && (
-                                                                        <span className="ml-2 text-[10px] font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full border border-gray-200">
+                                                                        <span className="ml-1 text-[10px] font-normal text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full border border-gray-200">
                                                                             Stok: {existingStock}
                                                                         </span>
                                                                     )}
                                                                 </td>
-                                                                <td className="p-3 pr-6">
+                                                                <td className="p-3">
                                                                     <input 
                                                                         type="number" 
                                                                         min="0" 
@@ -594,7 +640,22 @@ const BarangMasuk = () => {
                                                                             newSizes[idx].jumlah = e.target.value;
                                                                             setSizeItems(newSizes);
                                                                         }} 
-                                                                        className="w-full border border-gray-200 rounded-lg p-2 focus:ring-2 focus:ring-green-100 focus:border-green-600 outline-none transition-all"
+                                                                        className="w-full border border-gray-200 rounded-lg p-2 focus:ring-2 focus:ring-green-100 focus:border-green-600 outline-none transition-all text-green-700 font-bold"
+                                                                    />
+                                                                </td>
+                                                                <td className="p-3 pr-4">
+                                                                    <input 
+                                                                        type="number" 
+                                                                        min="0"
+                                                                        max={Number(item.jumlah) || 0}
+                                                                        placeholder="0"
+                                                                        value={item.jumlah_reject}
+                                                                        onChange={e => {
+                                                                            const newSizes = [...sizeItems];
+                                                                            newSizes[idx].jumlah_reject = e.target.value;
+                                                                            setSizeItems(newSizes);
+                                                                        }}
+                                                                        className="w-full border border-red-200 rounded-lg p-2 focus:ring-2 focus:ring-red-100 focus:border-red-500 outline-none transition-all text-red-600 font-bold"
                                                                     />
                                                                 </td>
                                                             </tr>
@@ -602,10 +663,13 @@ const BarangMasuk = () => {
                                                     })}
                                                 </tbody>
                                                 <tfoot className="bg-gray-50/50">
-                                                    <tr className="font-bold text-gray-800">
-                                                        <td className="p-4 pl-6 text-right">TOTAL MASUK:</td>
-                                                        <td className="p-4 pr-6 text-green-600 text-base">
-                                                            {sizeItems.reduce((acc, curr) => acc + (Number(curr.jumlah) || 0), 0)} Pcs
+                                                    <tr className="font-bold text-gray-800 border-t border-gray-200">
+                                                        <td className="p-3 pl-4 text-right text-xs uppercase tracking-wider">TOTAL</td>
+                                                        <td className="p-3 text-green-600 font-black">
+                                                            +{sizeItems.reduce((acc, curr) => acc + (Number(curr.jumlah) || 0), 0)} Pcs
+                                                        </td>
+                                                        <td className="p-3 pr-4 text-red-600 font-black">
+                                                            -{sizeItems.reduce((acc, curr) => acc + (Number(curr.jumlah_reject) || 0), 0)} Pcs
                                                         </td>
                                                     </tr>
                                                 </tfoot>
@@ -642,7 +706,8 @@ const BarangMasuk = () => {
                                         {sizesArray.map(sz => (
                                             <th key={sz} className="px-2 py-3 text-center border-r border-gray-700 w-14">{sz}</th>
                                         ))}
-                                        <th className="px-3 py-3 text-center border-r border-gray-700">TOTAL MASUK</th>
+                                        <th className="px-3 py-3 text-center border-r border-gray-700 text-green-400">BAGUS</th>
+                                        <th className="px-3 py-3 text-center border-r border-gray-700 text-red-400">REJECT</th>
                                         <th className="px-3 py-3 text-center">AKSI</th>
                                     </tr>
                                 </thead>
@@ -662,15 +727,41 @@ const BarangMasuk = () => {
                                             <td className="px-3 py-2.5 text-gray-500 border-r border-gray-100">{item.bahan}</td>
                                             {userRole !== 'gudang' && <td className="px-3 py-2.5 text-gray-600 border-r border-gray-100">{item.cabang_id}</td>}
                                             {sizesArray.map(sz => {
-                                                const qty = item.sizes[sz]?.jumlah || 0;
+                                                const s = item.sizes[sz];
+                                                const bagus = s?.jumlah || 0;
                                                 return (
                                                     <td key={sz} className="px-2 py-2.5 text-center border-r border-gray-100 font-bold text-gray-800">
-                                                        {qty > 0 ? <span className="text-green-600">+{qty}</span> : <span className="text-gray-300 font-normal">-</span>}
+                                                        {bagus > 0 ? <span className="text-green-600">+{bagus}</span> : <span className="text-gray-300 font-normal">-</span>}
                                                     </td>
                                                 );
                                             })}
                                             <td className="px-3 py-2.5 text-center font-black text-green-600 text-base border-r border-gray-100">
                                                 +{item.total_jumlah}
+                                            </td>
+                                            <td className="px-3 py-2.5 text-center border-r border-gray-100 relative">
+                                                {item.total_reject > 0 ? (
+                                                    <div className="flex flex-col items-center">
+                                                        <button 
+                                                            onClick={() => setOpenRejectId(openRejectId === item.transaksi_id ? null : item.transaksi_id)}
+                                                            className="text-red-600 font-black hover:bg-red-50 px-2 py-1 rounded-md transition-colors flex items-center gap-1 cursor-pointer"
+                                                        >
+                                                            -{item.total_reject}
+                                                            <ChevronDown size={14} className={`transition-transform ${openRejectId === item.transaksi_id ? 'rotate-180' : ''}`} />
+                                                        </button>
+                                                        
+                                                        {openRejectId === item.transaksi_id && (
+                                                            <div className="absolute z-50 bg-white border border-gray-200 shadow-sm rounded px-2 py-1.5 top-full left-1/2 -translate-x-1/2 mt-1 w-max">
+                                                                <div className="flex flex-col gap-0.5 text-[10px] text-red-600 font-semibold text-left">
+                                                                    {sizesArray.filter(sz => item.sizes[sz]?.reject > 0).map(sz => (
+                                                                        <div key={sz}>{sz}: {item.sizes[sz].reject}</div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-gray-300 font-normal">-</span>
+                                                )}
                                             </td>
                                             <td className="px-3 py-2.5 text-center">
                                                 <div className="flex items-center justify-center gap-1.5">
@@ -678,11 +769,6 @@ const BarangMasuk = () => {
                                                         className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-colors"
                                                         title="Edit">
                                                         <Edit size={14} />
-                                                    </button>
-                                                    <button onClick={() => handleDelete(item.transaksi_id)}
-                                                        className="w-8 h-8 rounded-xl bg-red-50 text-red-600 hover:bg-red-600 hover:text-white flex items-center justify-center transition-colors"
-                                                        title="Hapus">
-                                                        <Trash2 size={14} />
                                                     </button>
                                                 </div>
                                             </td>
@@ -726,30 +812,59 @@ const BarangMasuk = () => {
                                         </select>
                                     </div>
                                 )}
-                                <div className="grid grid-cols-2 gap-4">
-                                    {sizesArray.map(size => (
-                                        <div key={size} className="flex items-center gap-3 bg-gray-50 p-2 rounded-lg border border-gray-200">
-                                            <label className="w-16 font-bold text-gray-700 text-sm">Ukuran {size}</label>
-                                            <input 
-                                                type="number" 
-                                                min="0"
-                                                className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-100 focus:border-blue-600 outline-none transition-all"
-                                                value={editForm.sizes[size]?.jumlah || 0}
-                                                onChange={e => {
-                                                    const newForm = { ...editForm };
-                                                    if (!newForm.sizes[size]) newForm.sizes[size] = { jumlah: 0, min: 5 };
-                                                    newForm.sizes[size].jumlah = Number(e.target.value) || 0;
-                                                    setEditForm(newForm);
-                                                }}
-                                            />
-                                        </div>
-                                    ))}
+                                <div className="space-y-2 mb-4">
+                                    <div className="grid grid-cols-[80px_1fr_1fr] gap-4 px-2 font-bold text-gray-500 text-[11px] uppercase tracking-wider">
+                                        <div>Ukuran</div>
+                                        <div className="text-green-700">Masuk Bersih (Pcs)</div>
+                                        <div className="text-red-600">Reject (Pcs)</div>
+                                    </div>
+                                    <div className="max-h-[40vh] overflow-y-auto pr-1">
+                                        {sizesArray.map(size => (
+                                            <div key={size} className="grid grid-cols-[80px_1fr_1fr] items-center gap-4 bg-gray-50 p-2 rounded-lg border border-gray-200 mb-2">
+                                                <label className="font-bold text-gray-700 text-sm">Ukuran {size}</label>
+                                                <input 
+                                                    type="number" 
+                                                    min="0"
+                                                    placeholder="0"
+                                                    className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-green-100 focus:border-green-600 outline-none transition-all text-green-700 font-bold"
+                                                    value={editForm.sizes[size]?.jumlah || ''}
+                                                    onChange={e => {
+                                                        const newForm = { ...editForm };
+                                                        if (!newForm.sizes[size]) newForm.sizes[size] = { jumlah: 0, reject: 0, min: 5 };
+                                                        newForm.sizes[size].jumlah = e.target.value;
+                                                        setEditForm(newForm);
+                                                    }}
+                                                />
+                                                <input 
+                                                    type="number" 
+                                                    min="0"
+                                                    placeholder="0"
+                                                    className="w-full border border-red-200 rounded-lg p-2 focus:ring-2 focus:ring-red-100 focus:border-red-500 outline-none transition-all text-red-600 font-bold"
+                                                    value={editForm.sizes[size]?.reject || ''}
+                                                    onChange={e => {
+                                                        const newForm = { ...editForm };
+                                                        if (!newForm.sizes[size]) newForm.sizes[size] = { jumlah: 0, reject: 0, min: 5 };
+                                                        newForm.sizes[size].reject = e.target.value;
+                                                        setEditForm(newForm);
+                                                    }}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-                                <div className="mt-6 p-4 bg-blue-50 border border-blue-100 rounded-xl flex justify-between items-center">
-                                    <span className="font-bold text-blue-800 text-sm">Total Masuk Baru:</span>
-                                    <span className="font-black text-blue-600 text-xl">
-                                        {sizesArray.reduce((acc, size) => acc + (Number(editForm.sizes[size]?.jumlah) || 0), 0)} Pcs
-                                    </span>
+                                <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-xl flex justify-between items-center">
+                                    <div className="flex flex-col">
+                                        <span className="font-bold text-gray-500 text-xs uppercase">Total Masuk</span>
+                                        <span className="font-black text-green-600 text-lg">
+                                            +{sizesArray.reduce((acc, size) => acc + (Number(editForm.sizes[size]?.jumlah) || 0), 0)} Pcs
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-col text-right">
+                                        <span className="font-bold text-gray-500 text-xs uppercase">Total Reject</span>
+                                        <span className="font-black text-red-600 text-lg">
+                                            -{sizesArray.reduce((acc, size) => acc + (Number(editForm.sizes[size]?.reject) || 0), 0)} Pcs
+                                        </span>
+                                    </div>
                                 </div>
                                 <div className="pt-6 mt-2 border-t border-gray-100 flex justify-end gap-3">
                                     <button type="button" onClick={() => setShowEditModal(false)} className="px-6 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold transition-colors">

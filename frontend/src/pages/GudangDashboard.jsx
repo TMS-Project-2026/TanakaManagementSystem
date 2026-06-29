@@ -162,12 +162,6 @@ const GudangDashboard = ({ embedded = false }) => {
                                 <div className="space-y-3 flex-1 overflow-y-auto max-h-[190px] pr-1 custom-scrollbar">
                                     {data.hampirHabis && data.hampirHabis.length > 0 ? (
                                         data.hampirHabis.map((item, idx) => (
-<<<<<<< HEAD
-                                            <div key={idx} className="flex flex-col gap-1 border-b border-gray-50 pb-2 last:border-0 last:pb-0">
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-xs font-bold text-gray-800 truncate block w-[60%]">{item.nama_barang}</span>
-                                                    <span className="text-[10px] font-black text-red-600 shrink-0">{item.jumlah} Pcs</span>
-=======
                                             <div key={idx} className="flex flex-col gap-1.5 border-b border-gray-50 pb-3 last:border-0 last:pb-0">
                                                 <div className="flex items-center gap-2">
                                                     <span className="bg-red-50 text-[#990000] text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shrink-0">
@@ -182,7 +176,6 @@ const GudangDashboard = ({ embedded = false }) => {
                                                         </span>
                                                     </div>
                                                     <span className="text-xs font-black text-red-600 shrink-0">{item.jumlah} Pcs</span>
->>>>>>> 6578383c699956ccbd0921ed0eae0a492a410488
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <div className="flex-1 bg-gray-100 rounded-full h-1 overflow-hidden">
@@ -230,13 +223,6 @@ const GudangDashboard = ({ embedded = false }) => {
                                 <div className="space-y-3 flex-1 overflow-y-auto max-h-[150px] pr-1 custom-scrollbar">
                                     {data.fastMoving && data.fastMoving.length > 0 ? (
                                         data.fastMoving.map((item, idx) => (
-<<<<<<< HEAD
-                                            <div key={idx} className="flex flex-col gap-1 border-b border-gray-50 pb-2 last:border-0 last:pb-0">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-2 w-[70%]">
-                                                        <span className="bg-emerald-50 text-emerald-700 text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center shrink-0">{idx + 1}</span>
-                                                        <span className="text-[11px] font-bold text-gray-800 truncate block w-full">{item.nama_barang}</span>
-=======
                                             <div key={idx} className="flex flex-col gap-1.5 border-b border-gray-50 pb-3 last:border-0 last:pb-0">
                                                 <div className="flex items-center gap-2">
                                                     <span className="bg-emerald-50 text-emerald-700 text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shrink-0">
@@ -258,7 +244,6 @@ const GudangDashboard = ({ embedded = false }) => {
                                                             className="h-1.5 rounded-full transition-all duration-700 bg-emerald-500"
                                                             style={{ width: `${Math.min(100, ((item.total_terjual || 0) / (data.fastMoving[0]?.total_terjual || 1)) * 100)}%` }}
                                                         />
->>>>>>> 6578383c699956ccbd0921ed0eae0a492a410488
                                                     </div>
                                                     <span className="text-[10px] font-black text-emerald-600 shrink-0">{item.total_terjual} Pcs</span>
                                                 </div>
@@ -281,17 +266,10 @@ const GudangDashboard = ({ embedded = false }) => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 flex-1 overflow-y-auto max-h-[150px] pr-1 custom-scrollbar">
                                     {data.deadStock && data.deadStock.length > 0 ? (
                                         data.deadStock.map((item, idx) => (
-<<<<<<< HEAD
-                                            <div key={idx} className="bg-gray-50 p-2.5 rounded-lg border border-gray-100 flex justify-between items-center">
-                                                <div className="min-w-0 flex-1 pr-2">
-                                                    <p className="font-bold text-gray-800 text-[10px] truncate">{item.nama_barang}</p>
-                                                    <p className="text-[8px] text-red-500 font-bold mt-0.5">⚠️ &gt; 2 Bulan</p>
-=======
                                             <div key={idx} className="bg-gray-50/50 hover:bg-gray-50 p-4 rounded-2xl border border-gray-100 flex justify-between items-center transition-all">
                                                 <div className="min-w-0 flex-1 pr-3">
                                                     <p className="font-bold text-gray-800 text-xs truncate">{item.nama_barang} {item.ukuran ? `- ${item.ukuran}` : ''}</p>
                                                     <p className="text-[10px] text-red-500 font-bold mt-1">⚠️ Mengendap &gt; 2 Bulan</p>
->>>>>>> 6578383c699956ccbd0921ed0eae0a492a410488
                                                 </div>
                                                 <div className="text-right shrink-0">
                                                     <span className="inline-block bg-red-50 border border-red-100 text-red-600 text-[10px] font-black px-2 py-0.5 rounded-md">{item.jumlah} Pcs</span>
