@@ -356,9 +356,17 @@ export default function PricelistOnline() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">GRUP PRODUK <span className="text-red-500">*</span></label>
-                  <select name="grup_produk" value={addForm.grup_produk} onChange={handleAddChange} className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#990000] focus:ring-2 focus:ring-red-100">
-                    {GRUP_OPTIONS.map(g => <option key={g} value={g}>{g}</option>)}
-                  </select>
+                  <input 
+                    name="grup_produk" 
+                    value={addForm.grup_produk} 
+                    onChange={handleAddChange} 
+                    list="grup-opt" 
+                    placeholder="PILIH ATAU KETIK GRUP PRODUK..." 
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#990000] focus:ring-2 focus:ring-red-100 uppercase" 
+                  />
+                  <datalist id="grup-opt">
+                    {GRUP_OPTIONS.map(g => <option key={g} value={g} />)}
+                  </datalist>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">JENIS / KATEGORI <span className="text-red-500">*</span></label>

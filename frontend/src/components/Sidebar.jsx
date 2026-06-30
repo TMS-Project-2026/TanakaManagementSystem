@@ -150,7 +150,7 @@ const Sidebar = () => {
     { name: 'Suku Cadang', path: '/sparepart', icon: <Settings size={20} />, roles: ['Admin', 'Manager'], group: 'Warehouse' },
     { name: 'Warning Stok', path: '/warning-stok', icon: <AlertTriangle size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Promo', path: '/promo', icon: <Gift size={20} />, roles: ['Admin', 'Manager', 'Marketing'], group: 'Sales' },
-    { name: 'Pricelist Harga', path: '/pricelist', icon: <Tag size={20} />, roles: ['Admin', 'Manager', 'owner', 'marketing_offline', 'marketing_offline_tanaka', 'Marketing'], group: 'Sales' },
+    { name: 'Pricelist', path: '/pricelist', icon: <Tag size={20} />, roles: ['Admin', 'Manager', 'owner', 'marketing_offline', 'marketing_offline_tanaka', 'Marketing'], group: 'Sales' },
     { name: 'Finance Dashboard', path: '/finance', icon: <PieChart size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Finance' },
 
     // CASH & BANK
@@ -190,7 +190,7 @@ const Sidebar = () => {
 
     // MENU OWNER — Breakdown per Departemen
     {
-      name: 'Marketing Online',
+      name: 'Marketing Online Banua',
       icon: <TrendingUp size={20} />,
       roles: ['owner'],
       group: 'Owner Dashboard',
@@ -199,6 +199,7 @@ const Sidebar = () => {
         { title: 'Order Marketplace', path: '/marketing-online/orders' },
         { title: 'Stok Inventory', path: '/marketing-online/inventory' },
         { title: 'Promo Online', path: '/marketing-online/promo' },
+        { title: 'Pricelist Harga', path: '/pricelist-online' },
         {
           title: 'Report',
           path: '/marketing-online/reports',
@@ -214,6 +215,31 @@ const Sidebar = () => {
       ]
     },
     {
+      name: 'Marketing Online Tanaka',
+      icon: <TrendingUp size={20} />,
+      roles: ['owner'],
+      group: 'Owner Dashboard',
+      subMenu: [
+        { title: 'Dashboard Online', path: '/marketing-online-tanaka/dashboard' },
+        { title: 'Order Marketplace', path: '/marketing-online-tanaka/orders' },
+        { title: 'Stok Inventory', path: '/marketing-online-tanaka/inventory' },
+        { title: 'Promo Online', path: '/marketing-online-tanaka/promo' },
+        { title: 'Pricelist Harga', path: '/pricelist-online' },
+        {
+          title: 'Report',
+          path: '/marketing-online-tanaka/reports',
+          subMenu: [
+            { title: 'Laporan Harian', path: '/marketing-online-tanaka/reports/harian' },
+            { title: 'Laporan Harian Berjalan', path: '/marketing-online-tanaka/reports/bulanan' },
+            { title: 'Laporan Bulanan', path: '/marketing-online-tanaka/reports/bulanan-monthly' },
+            { title: 'Laporan Bulan Berjalan', path: '/marketing-online-tanaka/reports/berjalan-monthly' },
+            { title: 'Laporan Tahunan', path: '/marketing-online-tanaka/reports/tahunan' },
+            { title: 'Laporan Tahun Berjalan', path: '/marketing-online-tanaka/reports/berjalan-tahunan' }
+          ]
+        }
+      ]
+    },
+    {
       name: 'Marketing Offline Banua',
       icon: <Users size={20} />,
       roles: ['owner'],
@@ -224,7 +250,7 @@ const Sidebar = () => {
         { title: 'Stok Inventory', path: '/marketing-offline/inventory' },
         { title: 'Customer', path: '/marketing-offline/customers' },
         { title: 'Promo', path: '/marketing-offline/promo' },
-        { title: 'Pricelist Harga', path: '/pricelist' },
+        { title: 'Pricelist', path: '/pricelist' },
         {
           title: 'Report',
           path: '/marketing-offline/reports',
@@ -250,7 +276,7 @@ const Sidebar = () => {
         { title: 'Stok Inventory', path: '/marketing-offline-tanaka/inventory' },
         { title: 'Customer', path: '/marketing-offline-tanaka/customers' },
         { title: 'Promo', path: '/marketing-offline-tanaka/promo' },
-        { title: 'Pricelist Harga', path: '/pricelist' },
+        { title: 'Pricelist', path: '/pricelist' },
         {
           title: 'Report',
           path: '/marketing-offline-tanaka/reports',
@@ -307,7 +333,8 @@ const Sidebar = () => {
         { title: 'Chart of Accounts', path: '/chart-of-accounts' },
         { title: 'Invoice', path: '/invoice' },
         { title: 'Approval Center', path: '/finance/approval' },
-        { title: 'Report Center', path: '/report/laba-rugi' }
+        { title: 'Report Center', path: '/report/laba-rugi' },
+        { title: 'Pricelist Harga', path: '/pricelist' }
       ]
     },
 
@@ -420,7 +447,10 @@ const Sidebar = () => {
 
         {/* --- LOGO & NOTIFICATION SECTION --- */}
         <div className="p-5 flex items-center justify-between mb-2">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/dashboard')}>
+          <div 
+            className="flex items-center gap-3 cursor-pointer" 
+            onClick={() => navigate(userRole.toLowerCase() === 'owner' ? '/owner/dashboard' : '/dashboard')}
+          >
             <img
               src={LogoTanaka}
               alt="Logo Tanaka"
@@ -428,7 +458,7 @@ const Sidebar = () => {
             />
             <div>
               <h1 className="font-bold text-red-800 leading-none tracking-tighter text-xl">T M S</h1>
-              <p className="text-[10px] text-gray-400 font-medium uppercase">Tanaka System</p>
+              <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tight mt-0.5">Tanaka Management System</p>
             </div>
           </div>
         </div>
@@ -438,10 +468,15 @@ const Sidebar = () => {
           {(() => {
             let currentGroup = '';
             return menuItems.map((item) => {
-              const hasActiveChild = item.subMenu && item.subMenu.some(sub => location.pathname === sub.path || (sub.path && sub.path !== '/' && location.pathname.startsWith(sub.path + '/')));
+              const hasActiveChild = item.subMenu && item.subMenu.some(sub => {
+                const matchDirect = location.pathname === sub.path;
+                const matchNested = sub.subMenu && sub.subMenu.some(nested => location.pathname === nested.path);
+                return matchDirect || matchNested || (sub.path && sub.path !== '/' && location.pathname.startsWith(sub.path + '/'));
+              });
               const isActive = location.pathname === item.path || (item.path && item.path !== '/' && item.path !== '/gudang' && item.path !== '/finance' && location.pathname.startsWith(item.path + '/')) || hasActiveChild;
-              const autoExpand = userRole.toLowerCase() !== 'owner';
-              const isExpanded = expandedMenus[item.name] || (autoExpand && (hasActiveChild || (item.path && location.pathname.startsWith(item.path) && item.path !== '/finance')));
+              const isExpanded = expandedMenus[item.name] !== undefined 
+                ? expandedMenus[item.name] 
+                : (hasActiveChild || (item.path && location.pathname.startsWith(item.path) && item.path !== '/finance'));
               const showGroupLabel = item.group && item.group !== currentGroup;
               if (showGroupLabel) currentGroup = item.group;
 
@@ -498,8 +533,9 @@ const Sidebar = () => {
                         const hasNestedActiveChild = sub.subMenu && sub.subMenu.some(nested => location.pathname === nested.path || location.pathname.startsWith(nested.path + '/'));
                         const isSubActive = location.pathname === (sub.path || '') || hasNestedActiveChild || (sub.path && sub.path !== '/' && sub.path !== '/finance' && sub.path !== '/gudang' && location.pathname.startsWith(sub.path + '/'));
                         const expandedKey = item.name + '_' + sub.title;
-                        const autoExpandSub = userRole.toLowerCase() !== 'owner';
-                        const isSubExpanded = expandedMenus[expandedKey] || (autoExpandSub && (hasNestedActiveChild || (sub.path && location.pathname.startsWith(sub.path) && !sub.path.endsWith('/reports'))));
+                        const isSubExpanded = expandedMenus[expandedKey] !== undefined 
+                          ? expandedMenus[expandedKey] 
+                          : (hasNestedActiveChild || (sub.path && location.pathname.startsWith(sub.path) && !sub.path.endsWith('/reports')));
 
                         return (
                           <div key={sub.title || sub}>

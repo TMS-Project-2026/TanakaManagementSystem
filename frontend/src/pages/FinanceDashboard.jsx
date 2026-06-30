@@ -31,17 +31,17 @@ const fmtCompact = (n) => {
 };
 
 const StatCard = ({ label, value, sub, icon }) => (
-    <div className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 border-l-[6px] border-l-[#990000] flex flex-col justify-center transition-all hover:-translate-y-1 hover:shadow-md min-h-[110px]">
-        <div className="flex items-center gap-3 mb-2">
+    <div className="bg-white rounded-[12px] p-3.5 shadow-sm border border-gray-100 border-l-[4px] border-l-[#990000] flex flex-col justify-center transition-all hover:-translate-y-1 hover:shadow-md min-h-[75px]">
+        <div className="flex items-center gap-2 mb-1">
             {icon && (
-                <div className="w-[30px] h-[30px] rounded-full bg-[#990000] flex items-center justify-center shrink-0 shadow-sm shadow-red-900/20">
+                <div className="w-[20px] h-[20px] rounded-full bg-[#990000] flex items-center justify-center shrink-0 shadow-sm shadow-red-900/20">
                     {icon}
                 </div>
             )}
-            <p className="text-[12px] font-bold text-gray-500 tracking-wider uppercase truncate">{label}</p>
+            <p className="text-[9px] font-bold text-gray-500 tracking-wider uppercase truncate">{label}</p>
         </div>
-        <p className="text-2xl font-black text-gray-900 leading-tight truncate">{value}</p>
-        {sub && <p className="text-[11px] mt-1 font-medium text-gray-400 truncate">{sub}</p>}
+        <p className="text-lg font-black text-gray-900 leading-tight truncate">{value}</p>
+        {sub && <p className="text-[8px] mt-0.5 font-medium text-gray-400 truncate">{sub}</p>}
     </div>
 );
 
@@ -192,17 +192,17 @@ export default function FinanceDashboard({ embedded = false }) {
             {!embedded && <Sidebar/>}
             <main className="flex-1 flex flex-col pt-16 md:pt-0 h-screen overflow-hidden">
                 {!embedded && (
-                    <header className="h-20 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center px-10 sticky top-0 z-30 justify-end shrink-0">
+                    <header className="h-12 bg-white border-b border-gray-200 flex items-center px-5 sticky top-0 z-30 justify-end shrink-0">
                         <div className="flex items-center gap-3">
                             <NotificationBell />
-                            <div className="relative flex items-center gap-2 bg-gray-50 px-4 py-2 rounded-2xl border border-gray-100 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => setShowProfile(!showProfile)}>
-                                <UserCircle className="text-gray-400" size={24} />
-                                <ChevronDown size={14} className="text-gray-400" />
+                            <div className="relative flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => setShowProfile(!showProfile)}>
+                                <UserCircle className="text-gray-400" size={20} />
+                                <ChevronDown size={12} className="text-gray-400" />
                                 {showProfile && (
-                                    <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
-                                        <div className="p-4 bg-red-50/50">
-                                            <p className="text-sm font-black text-gray-900">{JSON.parse(localStorage.getItem('user'))?.nama || JSON.parse(localStorage.getItem('user'))?.username || 'Admin'}</p>
-                                            <p className="text-[10px] font-bold text-[#990000] uppercase tracking-wider mt-0.5">{(JSON.parse(localStorage.getItem('user'))?.role || '').replace('_', ' ')}</p>
+                                    <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-150 z-50 overflow-hidden">
+                                        <div className="p-3 bg-red-50/50">
+                                            <p className="text-xs font-black text-gray-900">{JSON.parse(localStorage.getItem('user'))?.nama || JSON.parse(localStorage.getItem('user'))?.username || 'Admin'}</p>
+                                            <p className="text-[9px] font-bold text-[#990000] uppercase tracking-wider mt-0.5">{(JSON.parse(localStorage.getItem('user'))?.role || '').replace('_', ' ')}</p>
                                         </div>
                                     </div>
                                 )}
@@ -211,10 +211,10 @@ export default function FinanceDashboard({ embedded = false }) {
                     </header>
                 )}
 
-                <div className="flex-1 overflow-y-auto px-4 sm:px-10 pb-10 pt-8">
+                <div className="flex-1 overflow-y-auto px-5 py-4 bg-[#f8fafc]">
 
                     {/* ── HEADER ── */}
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 max-w-[1600px] mx-auto">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-3 max-w-[1600px] mx-auto">
                         <div>
                             <h1 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3">
                                 Dashboard Finance
@@ -231,7 +231,7 @@ export default function FinanceDashboard({ embedded = false }) {
                     </div>
 
                     {/* ── STAT CARDS ── */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-3">
                         <StatCard
                             label="Total Revenue" value={fmtCompact(data?.totalRevenue)}
                             sub="Seluruh transaksi penjualan" icon={<TrendingUp size={14} className="text-white"/>} />
@@ -248,92 +248,92 @@ export default function FinanceDashboard({ embedded = false }) {
                     </div>
 
                     {/* ── CHARTS ROW 1 + APPROVAL ── */}
-                    <div className={`grid grid-cols-1 ${isOwner ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-4 mb-4`}>
+                    <div className={`grid grid-cols-1 ${isOwner ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-4 mb-3`}>
                         {/* Income vs Expense */}
-                        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 col-span-1">
+                        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-3 col-span-1">
                             <h3 className="text-xs font-black text-gray-900 mb-1">Income vs Expense</h3>
-                            <div className="h-40">
+                            <div className="h-32">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={[
                                         { name: 'Inc vs Exp', Income: data?.totalRevenue || 0, Expense: (data?.totalPembelian || 0) + (data?.biayaChartData || []).reduce((a,b)=>a+b.value, 0) }
                                     ]} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                        <XAxis dataKey="name" tick={{fill:'#6b7280', fontSize:12, fontWeight:600}} axisLine={false} tickLine={false} />
-                                        <YAxis tickFormatter={v => `${(v/1e6).toFixed(0)}Jt`} tick={{fontSize:11, fill:'#9ca3af'}} axisLine={false} tickLine={false} width={45} />
+                                        <XAxis dataKey="name" tick={{fill:'#6b7280', fontSize:10, fontWeight:600}} axisLine={false} tickLine={false} />
+                                        <YAxis tickFormatter={v => `${(v/1e6).toFixed(0)}Jt`} tick={{fontSize:9, fill:'#9ca3af'}} axisLine={false} tickLine={false} width={35} />
                                         <Tooltip content={<CustomTooltip/>} cursor={{fill:'transparent'}}/>
-                                        <Legend wrapperStyle={{fontSize:'12px', fontWeight:'600'}} />
-                                        <Bar dataKey="Income" fill="#990000" radius={[4,4,0,0]} barSize={20} />
-                                        <Bar dataKey="Expense" fill="#475569" radius={[4,4,0,0]} barSize={20} />
+                                        <Legend wrapperStyle={{fontSize:'10px', fontWeight:'600'}} />
+                                        <Bar dataKey="Income" fill="#990000" radius={[4,4,0,0]} barSize={16} />
+                                        <Bar dataKey="Expense" fill="#475569" radius={[4,4,0,0]} barSize={16} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>
-                            <div className="mt-2 grid grid-cols-2 gap-2 border-t pt-2">
+                            <div className="mt-1.5 grid grid-cols-2 gap-2 border-t pt-1.5">
                                 <div>
-                                    <p className="text-[10px] text-gray-500 font-bold">Income</p>
+                                    <p className="text-[9px] text-gray-500 font-bold">Income</p>
                                     <p className="text-xs font-black text-[#990000]">{fmtCompact(data?.totalRevenue)}</p>
                                 </div>
                                 <div>
-                                    <p className="text-[10px] text-gray-500 font-bold">Expense</p>
+                                    <p className="text-[9px] text-gray-500 font-bold">Expense</p>
                                     <p className="text-xs font-black text-gray-700">{fmtCompact((data?.totalPembelian || 0) + (data?.biayaChartData || []).reduce((a,b)=>a+b.value, 0))}</p>
                                 </div>
                             </div>
                         </div>
 
                         {/* Perbandingan Revenue dan Receivable */}
-                        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 col-span-1">
+                        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-3 col-span-1">
                             <h3 className="text-xs font-black text-gray-900 mb-1">Rev vs AR</h3>
-                            <div className="h-40">
+                            <div className="h-32">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={[
                                         { name: 'Revenue vs AR', Revenue: data?.totalRevenue || 0, Receivable: data?.totalPiutangBelumDibayar || 0 }
                                     ]} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                        <XAxis dataKey="name" tick={{fill:'#6b7280', fontSize:12, fontWeight:600}} axisLine={false} tickLine={false} />
-                                        <YAxis tickFormatter={v => `${(v/1e6).toFixed(0)}Jt`} tick={{fontSize:11, fill:'#9ca3af'}} axisLine={false} tickLine={false} width={45} />
+                                        <XAxis dataKey="name" tick={{fill:'#6b7280', fontSize:10, fontWeight:600}} axisLine={false} tickLine={false} />
+                                        <YAxis tickFormatter={v => `${(v/1e6).toFixed(0)}Jt`} tick={{fontSize:9, fill:'#9ca3af'}} axisLine={false} tickLine={false} width={35} />
                                         <Tooltip content={<CustomTooltip/>} cursor={{fill:'transparent'}}/>
-                                        <Legend wrapperStyle={{fontSize:'12px', fontWeight:'600'}} />
-                                        <Bar dataKey="Revenue" fill="#990000" radius={[4,4,0,0]} barSize={20} />
-                                        <Bar dataKey="Receivable" fill="#f87171" radius={[4,4,0,0]} barSize={20} />
+                                        <Legend wrapperStyle={{fontSize:'10px', fontWeight:'600'}} />
+                                        <Bar dataKey="Revenue" fill="#990000" radius={[4,4,0,0]} barSize={16} />
+                                        <Bar dataKey="Receivable" fill="#f87171" radius={[4,4,0,0]} barSize={16} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>
-                            <div className="mt-2 grid grid-cols-2 gap-2 border-t pt-2">
+                            <div className="mt-1.5 grid grid-cols-2 gap-2 border-t pt-1.5">
                                 <div>
-                                    <p className="text-[10px] text-gray-500 font-bold">Revenue</p>
+                                    <p className="text-[9px] text-gray-500 font-bold">Revenue</p>
                                     <p className="text-xs font-black text-[#990000]">{fmtCompact(data?.totalRevenue)}</p>
                                 </div>
                                 <div>
-                                    <p className="text-[10px] text-gray-500 font-bold">Receivable</p>
+                                    <p className="text-[9px] text-gray-500 font-bold">Receivable</p>
                                     <p className="text-xs font-black text-red-400">{fmtCompact(data?.totalPiutangBelumDibayar)}</p>
                                 </div>
                             </div>
                         </div>
 
                         {/* Piutang vs Hutang */}
-                        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4 col-span-1">
+                        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-3 col-span-1">
                             <h3 className="text-xs font-black text-gray-900 mb-1">Piutang vs Hutang</h3>
-                            <div className="h-40">
+                            <div className="h-32">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={[
                                         { name: 'Unpaid AR vs AP', Piutang: data?.totalPiutangBelumDibayar || 0, Hutang: data?.totalHutangBelumDibayar || 0 }
                                     ]} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                                        <XAxis dataKey="name" tick={{fill:'#6b7280', fontSize:12, fontWeight:600}} axisLine={false} tickLine={false} />
-                                        <YAxis tickFormatter={v => `${(v/1e6).toFixed(0)}Jt`} tick={{fontSize:11, fill:'#9ca3af'}} axisLine={false} tickLine={false} width={45} />
+                                        <XAxis dataKey="name" tick={{fill:'#6b7280', fontSize:10, fontWeight:600}} axisLine={false} tickLine={false} />
+                                        <YAxis tickFormatter={v => `${(v/1e6).toFixed(0)}Jt`} tick={{fontSize:9, fill:'#9ca3af'}} axisLine={false} tickLine={false} width={35} />
                                         <Tooltip content={<CustomTooltip/>} cursor={{fill:'transparent'}}/>
-                                        <Legend wrapperStyle={{fontSize:'12px', fontWeight:'600'}} />
-                                        <Bar dataKey="Piutang" fill="#f87171" radius={[4,4,0,0]} barSize={20} />
-                                        <Bar dataKey="Hutang" fill="#990000" radius={[4,4,0,0]} barSize={20} />
+                                        <Legend wrapperStyle={{fontSize:'10px', fontWeight:'600'}} />
+                                        <Bar dataKey="Piutang" fill="#f87171" radius={[4,4,0,0]} barSize={16} />
+                                        <Bar dataKey="Hutang" fill="#990000" radius={[4,4,0,0]} barSize={16} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>
-                            <div className="mt-2 grid grid-cols-2 gap-2 border-t pt-2">
+                            <div className="mt-1.5 grid grid-cols-2 gap-2 border-t pt-1.5">
                                 <div>
-                                    <p className="text-[10px] text-gray-500 font-bold">Piutang</p>
+                                    <p className="text-[9px] text-gray-500 font-bold">Piutang</p>
                                     <p className="text-xs font-black text-red-400">{fmtCompact(data?.totalPiutangBelumDibayar)}</p>
                                 </div>
                                 <div>
-                                    <p className="text-[10px] text-gray-500 font-bold">Hutang</p>
+                                    <p className="text-[9px] text-gray-500 font-bold">Hutang</p>
                                     <p className="text-xs font-black text-[#990000]">{fmtCompact(data?.totalHutangBelumDibayar)}</p>
                                 </div>
                             </div>
@@ -341,11 +341,11 @@ export default function FinanceDashboard({ embedded = false }) {
 
                         {/* Approval Panel - HANYA UNTUK OWNER */}
                         {isOwner && (
-                            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col border-t-[3px] border-t-blue-500 col-span-1">
-                                <h3 className="text-xs font-black text-gray-900 mb-3 flex items-center gap-1.5">
+                            <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex flex-col border-t-[3px] border-t-blue-500 col-span-1">
+                                <h3 className="text-xs font-black text-gray-900 mb-2 flex items-center gap-1.5">
                                     <CheckCircle className="text-blue-500" size={14} /> Approval Finance
                                 </h3>
-                                <div className="space-y-2.5 flex-1 overflow-y-auto max-h-[220px] pr-1 custom-scrollbar">
+                                <div className="space-y-2 flex-1 overflow-y-auto max-h-[140px] pr-1 custom-scrollbar">
                                     {pendingApprovals.length > 0 ? pendingApprovals.map(a => (
                                         <div key={a.id} className="p-2.5 bg-blue-50/50 rounded-lg border border-blue-100">
                                             <p className="text-[11px] font-bold text-gray-800 mb-0.5 truncate">{a.reference_number}</p>
@@ -355,7 +355,7 @@ export default function FinanceDashboard({ embedded = false }) {
                                                 <button onClick={() => handleReject(a.id)} className="flex-1 bg-white text-red-600 border border-red-200 text-[9px] font-bold py-1 rounded hover:bg-red-50 transition-colors">Tolak</button>
                                             </div>
                                         </div>
-                                    )) : <div className="text-center text-[10px] text-gray-400 font-bold italic py-8">Tidak ada persetujuan</div>}
+                                    )) : <div className="text-center text-[9px] text-gray-400 font-bold italic py-6">Tidak ada persetujuan</div>}
                                 </div>
                             </div>
                         )}
@@ -368,43 +368,43 @@ export default function FinanceDashboard({ embedded = false }) {
                                 <h3 className="text-xs font-black text-gray-900 mb-1">Distribusi Biaya</h3>
                                 
                                 {data?.biayaChartData?.length > 0 ? (
-                                    <div className="h-40">
+                                    <div className="h-32">
                                         <ResponsiveContainer width="100%" height="100%">
                                             <PieChart>
                                                 <Pie 
                                                     data={data.biayaChartData} 
-                                                    innerRadius={70} 
-                                                    outerRadius={100} 
+                                                    innerRadius={50} 
+                                                    outerRadius={65} 
                                                     paddingAngle={3} 
                                                     dataKey="value"
                                                 >
                                                     {data.biayaChartData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]}/>)}
                                                 </Pie>
-                                                <Tooltip formatter={v => fmt(v)} contentStyle={{borderRadius:'10px',fontSize:'12px',border:'none',boxShadow:'0 4px 6px -1px rgb(0 0 0 / 0.1)'}}/>
+                                                <Tooltip formatter={v => fmt(v)} contentStyle={{borderRadius:'10px',fontSize:'11px',border:'none',boxShadow:'0 4px 6px -1px rgb(0 0 0 / 0.1)'}}/>
                                             </PieChart>
                                         </ResponsiveContainer>
                                     </div>
                                 ) : (
-                                    <div className="h-72 flex flex-col items-center justify-center text-gray-400">
-                                        <PieIcon size={48} className="mb-3 text-gray-200" />
-                                        <p className="text-sm font-semibold">Belum ada data biaya</p>
+                                    <div className="h-48 flex flex-col items-center justify-center text-gray-400">
+                                        <PieIcon size={36} className="mb-2 text-gray-200" />
+                                        <p className="text-xs font-semibold">Belum ada data biaya</p>
                                     </div>
                                 )}
                             </div>
                             
                             <div className="w-full md:w-1/2 flex-1">
-                                <h4 className="text-[11px] font-bold text-gray-700 border-b pb-2 mb-3">Rincian Biaya</h4>
-                                <div className="space-y-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                                <h4 className="text-[10px] font-bold text-gray-700 border-b pb-1 mb-2">Rincian Biaya</h4>
+                                <div className="space-y-1.5 max-h-32 overflow-y-auto pr-2 custom-scrollbar">
                                     {data?.biayaChartData?.length > 0 ? data.biayaChartData.map((b, i) => (
-                                        <div key={i} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg hover:bg-white border border-transparent hover:border-gray-200 transition-colors">
+                                        <div key={i} className="flex items-center justify-between p-1.5 bg-gray-50 rounded-lg hover:bg-white border border-transparent hover:border-gray-200 transition-colors">
                                             <div className="flex items-center gap-2">
-                                                <div className="w-3 h-3 rounded-full shadow-sm" style={{backgroundColor: PIE_COLORS[i % PIE_COLORS.length]}}></div>
-                                                <span className="font-bold text-gray-800 text-[11px]">{b.name}</span>
+                                                <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{backgroundColor: PIE_COLORS[i % PIE_COLORS.length]}}></div>
+                                                <span className="font-bold text-gray-800 text-[10px]">{b.name}</span>
                                             </div>
-                                            <span className="font-black text-gray-900 text-[11px]">{fmtCompact(b.value)}</span>
+                                            <span className="font-black text-gray-900 text-[10px]">{fmtCompact(b.value)}</span>
                                         </div>
                                     )) : (
-                                        <p className="text-sm text-gray-400 text-center py-10">Data kosong</p>
+                                        <p className="text-xs text-gray-400 text-center py-6">Data kosong</p>
                                     )}
                                 </div>
                             </div>

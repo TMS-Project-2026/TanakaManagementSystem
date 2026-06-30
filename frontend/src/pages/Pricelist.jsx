@@ -574,20 +574,23 @@ const Pricelist = () => {
                 <div className="md:col-span-2 bg-blue-50 border border-blue-100 p-4 rounded-xl flex flex-col md:flex-row gap-4 items-center">
                   <div className="flex-1">
                     <label className="block text-xs font-bold text-blue-800 mb-1">💡 Bantuan Pemetaan Brand (Opsional)</label>
-                    <select 
-                      className="w-full p-2.5 bg-white border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-300 outline-none text-sm text-blue-900"
+                    <input 
+                      list="brand-opt"
+                      placeholder="PILIH ATAU KETIK BRAND..."
+                      className="w-full p-2.5 bg-white border border-blue-200 rounded-lg focus:ring-2 focus:ring-blue-300 outline-none text-sm text-blue-900 uppercase"
                       onChange={(e) => {
-                        const prefix = BRAND_PREFIX[e.target.value];
+                        const val = e.target.value.toUpperCase();
+                        const prefix = BRAND_PREFIX[val];
                         if (prefix) {
                           setForm(prev => ({ ...prev, kode: prefix }));
                         }
                       }}
-                    >
-                      <option value="">-- Pilih Brand untuk Otomatisasi Kode --</option>
+                    />
+                    <datalist id="brand-opt">
                       {BRAND_ORDER.map(b => (
-                        <option key={b} value={b}>{b}</option>
+                        <option key={b} value={b} />
                       ))}
-                    </select>
+                    </datalist>
                   </div>
                   <div className="text-[10px] text-blue-700 md:w-1/2 leading-relaxed">
                     Pilih brand di atas jika Anda ingin sistem otomatis mengisikan awalan <b>Kode Produk</b>. Anda tetap bisa mengubah kodenya secara manual di bawah.

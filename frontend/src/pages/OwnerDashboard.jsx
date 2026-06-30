@@ -98,12 +98,54 @@ export default function OwnerDashboard() {
 
   // ── Mini stat cards data ──────────────────────────────────────
   const stats = [
-    { label: 'REVENUE', value: fmtCompact(data?.totalRevenue), color: 'text-emerald-500', bg: 'bg-emerald-50', icon: <TrendingUp size={18} className="text-emerald-600" />, sub: <span className="text-emerald-500 font-black text-[10px]">▲ {growth.revenue}</span> },
-    { label: 'EXPENSE', value: fmtCompact(data?.totalExpense), color: 'text-red-500', bg: 'bg-red-50', icon: <TrendingDown size={18} className="text-red-600" />, sub: <span className="text-red-500 font-black text-[10px]">▼ {growth.expense.replace('-','')}</span> },
-    { label: 'NET PROFIT', value: fmtCompact(data?.netProfit), color: 'text-blue-500', bg: 'bg-blue-50', icon: <Activity size={18} className="text-blue-600" />, sub: <span className="text-emerald-500 font-black text-[10px]">▲ {growth.profit}</span> },
-    { label: 'APPROVAL', value: approvals.length, color: 'text-amber-500', bg: 'bg-amber-50', icon: <Shield size={18} className="text-amber-600" />, sub: <span className="text-gray-400 font-medium text-[10px]">Menunggu</span> },
-    { label: 'REQ STOK', value: permintaan.length, color: 'text-purple-500', bg: 'bg-purple-50', icon: <Package size={18} className="text-purple-600" />, sub: <span className="text-gray-400 font-medium text-[10px]">Permintaan</span> },
-    { label: 'INVOICE', value: data?.unpaidInvoice || 0, color: 'text-cyan-500', bg: 'bg-cyan-50', icon: <AlertCircle size={18} className="text-cyan-600" />, sub: <span className="text-gray-400 font-medium text-[10px]">Belum dibayar</span> },
+    { 
+      label: 'REVENUE', 
+      value: fmtCompact(data?.totalRevenue), 
+      borderColor: 'border-l-[#990000]', 
+      iconBg: 'bg-[#990000] shadow-red-900/20', 
+      icon: <TrendingUp size={14} className="text-white" />, 
+      sub: <span className="text-emerald-500 font-black text-[10px]">▲ {growth.revenue}</span> 
+    },
+    { 
+      label: 'EXPENSE', 
+      value: fmtCompact(data?.totalExpense), 
+      borderColor: 'border-l-gray-900', 
+      iconBg: 'bg-gray-900 shadow-gray-950/20', 
+      icon: <TrendingDown size={14} className="text-white" />, 
+      sub: <span className="text-red-500 font-black text-[10px]">▼ {growth.expense.replace('-','')}</span> 
+    },
+    { 
+      label: 'NET PROFIT', 
+      value: fmtCompact(data?.netProfit), 
+      borderColor: 'border-l-[#990000]', 
+      iconBg: 'bg-[#990000] shadow-red-900/20', 
+      icon: <Activity size={14} className="text-white" />, 
+      sub: <span className="text-emerald-500 font-black text-[10px]">▲ {growth.profit}</span> 
+    },
+    { 
+      label: 'APPROVAL', 
+      value: approvals.length, 
+      borderColor: 'border-l-gray-900', 
+      iconBg: 'bg-gray-900 shadow-gray-950/20', 
+      icon: <Shield size={14} className="text-white" />, 
+      sub: <span className="text-gray-400 font-medium text-[10px]">Menunggu</span> 
+    },
+    { 
+      label: 'REQ STOK', 
+      value: permintaan.length, 
+      borderColor: 'border-l-[#990000]', 
+      iconBg: 'bg-[#990000] shadow-red-900/20', 
+      icon: <Package size={14} className="text-white" />, 
+      sub: <span className="text-gray-400 font-medium text-[10px]">Permintaan</span> 
+    },
+    { 
+      label: 'INVOICE', 
+      value: data?.unpaidInvoice || 0, 
+      borderColor: 'border-l-gray-900', 
+      iconBg: 'bg-gray-900 shadow-gray-950/20', 
+      icon: <AlertCircle size={14} className="text-white" />, 
+      sub: <span className="text-gray-400 font-medium text-[10px]">Belum dibayar</span> 
+    },
   ];
 
   // chart data dari ownerController (profitExpenseTrend atau fallback)
@@ -158,56 +200,56 @@ export default function OwnerDashboard() {
         </header>
 
         {/* ── BODY — fixed height, scrollable content ── */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col gap-6 custom-scrollbar bg-white">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 flex flex-col gap-4 custom-scrollbar bg-gray-50">
 
           {/* ROW 1 — 6 stat cards */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 shrink-0">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 shrink-0">
             {stats.map((s, i) => (
-              <div key={i} className={`bg-white border border-gray-100 rounded-2xl p-4 flex flex-col gap-3 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] hover:shadow-lg transition-all`}>
-                <div className={`w-10 h-10 rounded-xl ${s.bg} flex items-center justify-center shrink-0`}>
-                  {s.icon}
+              <div key={i} className={`bg-white rounded-[12px] p-2.5 shadow-sm border border-gray-100 border-l-[4px] ${s.borderColor} flex flex-col justify-center transition-all hover:-translate-y-0.5 hover:shadow-md min-h-[72px]`}>
+                <div className="flex items-center gap-2 mb-1">
+                  <div className={`w-[20px] h-[20px] rounded-full ${s.iconBg} flex items-center justify-center shrink-0 shadow-sm`}>
+                    {React.cloneElement(s.icon, { size: 11 })}
+                  </div>
+                  <p className="text-[9px] font-bold text-gray-500 tracking-wider uppercase truncate">{s.label}</p>
                 </div>
-                <div>
-                  <p className="text-[10px] font-black text-gray-800 uppercase tracking-wide mb-1">{s.label}</p>
-                  <p className="text-lg font-black text-gray-900 leading-none mb-2">{s.value}</p>
-                  {s.sub}
-                </div>
+                <h3 className="text-base font-black text-gray-900 leading-tight truncate">{s.value}</h3>
+                {s.sub && <div className="mt-0.5 flex items-center">{s.sub}</div>}
               </div>
             ))}
           </div>
 
           {/* ROW 2 — main content: 3 kolom */}
-          <div className="flex flex-col lg:flex-row gap-6">
+          <div className="flex flex-col lg:flex-row gap-4">
 
             {/* COL 1: Panel Approval Pending */}
-            <div className="flex-1 bg-white rounded-3xl border border-gray-100 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] flex flex-col overflow-hidden">
-              <div className="flex items-center justify-between px-6 py-5 border-b border-gray-50 shrink-0">
-                <h3 className="text-base font-black text-gray-900">Perlu Di-Approve</h3>
-                <button onClick={() => navigate('/finance/approval')} className="text-xs text-blue-600 font-bold hover:underline">Lihat semua</button>
+            <div className="flex-1 bg-white rounded-2xl border border-gray-100 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] flex flex-col overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-50 shrink-0">
+                <h3 className="text-xs font-black text-gray-900">Perlu Di-Approve</h3>
+                <button onClick={() => navigate('/finance/approval')} className="text-[9px] text-blue-600 font-bold hover:underline">Lihat semua</button>
               </div>
-              <div className="flex-1 overflow-y-auto divide-y divide-gray-50 p-2 max-h-[350px] custom-scrollbar">
+              <div className="flex-1 overflow-y-auto divide-y divide-gray-50 p-1.5 max-h-[170px] custom-scrollbar">
                 {approvals.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full gap-2 py-10">
-                    <CheckCircle size={32} className="text-green-400" />
-                    <p className="text-sm font-bold text-gray-400">Semua sudah diproses ✓</p>
+                  <div className="flex flex-col items-center justify-center h-full gap-2 py-4">
+                    <CheckCircle size={20} className="text-green-400" />
+                    <p className="text-[11px] font-bold text-gray-400">Semua sudah diproses ✓</p>
                   </div>
                 ) : approvals.map(item => (
-                  <div key={item.id} className="flex items-center justify-between px-4 py-4 hover:bg-gray-50/50 rounded-xl transition-colors group">
-                    <div className="flex flex-col gap-1">
-                      <p className="text-xs font-black text-gray-900">{item.no_quotation || item.keterangan || `REQ-2025-${item.id.toString().padStart(3, '0')}`}</p>
-                      <p className="text-[10px] text-gray-500 font-medium truncate max-w-[150px]">{item.diajukan_oleh}</p>
-                      <span className="text-[9px] font-black px-2 py-0.5 mt-1 rounded bg-orange-50 text-orange-600 max-w-fit">
+                  <div key={item.id} className="flex items-center justify-between px-2.5 py-2 hover:bg-gray-50/50 rounded-xl transition-colors group">
+                    <div className="flex flex-col gap-0.5">
+                      <p className="text-[11px] font-black text-gray-900">{item.no_quotation || item.keterangan || `REQ-2025-${item.id.toString().padStart(3, '0')}`}</p>
+                      <p className="text-[9px] text-gray-500 font-medium truncate max-w-[150px]">{item.diajukan_oleh}</p>
+                      <span className="text-[8px] font-black px-1.5 py-0.5 mt-0.5 rounded bg-orange-50 text-orange-600 max-w-fit">
                         {item.tipe === 'quotation_to_invoice' ? 'INV' : (item.tipe?.includes('po') ? 'PO' : 'REQ')}
                       </span>
                     </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <p className="text-xs font-black text-gray-900">{fmt(item.nominal || 0)}</p>
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => handleApproval(item.id, 'rejected')} className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors tooltip" title="Tolak">
-                          <X size={14} strokeWidth={3} />
+                    <div className="flex flex-col items-end gap-1.5">
+                      <p className="text-[11px] font-black text-gray-900">{fmt(item.nominal || 0)}</p>
+                      <div className="flex items-center gap-1.5">
+                        <button onClick={() => handleApproval(item.id, 'rejected')} className="p-1 bg-red-50 hover:bg-red-100 text-red-600 rounded transition-colors tooltip" title="Tolak">
+                          <X size={10} strokeWidth={3} />
                         </button>
-                        <button onClick={() => handleApproval(item.id, 'approved')} className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded-lg transition-colors tooltip" title="Setujui">
-                          <Check size={14} strokeWidth={3} />
+                        <button onClick={() => handleApproval(item.id, 'approved')} className="p-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded transition-colors tooltip" title="Setujui">
+                          <Check size={10} strokeWidth={3} />
                         </button>
                       </div>
                     </div>
@@ -217,28 +259,28 @@ export default function OwnerDashboard() {
             </div>
 
             {/* COL 2: Panel Permintaan Stok */}
-            <div className="flex-1 bg-white rounded-3xl border border-gray-100 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] flex flex-col overflow-hidden">
-              <div className="flex items-center justify-between px-6 py-5 border-b border-gray-50 shrink-0">
-                <h3 className="text-base font-black text-gray-900">Permintaan Stok</h3>
-                <button onClick={() => navigate('/permintaan-stok')} className="text-xs text-blue-600 font-bold hover:underline">Lihat semua</button>
+            <div className="flex-1 bg-white rounded-2xl border border-gray-100 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] flex flex-col overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-50 shrink-0">
+                <h3 className="text-xs font-black text-gray-900">Permintaan Stok</h3>
+                <button onClick={() => navigate('/permintaan-stok')} className="text-[9px] text-blue-600 font-bold hover:underline">Lihat semua</button>
               </div>
-              <div className="flex-1 overflow-y-auto divide-y divide-gray-50 p-2 max-h-[350px] custom-scrollbar">
+              <div className="flex-1 overflow-y-auto divide-y divide-gray-50 p-1.5 max-h-[170px] custom-scrollbar">
                 {permintaan.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full gap-2 py-10">
-                    <CheckCircle size={32} className="text-green-400" />
-                    <p className="text-sm font-bold text-gray-400">Tidak ada permintaan</p>
+                  <div className="flex flex-col items-center justify-center h-full gap-2 py-4">
+                    <CheckCircle size={20} className="text-green-400" />
+                    <p className="text-[11px] font-bold text-gray-400">Tidak ada permintaan</p>
                   </div>
                 ) : permintaan.map(item => (
-                  <div key={item.id} className="flex items-center justify-between px-4 py-4 hover:bg-gray-50/50 rounded-xl transition-colors">
-                    <div className="flex flex-col gap-1">
-                      <p className="text-xs font-black text-gray-900">REQ-2025-{item.id.toString().padStart(3, '0')}</p>
-                      <p className="text-[10px] text-gray-500 font-medium truncate max-w-[150px]">{item.nama_barang}</p>
-                      <span className="text-[9px] font-black px-2 py-0.5 mt-1 rounded bg-blue-50 text-blue-600 max-w-fit">Baru</span>
+                  <div key={item.id} className="flex items-center justify-between px-2.5 py-2 hover:bg-gray-50/50 rounded-xl transition-colors">
+                    <div className="flex flex-col gap-0.5">
+                      <p className="text-[11px] font-black text-gray-900">REQ-2025-{item.id.toString().padStart(3, '0')}</p>
+                      <p className="text-[9px] text-gray-500 font-medium truncate max-w-[150px]">{item.nama_barang}</p>
+                      <span className="text-[8px] font-black px-1.5 py-0.5 mt-0.5 rounded bg-blue-50 text-blue-600 max-w-fit">Baru</span>
                     </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <p className="text-xs font-black text-gray-900">{item.jumlah} <span className="text-[10px] text-gray-500 font-medium">pcs</span></p>
-                      <button onClick={() => handleApprovePermintaan(item.id)} className="flex items-center gap-1 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 text-[10px] font-black rounded-lg transition-colors">
-                        <Check size={12} strokeWidth={3} /> Setujui
+                    <div className="flex flex-col items-end gap-1.5">
+                      <p className="text-[11px] font-black text-gray-900">{item.jumlah} <span className="text-[9px] text-gray-500 font-medium">pcs</span></p>
+                      <button onClick={() => handleApprovePermintaan(item.id)} className="flex items-center gap-1 px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 text-[8px] font-black rounded transition-colors">
+                        <Check size={8} strokeWidth={3} /> Setujui
                       </button>
                     </div>
                   </div>
@@ -247,29 +289,29 @@ export default function OwnerDashboard() {
             </div>
 
             {/* COL 3: Revenue vs Expense Chart */}
-            <div className="flex-1 bg-white rounded-3xl border border-gray-100 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] flex flex-col p-6 overflow-hidden">
-              <div className="flex items-center justify-between mb-6 shrink-0">
-                <h3 className="text-base font-black text-gray-900">Revenue vs Expense</h3>
-                <div className="flex items-center gap-1 text-xs font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded-lg">
-                  Bulan Ini <ChevronDown size={12} />
+            <div className="flex-1 bg-white rounded-2xl border border-gray-100 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] flex flex-col p-4 overflow-hidden">
+              <div className="flex items-center justify-between mb-1.5 shrink-0">
+                <h3 className="text-xs font-black text-gray-900">Revenue vs Expense</h3>
+                <div className="flex items-center gap-1 text-[9px] font-bold text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded-lg">
+                  Bulan Ini <ChevronDown size={8} />
                 </div>
               </div>
               
-              <div className="flex justify-end gap-4 mb-4">
-                 <div className="flex items-center gap-1.5"><div className="w-2 h-2 bg-emerald-500 rounded-sm"></div><span className="text-[10px] font-bold text-gray-600">Revenue</span></div>
-                 <div className="flex items-center gap-1.5"><div className="w-2 h-2 bg-red-500 rounded-sm"></div><span className="text-[10px] font-bold text-gray-600">Expense</span></div>
+              <div className="flex justify-end gap-3 mb-1.5">
+                 <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 bg-emerald-500 rounded-sm"></div><span className="text-[8px] font-bold text-gray-600">Revenue</span></div>
+                 <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 bg-red-500 rounded-sm"></div><span className="text-[8px] font-bold text-gray-600">Expense</span></div>
               </div>
 
-              <div className="h-[200px] w-full shrink-0">
+              <div className="h-[140px] w-full shrink-0">
                 {chartData.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} margin={{ top: 0, right: 0, left: -25, bottom: 0 }}>
+                    <BarChart data={chartData} margin={{ top: 0, right: 0, left: -30, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="month" tick={{ fontSize: 9, fill: '#9ca3af', fontWeight: 600 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 9, fill: '#9ca3af', fontWeight: 600 }} tickFormatter={v => `${(v / 1e6).toFixed(0)}M`} axisLine={false} tickLine={false} />
-                      <Tooltip cursor={{ fill: '#f8fafc' }} formatter={v => fmt(v)} contentStyle={{ borderRadius: '12px', fontSize: '11px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }} />
-                      <Bar dataKey="revenue" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={12} />
-                      <Bar dataKey="expense" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={12} />
+                      <XAxis dataKey="month" tick={{ fontSize: 8, fill: '#9ca3af', fontWeight: 600 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 8, fill: '#9ca3af', fontWeight: 600 }} tickFormatter={v => `${(v / 1e6).toFixed(0)}M`} axisLine={false} tickLine={false} />
+                      <Tooltip cursor={{ fill: '#f8fafc' }} formatter={v => fmt(v)} contentStyle={{ borderRadius: '10px', fontSize: '10px', border: 'none', boxShadow: '0 4px 15px rgba(0,0,0,0.08)' }} />
+                      <Bar dataKey="revenue" fill="#10b981" radius={[2, 2, 0, 0]} maxBarSize={8} />
+                      <Bar dataKey="expense" fill="#ef4444" radius={[2, 2, 0, 0]} maxBarSize={8} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
@@ -280,16 +322,16 @@ export default function OwnerDashboard() {
               </div>
 
               {/* Chart Summaries */}
-              <div className="mt-6 flex items-center justify-between border-t border-gray-50 pt-4">
+              <div className="mt-2 flex items-center justify-between border-t border-gray-50 pt-2">
                 <div>
-                  <p className="text-[10px] font-bold text-gray-500 mb-1">Total Revenue</p>
-                  <p className="text-sm font-black text-gray-900">{fmtCompact(data?.totalRevenue)}</p>
-                  <p className="text-[10px] font-black text-emerald-500 mt-1">▲ {growth.revenue}</p>
+                  <p className="text-[8px] font-bold text-gray-500 mb-0.5">Total Revenue</p>
+                  <p className="text-xs font-black text-gray-900">{fmtCompact(data?.totalRevenue)}</p>
+                  <p className="text-[8px] font-black text-emerald-500 mt-0.5">▲ {growth.revenue}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-gray-500 mb-1">Total Expense</p>
-                  <p className="text-sm font-black text-gray-900">{fmtCompact(data?.totalExpense)}</p>
-                  <p className="text-[10px] font-black text-red-500 mt-1">▼ {growth.expense.replace('-','')}</p>
+                  <p className="text-[8px] font-bold text-gray-500 mb-0.5">Total Expense</p>
+                  <p className="text-xs font-black text-gray-900">{fmtCompact(data?.totalExpense)}</p>
+                  <p className="text-[8px] font-black text-red-500 mt-0.5">▼ {growth.expense.replace('-','')}</p>
                 </div>
               </div>
             </div>
@@ -297,25 +339,25 @@ export default function OwnerDashboard() {
           </div>
 
           {/* ROW 3 — Menu Cepat (Quick Menu) */}
-          <div className="mt-4">
-            <h3 className="text-base font-black text-gray-900 mb-4">Menu Cepat</h3>
-            <div className="grid grid-cols-4 sm:grid-cols-4 lg:grid-cols-8 gap-4">
+          <div className="mt-auto pt-2 pb-2">
+            <h3 className="text-xs font-black text-gray-900 mb-2">Menu Cepat</h3>
+            <div className="grid grid-cols-4 sm:grid-cols-4 lg:grid-cols-8 gap-3">
               {[
-                { label: 'Finance', path: '/finance', color: 'text-blue-600', bg: 'bg-blue-50', icon: <DollarSign size={24} /> },
-                { label: 'Approval', path: '/finance/approval', color: 'text-amber-500', bg: 'bg-amber-50', icon: <Shield size={24} /> },
-                { label: 'Invoice', path: '/invoice', color: 'text-red-500', bg: 'bg-red-50', icon: <FileText size={24} /> },
-                { label: 'Gudang', path: '/gudang', color: 'text-emerald-500', bg: 'bg-emerald-50', icon: <Package size={24} /> },
-                { label: 'Req Stok', path: '/permintaan-stok', color: 'text-purple-500', bg: 'bg-purple-50', icon: <Package size={24} /> },
-                { label: 'Mkt Online', path: '/marketing-online/dashboard', color: 'text-sky-500', bg: 'bg-sky-50', icon: <TrendingUp size={24} /> },
-                { label: 'Mkt Offline', path: '/marketing-offline/dashboard', color: 'text-indigo-500', bg: 'bg-indigo-50', icon: <TrendingUp size={24} /> },
-                { label: 'Monitoring', path: '/it/dashboard', color: 'text-gray-600', bg: 'bg-gray-100', icon: <Activity size={24} /> },
+                { label: 'Finance', path: '/finance', color: 'text-[#990000] group-hover:text-white', bg: 'bg-red-50 group-hover:bg-[#990000]', icon: <DollarSign size={24} /> },
+                { label: 'Approval', path: '/finance/approval', color: 'text-gray-900 group-hover:text-white', bg: 'bg-gray-100 group-hover:bg-gray-900', icon: <Shield size={24} /> },
+                { label: 'Invoice', path: '/invoice', color: 'text-[#990000] group-hover:text-white', bg: 'bg-red-50 group-hover:bg-[#990000]', icon: <FileText size={24} /> },
+                { label: 'Gudang', path: '/gudang', color: 'text-gray-900 group-hover:text-white', bg: 'bg-gray-100 group-hover:bg-gray-900', icon: <Package size={24} /> },
+                { label: 'Req Stok', path: '/permintaan-stok', color: 'text-[#990000] group-hover:text-white', bg: 'bg-red-50 group-hover:bg-[#990000]', icon: <Package size={24} /> },
+                { label: 'Mkt Online', path: '/marketing-online/dashboard', color: 'text-gray-900 group-hover:text-white', bg: 'bg-gray-100 group-hover:bg-gray-900', icon: <TrendingUp size={24} /> },
+                { label: 'Mkt Offline', path: '/marketing-offline/dashboard', color: 'text-[#990000] group-hover:text-white', bg: 'bg-red-50 group-hover:bg-[#990000]', icon: <TrendingUp size={24} /> },
+                { label: 'Monitoring', path: '/it/dashboard', color: 'text-gray-900 group-hover:text-white', bg: 'bg-gray-100 group-hover:bg-gray-900', icon: <Activity size={24} /> },
               ].map((m, i) => (
                 <button
                   key={i}
                   onClick={() => navigate(m.path)}
-                  className="bg-white border border-gray-100 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-3 hover:shadow-md hover:-translate-y-1 transition-all group"
+                  className="bg-white border border-gray-100 shadow-sm rounded-2xl p-4 flex flex-col items-center justify-center gap-3 hover:shadow-md hover:-translate-y-1 transition-all duration-300 group"
                 >
-                  <div className={`w-12 h-12 rounded-xl ${m.bg} ${m.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                  <div className={`w-12 h-12 rounded-xl ${m.bg} ${m.color} flex items-center justify-center group-hover:scale-110 transition-all duration-300`}>
                     {m.icon}
                   </div>
                   <span className="text-[10px] font-black text-gray-700">{m.label}</span>
@@ -323,14 +365,7 @@ export default function OwnerDashboard() {
               ))}
             </div>
           </div>
-          
-          <div className="mt-6 flex items-center justify-between text-gray-400 text-[10px] font-bold pb-4">
-             <span>© 2026 Tanaka Management System</span>
-             <div className="flex items-center gap-4">
-                <span>v1.0.0</span>
-                <span>{new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
-             </div>
-          </div>
+
 
         </div>
       </main>

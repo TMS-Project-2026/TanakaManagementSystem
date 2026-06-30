@@ -6,7 +6,7 @@ import * as XLSX from 'xlsx';
 import { shopeeDataAdapter } from '../utils/shopeeAdapter';
 import { getStok, createPermintaanStok } from '../api/gudangApi';
 import {
-  LayoutDashboard, ShoppingBag, Package, FileText, Upload, Gift,
+  LayoutDashboard, ShoppingBag, Package, FileText, Upload, Download, Gift,
   TrendingUp, Users, DollarSign, Calendar, Search, Loader2,
   CheckCircle, AlertTriangle, ArrowRight, X, Send, UserCircle, Plus, ChevronDown, PieChart
 } from 'lucide-react';
@@ -1273,10 +1273,10 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
       {!embedded && <Sidebar />}
       <main className="flex-1 flex flex-col pt-16 md:pt-0 h-screen overflow-hidden">
         {/* TOPBAR SEARCH & PROFILE */}
-        <header className={`h-20 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center px-10 sticky top-0 z-30 shrink-0 ${activeTab !== 'dashboard' ? 'justify-between' : 'justify-end'}`}>
+        <header className={`h-12 bg-white border-b border-gray-200 flex items-center px-5 sticky top-0 z-30 shrink-0 ${activeTab !== 'dashboard' ? 'justify-between' : 'justify-end'}`}>
           {activeTab !== 'dashboard' && (
-            <div className="relative w-full max-w-lg">
-              <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            <div className="relative w-full max-w-md">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input
                 type="text"
                 placeholder={
@@ -1296,21 +1296,19 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                     setSearchQuery(e.target.value);
                   }
                 }}
-                className="w-full pl-14 pr-6 py-3 bg-gray-50 border border-gray-100 rounded-full text-sm focus:outline-none focus:ring-4 focus:ring-red-50 focus:bg-white focus:border-red-200 transition-all shadow-inner"
+                className="w-full pl-10 pr-4 py-1.5 bg-gray-50 border border-gray-100 rounded-full text-xs focus:outline-none focus:ring-4 focus:ring-red-50 focus:bg-white focus:border-red-200 transition-all shadow-inner"
               />
             </div>
           )}
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-2xl border border-gray-100">
-              <div className="bg-gray-100 p-2 rounded-full cursor-pointer hover:bg-gray-200 transition-colors" onClick={() => setShowProfile(!showProfile)}>
-                <UserCircle className="text-gray-400" size={24} />
-              </div>
-              <ChevronDown size={14} className="text-gray-400" />
+            <div className="relative flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => setShowProfile(!showProfile)}>
+              <UserCircle className="text-gray-400" size={20} />
+              <ChevronDown size={12} className="text-gray-400" />
               {showProfile && (
-                <div className="absolute right-10 top-16 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                  <div className="p-4 bg-red-50/50">
-                    <p className="text-sm font-black text-gray-900">{JSON.parse(localStorage.getItem('user'))?.nama || JSON.parse(localStorage.getItem('user'))?.username || 'Admin'}</p>
-                    <p className="text-[10px] font-bold text-[#990000] uppercase tracking-wider mt-0.5">{(JSON.parse(localStorage.getItem('user'))?.role || '').replace('_', ' ')}</p>
+                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-150 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                  <div className="p-3 bg-red-50/50">
+                    <p className="text-xs font-black text-gray-900">{JSON.parse(localStorage.getItem('user'))?.nama || JSON.parse(localStorage.getItem('user'))?.username || 'Admin'}</p>
+                    <p className="text-[9px] font-bold text-[#990000] uppercase tracking-wider mt-0.5">{(JSON.parse(localStorage.getItem('user'))?.role || '').replace('_', ' ')}</p>
                   </div>
                 </div>
               )}
@@ -1319,12 +1317,12 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto px-6 pb-6 bg-[#f3f4f6] pt-6">
-          <div className={activeTab === 'dashboard' ? '' : 'bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100'}>
+        <div className="flex-1 overflow-y-auto px-5 pb-4 bg-[#f3f4f6] pt-4">
+          <div className={activeTab === 'dashboard' ? '' : 'bg-white p-4 min-h-full rounded-xl shadow-sm border border-gray-100'}>
             {/* Dynamic Header Module Title */}
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-4">
               <div>
-                <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-tight flex items-center gap-3">
+                <h1 className="text-lg md:text-xl font-black text-gray-900 tracking-tight leading-tight flex items-center gap-3">
                   {activeTab === 'dashboard' && (
                     <>
                       <div className="bg-red-50 border border-red-100 p-2 rounded-lg shadow-sm">
@@ -1390,7 +1388,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                       onClick={() => fileInputRef.current?.click()}
                       className="flex items-center gap-2 bg-[#059669] text-white px-4 py-2.5 rounded-xl text-xs font-black hover:bg-emerald-700 transition-all active:scale-95 shadow-lg shadow-emerald-100"
                     >
-                      <Upload size={18} /> Import Shopee
+                      <Download size={18} /> Import Shopee
                     </button>
                     <button
                       onClick={() => {
@@ -1414,74 +1412,74 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
 
           {/* TAB: DASHBOARD (As per User Screenshot) */}
           {activeTab === 'dashboard' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
-              {/* Summary Cards Grid (3 Columns) - Compact Version */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-6 duration-700">
+              {/* Summary Cards Grid (6 Columns) - Compact Version */}
+              <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 shrink-0">
                 {[
-                  { title: 'Revenue (Bulan Ini)', value: formatRupiah(dashboardData.monthlySummary.totalRevenue), icon: <DollarSign size={16} className="text-white" /> },
-                  { title: 'Total Profit', value: formatRupiah(dashboardData.monthlySummary.totalProfit), icon: <TrendingUp size={16} className="text-white" /> },
-                  { title: 'Total HPP', value: formatRupiah(dashboardData.monthlySummary.totalHpp), icon: <PieChart size={16} className="text-white" /> },
-                  { title: 'Qty Terjual', value: `${dashboardData.monthlySummary.totalQty || 0} Pcs`, icon: <Package size={16} className="text-white" /> },
-                  { title: 'Potongan Shopee', value: formatRupiah(dashboardData.monthlySummary.totalPotongan), icon: <Gift size={16} className="text-white" /> },
-                  { title: 'Order Hari Ini', value: `${dashboardData.ordersToday} Pesanan`, icon: <ShoppingBag size={16} className="text-white" /> }
+                  { title: 'Revenue (Bulan Ini)', value: formatRupiah(dashboardData.monthlySummary.totalRevenue), icon: <DollarSign size={11} className="text-white" /> },
+                  { title: 'Total Profit', value: formatRupiah(dashboardData.monthlySummary.totalProfit), icon: <TrendingUp size={11} className="text-white" /> },
+                  { title: 'Total HPP', value: formatRupiah(dashboardData.monthlySummary.totalHpp), icon: <PieChart size={11} className="text-white" /> },
+                  { title: 'Qty Terjual', value: `${dashboardData.monthlySummary.totalQty || 0} Pcs`, icon: <Package size={11} className="text-white" /> },
+                  { title: 'Potongan Shopee', value: formatRupiah(dashboardData.monthlySummary.totalPotongan), icon: <Gift size={11} className="text-white" /> },
+                  { title: 'Order Hari Ini', value: `${dashboardData.ordersToday} Pesanan`, icon: <ShoppingBag size={11} className="text-white" /> }
                 ].map((card, index) => (
-                  <div key={index} className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 border-l-[6px] border-l-[#990000] flex flex-col justify-center transition-all hover:-translate-y-1 hover:shadow-md min-h-[110px]">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-[30px] h-[30px] rounded-full bg-[#990000] flex items-center justify-center shrink-0 shadow-sm shadow-red-900/20">
+                  <div key={index} className="bg-white rounded-[12px] p-2.5 shadow-sm border border-gray-100 border-l-[4px] border-l-[#990000] flex flex-col justify-center transition-all hover:-translate-y-0.5 hover:shadow-md min-h-[72px]">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-[20px] h-[20px] rounded-full bg-[#990000] flex items-center justify-center shrink-0 shadow-sm shadow-red-900/20">
                         {card.icon}
                       </div>
-                      <p className="text-[12px] font-bold text-gray-500 tracking-wider uppercase truncate">{card.title || card.label}</p>
+                      <p className="text-[9px] font-bold text-gray-500 tracking-wider uppercase truncate">{card.title || card.label}</p>
                     </div>
-                    <h3 className="text-2xl font-black text-gray-900 leading-tight truncate">{card.value}</h3>
-                    {card.sub && <p className="text-[11px] mt-1 font-medium text-gray-400 truncate">{card.sub}</p>}
+                    <h3 className="text-base font-black text-gray-900 leading-tight truncate">{card.value}</h3>
+                    {card.sub && <p className="text-[8px] mt-0.5 font-medium text-gray-400 truncate">{card.sub}</p>}
                   </div>
                 ))}
               </div>
 
               {/* Charts Section */}
-              <div className={`grid grid-cols-1 ${isOwner ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-6`}>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {/* Sales Trend - Line Chart (2/3 width) */}
-                <div className={`${isOwner ? 'lg:col-span-2' : 'lg:col-span-2'} bg-white p-4 rounded-xl shadow-sm border border-gray-100`}>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                      <TrendingUp className="text-[#990000]" size={16} /> Tren Penjualan (30 Hari Terakhir)
+                <div className="lg:col-span-2 bg-white p-3 rounded-xl shadow-sm border border-gray-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-xs font-bold text-gray-800 flex items-center gap-2">
+                      <TrendingUp className="text-[#990000]" size={14} /> Tren Penjualan (30 Hari Terakhir)
                     </h3>
                   </div>
-                  <div className="h-[220px] w-full">
+                  <div className="h-[160px] w-full">
                     {dashboardData.salesChart.length > 0 ? (
                       <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={dashboardData.salesChart}>
+                        <LineChart data={dashboardData.salesChart} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                           <XAxis
                             dataKey="order_date"
                             tickFormatter={formatDate}
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fontSize: 11, fill: '#64748b' }}
+                            tick={{ fontSize: 9, fill: '#64748b' }}
                             angle={-45}
                             textAnchor="end"
-                            height={60}
+                            height={40}
                           />
                           <YAxis
                             axisLine={false}
                             tickLine={false}
                             tickFormatter={(val) => `Rp ${val / 1000}k`}
-                            tick={{ fontSize: 12, fill: '#64748b' }}
+                            tick={{ fontSize: 9, fill: '#64748b' }}
                           />
                           <RechartsTooltip
                             formatter={(value) => formatRupiah(value)}
                             labelFormatter={(label) => formatDate(label)}
                             contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                           />
-                          <Legend />
+                          <Legend wrapperStyle={{ fontSize: 9 }} />
                           <Line
                             type="monotone"
                             dataKey="revenue"
                             name="Revenue"
                             stroke="#990000"
-                            strokeWidth={4}
-                            dot={{ r: 4, fill: '#990000', strokeWidth: 2, stroke: '#fff' }}
-                            activeDot={{ r: 6 }}
+                            strokeWidth={2.5}
+                            dot={{ r: 2, fill: '#990000', strokeWidth: 1.5, stroke: '#fff' }}
+                            activeDot={{ r: 4 }}
                           />
                         </LineChart>
                       </ResponsiveContainer>
@@ -1492,12 +1490,12 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                 </div>
 
                 {/* Top Products vs Sales - Ranking List */}
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col">
-                  <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <Package className="text-orange-500" size={16} /> Top 5 Produk
+                <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex flex-col">
+                  <h3 className="text-xs font-bold text-gray-800 mb-2 flex items-center gap-2">
+                    <Package className="text-orange-500" size={14} /> Top 5 Produk
                   </h3>
                   {dashboardData.topProducts.length > 0 ? (
-                    <div className="space-y-3">
+                    <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1 custom-scrollbar">
                       {dashboardData.topProducts.slice(0, 5).map((p, idx) => {
                         const maxQty = dashboardData.topProducts[0]?.total_qty || 1;
                         const pct = Math.round((p.total_qty / maxQty) * 100);
@@ -1554,27 +1552,6 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                     </div>
                   )}
                 </div>
-
-                {/* Approval Panel (Owner Only) */}
-                {isOwner && (
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col border-t-[3px] border-t-blue-500">
-                        <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
-                            <CheckCircle className="text-blue-500" size={16} /> Approval Diskon/Quotation
-                        </h3>
-                        <div className="space-y-3 flex-1 overflow-y-auto max-h-[190px] pr-1 custom-scrollbar">
-                            {pendingApprovals.length > 0 ? pendingApprovals.map(a => (
-                                <div key={a.id} className="p-3 bg-blue-50/50 rounded-xl border border-blue-100">
-                                    <p className="text-xs font-bold text-gray-800 mb-1 truncate">{a.reference_number}</p>
-                                    <p className="text-[10px] text-gray-500 mb-3 truncate">Rp {formatRupiah(a.amount)} | {a.request_type}</p>
-                                    <div className="flex gap-2">
-                                        <button onClick={() => handleApprove(a.id)} className="flex-1 bg-blue-600 text-white text-[10px] font-bold py-1.5 rounded hover:bg-blue-700 transition-colors">Setujui</button>
-                                        <button onClick={() => handleReject(a.id)} className="flex-1 bg-white text-red-600 border border-red-200 text-[10px] font-bold py-1.5 rounded hover:bg-red-50 transition-colors">Tolak</button>
-                                    </div>
-                                </div>
-                            )) : <div className="text-center text-xs text-gray-400 font-bold italic py-12">Tidak ada persetujuan</div>}
-                        </div>
-                    </div>
-                )}
               </div>
 
               {/* Top Toko - Persentase Kontribusi Revenue */}

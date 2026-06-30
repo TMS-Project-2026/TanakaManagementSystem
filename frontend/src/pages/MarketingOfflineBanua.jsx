@@ -753,29 +753,29 @@ export default function MarketingOfflineBanua({ embedded = false }) {
       {!embedded && <Sidebar />}
       <main className="flex-1 flex flex-col pt-16 md:pt-0 h-screen overflow-hidden">
         {/* TOPBAR SEARCH & PROFILE */}
-        <header className={`h-20 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center px-10 sticky top-0 z-30 shrink-0 ${activeTab === 'dashboard' ? 'justify-end' : 'justify-between'}`}>
+        <header className={`h-12 bg-white border-b border-gray-200 flex items-center px-5 sticky top-0 z-30 shrink-0 ${activeTab === 'dashboard' ? 'justify-end' : 'justify-between'}`}>
           {activeTab !== 'dashboard' && (
-            <div className="relative w-full max-w-lg">
-              <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            <div className="relative w-full max-w-md">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
               <input
                 type="text"
                 placeholder={`Cari data ${activeTab === 'customers' ? 'pelanggan' : activeTab === 'quotations' ? 'quotation' : activeTab === 'orders' ? 'order' : activeTab === 'inventory' ? 'stok' : 'marketing offline'}...`}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-14 pr-6 py-3 bg-gray-50 border border-gray-100 rounded-full text-sm focus:outline-none focus:ring-4 focus:ring-red-50 focus:bg-white focus:border-red-200 transition-all shadow-inner"
+                className="w-full pl-10 pr-4 py-1.5 bg-gray-50 border border-gray-100 rounded-full text-xs focus:outline-none focus:ring-4 focus:ring-red-50 focus:bg-white focus:border-red-200 transition-all shadow-inner"
               />
             </div>
           )}
           <div className="flex items-center gap-3">
             <NotificationBell />
-            <div className="relative flex items-center gap-2 bg-gray-50 px-4 py-2 rounded-2xl border border-gray-100 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => setShowProfile(!showProfile)}>
-              <UserCircle className="text-gray-400" size={24} />
-              <ChevronDown size={14} className="text-gray-400" />
+            <div className="relative flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => setShowProfile(!showProfile)}>
+              <UserCircle className="text-gray-400" size={20} />
+              <ChevronDown size={12} className="text-gray-400" />
               {showProfile && (
                 <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
-                  <div className="p-4 bg-red-50/50">
-                    <p className="text-sm font-black text-gray-900">{JSON.parse(localStorage.getItem('user'))?.nama || JSON.parse(localStorage.getItem('user'))?.username || 'Admin'}</p>
-                    <p className="text-[10px] font-bold text-[#990000] uppercase tracking-wider mt-0.5">{(JSON.parse(localStorage.getItem('user'))?.role || '').replace('_', ' ')}</p>
+                  <div className="p-3 bg-red-50/50">
+                    <p className="text-xs font-black text-gray-900">{JSON.parse(localStorage.getItem('user'))?.nama || JSON.parse(localStorage.getItem('user'))?.username || 'Admin'}</p>
+                    <p className="text-[9px] font-bold text-[#990000] uppercase tracking-wider mt-0.5">{(JSON.parse(localStorage.getItem('user'))?.role || '').replace('_', ' ')}</p>
                   </div>
                 </div>
               )}
@@ -784,12 +784,12 @@ export default function MarketingOfflineBanua({ embedded = false }) {
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto px-6 pb-6 bg-[#f3f4f6] pt-6">
-          <div className={activeTab === 'dashboard' ? '' : 'bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100'}>
+        <div className="flex-1 overflow-y-auto px-5 pb-4 bg-[#f3f4f6] pt-4">
+          <div className={activeTab === 'dashboard' ? '' : 'bg-white p-4 min-h-full rounded-xl shadow-sm border border-gray-100'}>
             {/* Dynamic Header Module Title */}
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-4">
               <div>
-                <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-tight flex items-center gap-3">
+                <h1 className="text-lg md:text-xl font-black text-gray-900 tracking-tight leading-tight flex items-center gap-3">
                   {activeTab === 'dashboard' && (
                     <>
                       <div className="bg-red-50 border border-red-100 p-2 rounded-lg shadow-sm">
@@ -876,41 +876,41 @@ export default function MarketingOfflineBanua({ embedded = false }) {
 
               {/* === TAB DASHBOARD === */}
               {activeTab === 'dashboard' && (
-                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-6 duration-700">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
                     {[
-                      { title: 'Revenue (Bulan Ini)', value: formatRupiah(dashboardData.summary.range_revenue), icon: <DollarSign size={16} className="text-white" /> },
-                      { title: 'Transaction', value: `${dashboardData.summary.total_orders || 0} Orders`, icon: <ShoppingBag size={16} className="text-white" /> },
-                      { title: 'Total Customer', value: `${dashboardData.summary.total_customers || 0} Customers`, icon: <Users size={16} className="text-white" /> },
-                      { title: 'Qty Terjual', value: `${dashboardData.summary.total_qty || 0} Pcs`, icon: <Package size={16} className="text-white" /> }
+                      { title: 'Revenue (Bulan Ini)', value: formatRupiah(dashboardData.summary.range_revenue), icon: <DollarSign size={11} className="text-white" /> },
+                      { title: 'Transaction', value: `${dashboardData.summary.total_orders || 0} Orders`, icon: <ShoppingBag size={11} className="text-white" /> },
+                      { title: 'Total Customer', value: `${dashboardData.summary.total_customers || 0} Customers`, icon: <Users size={11} className="text-white" /> },
+                      { title: 'Qty Terjual', value: `${dashboardData.summary.total_qty || 0} Pcs`, icon: <Package size={11} className="text-white" /> }
                     ].map((card, index) => (
                       <div
                         key={index}
-                        className="bg-white rounded-[20px] p-6 shadow-sm border border-gray-100 border-l-[6px] border-l-[#990000] flex flex-col justify-center transition-all hover:-translate-y-1 hover:shadow-md min-h-[110px]"
+                        className="bg-white rounded-[12px] p-2.5 shadow-sm border border-gray-100 border-l-[4px] border-l-[#990000] flex flex-col justify-center transition-all hover:-translate-y-0.5 hover:shadow-md min-h-[72px]"
                       >
-                        <div className="flex items-center gap-3 mb-2">
-                          <div className="w-[30px] h-[30px] rounded-full bg-[#990000] flex items-center justify-center shrink-0 shadow-sm shadow-red-900/20">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-[20px] h-[20px] rounded-full bg-[#990000] flex items-center justify-center shrink-0 shadow-sm shadow-red-900/20">
                             {card.icon}
                           </div>
-                          <p className="text-[12px] font-bold text-gray-500 tracking-wider uppercase truncate">{card.title || card.label}</p>
+                          <p className="text-[9px] font-bold text-gray-500 tracking-wider uppercase truncate">{card.title || card.label}</p>
                         </div>
-                        <h3 className="text-2xl font-black text-gray-900 leading-tight truncate">{card.value}</h3>
-                        {card.sub && <p className="text-[11px] mt-1 font-medium text-gray-400 truncate">{card.sub}</p>}
+                        <h3 className="text-base font-black text-gray-900 leading-tight truncate">{card.value}</h3>
+                        {card.sub && <p className="text-[8px] mt-0.5 font-medium text-gray-400 truncate">{card.sub}</p>}
                       </div>
                     ))}
                   </div>
 
-                  <div className={`grid grid-cols-1 ${isOwner ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-8`}>
+                  <div className={`grid grid-cols-1 ${isOwner ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-4`}>
                     {/* Sales Trend - Line Chart (2/3 width) */}
-                    <div className={`${isOwner ? 'lg:col-span-2' : 'lg:col-span-2'} bg-white p-4 rounded-xl shadow-sm border border-gray-100`}>
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
-                          <TrendingUp className="text-[#990000]" size={16} /> Tren Penjualan (30 Hari Terakhir)
+                    <div className={`${isOwner ? 'lg:col-span-2' : 'lg:col-span-2'} bg-white p-3 rounded-xl shadow-sm border border-gray-100`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-xs font-bold text-gray-800 flex items-center gap-2">
+                          <TrendingUp className="text-[#990000]" size={14} /> Tren Penjualan (30 Hari Terakhir)
                         </h3>
                       </div>
-                      <div className="h-[220px] w-full">
+                      <div className="h-[160px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={dashboardData?.daily || []}>
+                          <LineChart data={dashboardData?.daily || []} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                             <XAxis
                               dataKey="tanggal"
@@ -929,7 +929,7 @@ export default function MarketingOfflineBanua({ embedded = false }) {
                               axisLine={false}
                               tickLine={false}
                               tickFormatter={(val) => `Rp ${val / 1000}k`}
-                              tick={{ fontSize: 12, fill: '#64748b' }}
+                              tick={{ fontSize: 9, fill: '#64748b' }}
                             />
                             <RechartsTooltip
                               formatter={(value) => formatRupiah(value)}
@@ -946,22 +946,22 @@ export default function MarketingOfflineBanua({ embedded = false }) {
                               dataKey="pendapatan"
                               name="Revenue"
                               stroke="#990000"
-                              strokeWidth={4}
-                              dot={{ r: 4, fill: '#990000', strokeWidth: 2, stroke: '#fff' }}
-                              activeDot={{ r: 6 }}
+                              strokeWidth={2.5}
+                              dot={{ r: 2, fill: '#990000', strokeWidth: 1.5, stroke: '#fff' }}
+                              activeDot={{ r: 4 }}
                             />
                           </LineChart>
                         </ResponsiveContainer>
                       </div>
                     </div>
 
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between">
+                    <div className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex flex-col">
                       <div>
-                        <h3 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
-                          <Package className="text-orange-500" size={16} /> Top 5 Produk
+                        <h3 className="text-xs font-bold text-gray-800 mb-2 flex items-center gap-2">
+                          <Package className="text-orange-500" size={14} /> Top 5 Produk
                         </h3>
                         {orders.length > 0 ? (
-                          <div className="space-y-3">
+                          <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1 custom-scrollbar">
                             {(() => {
                               const topProducts = calculateTopProducts(orders);
                               const maxQty = topProducts[0]?.qty || 1;
@@ -1959,14 +1959,13 @@ export default function MarketingOfflineBanua({ embedded = false }) {
               <th className="p-4 font-semibold text-center w-28">Total Stok</th>
               <th className="p-4 font-semibold text-center w-32">Min. Stok</th>
               <th className="p-4 font-semibold">Rak</th>
-              <th className="p-4 font-semibold text-center">Aksi</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={8 + sizesArray.length} className="p-10 text-center"><Loader2 className="w-10 h-10 animate-spin text-[#990000] mx-auto" /></td></tr>
+              <tr><td colSpan={7 + sizesArray.length} className="p-10 text-center"><Loader2 className="w-10 h-10 animate-spin text-[#990000] mx-auto" /></td></tr>
             ) : filteredInventory.length === 0 ? (
-              <tr><td colSpan={8 + sizesArray.length} className="p-10 text-center text-gray-400 font-bold italic">Stok barang tidak ditemukan.</td></tr>
+              <tr><td colSpan={7 + sizesArray.length} className="p-10 text-center text-gray-400 font-bold italic">Stok barang tidak ditemukan.</td></tr>
             ) : (
               filteredInventory.map((item, idx) => (
                 <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50 text-sm">
@@ -1982,11 +1981,6 @@ export default function MarketingOfflineBanua({ embedded = false }) {
                   <td className="p-4 text-center font-extrabold text-red-600 text-base">{item.total_stok}</td>
                   <td className="p-4 text-center"><span className="bg-red-50 border border-red-100 text-red-700 px-2.5 py-1 rounded-full text-xs font-bold">{item.minimum_stok}</span></td>
                   <td className="p-4 font-semibold text-gray-600">{item.kode_rak}</td>
-                  <td className="p-4 text-center">
-                    <div className="flex flex-col gap-1.5">
-                      <button onClick={() => { setSelectedItemForRequest(item); setShowRequestModal(true); }} disabled={item.total_stok <= 0} className={`px-4 py-1.5 rounded-lg text-[11px] font-black w-full flex items-center justify-center gap-1 ${item.total_stok > 0 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}><Package size={12} /> Ambil Stok</button>
-                    </div>
-                  </td>
                 </tr>
               ))
             )}
