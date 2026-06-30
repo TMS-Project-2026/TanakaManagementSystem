@@ -54,7 +54,7 @@ const Sidebar = () => {
 
   const allMenuItems = [
     { name: 'Rangkuman Eksekutif', path: '/owner/dashboard', icon: <Activity size={20} />, roles: ['owner'], group: 'Owner Dashboard' },
-    
+
     { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={20} />, roles: ['Admin', 'Manager', 'Marketing'], group: 'Sales' },
     { name: 'Order Offline', path: '/marketing', icon: <Users size={20} />, roles: ['Admin', 'Manager', 'Marketing'], group: 'Sales' },
     { name: 'Order Marketplace', path: '/sales-online', icon: <ShoppingBag size={20} />, roles: ['Admin', 'Manager', 'Marketing'], group: 'Sales' },
@@ -150,7 +150,7 @@ const Sidebar = () => {
     { name: 'Suku Cadang', path: '/sparepart', icon: <Settings size={20} />, roles: ['Admin', 'Manager'], group: 'Warehouse' },
     { name: 'Warning Stok', path: '/warning-stok', icon: <AlertTriangle size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Promo', path: '/promo', icon: <Gift size={20} />, roles: ['Admin', 'Manager', 'Marketing'], group: 'Sales' },
-    { name: 'Pricelist', path: '/pricelist', icon: <Tag size={20} />, roles: ['Admin', 'Manager', 'owner', 'marketing_offline', 'marketing_offline_tanaka', 'Marketing'], group: 'Sales' },
+    { name: 'Pricelist Offline', path: '/pricelist', icon: <Tag size={20} />, roles: ['Admin', 'Manager', 'owner', 'marketing_offline', 'marketing_offline_tanaka', 'Marketing'], group: 'Sales' },
     { name: 'Finance Dashboard', path: '/finance', icon: <PieChart size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Finance' },
 
     // CASH & BANK
@@ -178,7 +178,8 @@ const Sidebar = () => {
     { name: 'Pengaturan Keuangan', path: '/finance/settings', icon: <Settings size={20} />, roles: ['Admin', 'Manager', 'Finance'], group: 'Manajemen' },
 
     // REFERENSI (KHUSUS FINANCE - POSISI BAWAH)
-    { name: 'Pricelist Harga', path: '/pricelist', icon: <Tag size={20} />, roles: ['Finance'], group: 'Referensi' },
+    { name: 'Pricelist Offline', path: '/pricelist', icon: <Tag size={20} />, roles: ['Finance'], group: 'Referensi' },
+    { name: 'Pricelist Online', path: '/pricelist-online', icon: <Tag size={20} />, roles: ['Finance'], group: 'Referensi' },
 
     { name: 'Dashboard IT', path: '/it/dashboard', icon: <Monitor size={20} />, roles: ['admin_it', 'Admin'], group: 'System' },
     { name: 'User Management', path: '/it/users', icon: <Users size={20} />, roles: ['admin_it', 'Admin'], group: 'System' },
@@ -250,7 +251,7 @@ const Sidebar = () => {
         { title: 'Stok Inventory', path: '/marketing-offline/inventory' },
         { title: 'Customer', path: '/marketing-offline/customers' },
         { title: 'Promo', path: '/marketing-offline/promo' },
-        { title: 'Pricelist', path: '/pricelist' },
+        { title: 'Pricelist Offline', path: '/pricelist' },
         {
           title: 'Report',
           path: '/marketing-offline/reports',
@@ -276,7 +277,7 @@ const Sidebar = () => {
         { title: 'Stok Inventory', path: '/marketing-offline-tanaka/inventory' },
         { title: 'Customer', path: '/marketing-offline-tanaka/customers' },
         { title: 'Promo', path: '/marketing-offline-tanaka/promo' },
-        { title: 'Pricelist', path: '/pricelist' },
+        { title: 'Pricelist Offline', path: '/pricelist' },
         {
           title: 'Report',
           path: '/marketing-offline-tanaka/reports',
@@ -334,7 +335,8 @@ const Sidebar = () => {
         { title: 'Invoice', path: '/invoice' },
         { title: 'Approval Center', path: '/finance/approval' },
         { title: 'Report Center', path: '/report/laba-rugi' },
-        { title: 'Pricelist Harga', path: '/pricelist' }
+        { title: 'Pricelist Offline', path: '/pricelist' },
+        { title: 'Pricelist Online', path: '/pricelist-online' }
       ]
     },
 
@@ -372,14 +374,14 @@ const Sidebar = () => {
     },
 
     // MENU ACCESTRET - GUDANG (identik dengan role Gudang standar)
-    { name: 'Dashboard Gudang',    path: '/accestret/gudang/dashboard', icon: <LayoutDashboard size={20} />, roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
+    { name: 'Dashboard Gudang', path: '/accestret/gudang/dashboard', icon: <LayoutDashboard size={20} />, roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
 
-    { name: 'Barang Masuk',        path: '/barang-masuk',               icon: <TrendingUp size={20} />,      roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
-    { name: 'Barang Keluar',       path: '/barang-keluar',              icon: <TrendingDown size={20} />,    roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
-    { name: 'Mutasi Barang',       path: '/mutasi',                     icon: <ArrowRightLeft size={20} />,  roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
-    { name: 'Stok Barang',         path: '/stok',                       icon: <Package size={20} />,         roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
-    { name: 'Stok Jalan',          path: '/stok-jalan',                 icon: <Layers size={20} />,          roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
-    { name: 'Warning Stok',        path: '/warning-stok',               icon: <AlertTriangle size={20} />,   roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
+    { name: 'Barang Masuk', path: '/barang-masuk', icon: <TrendingUp size={20} />, roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
+    { name: 'Barang Keluar', path: '/barang-keluar', icon: <TrendingDown size={20} />, roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
+    { name: 'Mutasi Barang', path: '/mutasi', icon: <ArrowRightLeft size={20} />, roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
+    { name: 'Stok Barang', path: '/stok', icon: <Package size={20} />, roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
+    { name: 'Stok Jalan', path: '/stok-jalan', icon: <Layers size={20} />, roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
+    { name: 'Warning Stok', path: '/warning-stok', icon: <AlertTriangle size={20} />, roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
 
     // MENU ACCESTRET - PRODUKSI
     { name: 'Dashboard Produksi', path: '/accestret/produksi/dashboard', icon: <LayoutDashboard size={20} />, roles: ['produksi_accestret', 'owner', 'Manager', 'Admin'], group: 'Produksi Accestret' },
@@ -447,8 +449,8 @@ const Sidebar = () => {
 
         {/* --- LOGO & NOTIFICATION SECTION --- */}
         <div className="p-5 flex items-center justify-between mb-2">
-          <div 
-            className="flex items-center gap-3 cursor-pointer" 
+          <div
+            className="flex items-center gap-3 cursor-pointer"
             onClick={() => navigate(userRole.toLowerCase() === 'owner' ? '/owner/dashboard' : '/dashboard')}
           >
             <img
@@ -474,8 +476,8 @@ const Sidebar = () => {
                 return matchDirect || matchNested || (sub.path && sub.path !== '/' && location.pathname.startsWith(sub.path + '/'));
               });
               const isActive = location.pathname === item.path || (item.path && item.path !== '/' && item.path !== '/gudang' && item.path !== '/finance' && location.pathname.startsWith(item.path + '/')) || hasActiveChild;
-              const isExpanded = expandedMenus[item.name] !== undefined 
-                ? expandedMenus[item.name] 
+              const isExpanded = expandedMenus[item.name] !== undefined
+                ? expandedMenus[item.name]
                 : (hasActiveChild || (item.path && location.pathname.startsWith(item.path) && item.path !== '/finance'));
               const showGroupLabel = item.group && item.group !== currentGroup;
               if (showGroupLabel) currentGroup = item.group;
@@ -533,8 +535,8 @@ const Sidebar = () => {
                         const hasNestedActiveChild = sub.subMenu && sub.subMenu.some(nested => location.pathname === nested.path || location.pathname.startsWith(nested.path + '/'));
                         const isSubActive = location.pathname === (sub.path || '') || hasNestedActiveChild || (sub.path && sub.path !== '/' && sub.path !== '/finance' && sub.path !== '/gudang' && location.pathname.startsWith(sub.path + '/'));
                         const expandedKey = item.name + '_' + sub.title;
-                        const isSubExpanded = expandedMenus[expandedKey] !== undefined 
-                          ? expandedMenus[expandedKey] 
+                        const isSubExpanded = expandedMenus[expandedKey] !== undefined
+                          ? expandedMenus[expandedKey]
                           : (hasNestedActiveChild || (sub.path && location.pathname.startsWith(sub.path) && !sub.path.endsWith('/reports')));
 
                         return (
