@@ -386,7 +386,7 @@ export default function PengaturanKeuangan() {
         <div className="flex-1 overflow-y-auto px-4 sm:px-10 pb-10">
           <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100 flex flex-col">
             <div className="mb-8">
-              <h1 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">Pengaturan Keuangan</h1>
+              <h1 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3">Pengaturan Keuangan</h1>
               <p className="text-gray-500 font-medium mt-1 text-sm">Konfigurasi rekening bank, petty cash, periode akuntansi, dan notifikasi sistem.</p>
             </div>
             <div className="flex flex-wrap gap-1 border-b border-gray-200 mb-6">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import api from '../api/axios';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import NotificationBell from '../components/NotificationBell';
@@ -231,10 +232,20 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
   const fetchInventory = async () => {
     setLoading(true);
     try {
-      const res = await getStok();
-      const rawData = (res.data?.data || res.data || []);
+      const [resStok, resOnline, resOffline] = await Promise.all([
+        getStok(),
+        api.get('/pricelist-online'),
+        api.get('/produk')
+      ]);
+      
+      const rawData = resStok.data?.data || resStok.data || [];
+      const onlinePricelist = resOnline.data?.data || resOnline.data || [];
+      const offlinePricelist = resOffline.data?.data || resOffline.data || [];
+      const combinedPricelist = [...onlinePricelist, ...offlinePricelist];
+      
       const sizesArray = ['XS','S','M','L','XL','XXL','XXXL','XXXXL','XXXXXL','All Size'];
       const grouped = {};
+      
       rawData.forEach(item => {
         const kode   = (item.kode_produk || '').trim().toLowerCase();
         const nama   = (item.nama_barang || item.product_name || '').trim().toLowerCase();
@@ -264,7 +275,54 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
           grouped[key].minimum_stok = item.minimum_stok;
         }
       });
-      setInventory(Object.values(grouped));
+      
+      const groupedList = Object.values(grouped);
+      
+      combinedPricelist.forEach(p => {
+        const pKode = (p.kode || '').toLowerCase().trim();
+        const pNama = (p.nama_produk || '').toLowerCase().trim();
+        
+        const exists = groupedList.some(s => 
+          (pKode && (s.kode_produk || '').toLowerCase().trim() === pKode) ||
+          (pNama && (s.nama_barang || '').toLowerCase().trim() === pNama)
+        );
+        
+        if (!exists) {
+          groupedList.push({
+            id: `temp-${p.kode || p.nama_produk}`,
+            kode_produk: p.kode || '-',
+            nama_brand: p.grup_produk || '-',
+            nama_barang: p.nama_produk,
+            bahan: p.bahan || '-',
+            kategori: p.jenis || p.kategori || '-',
+            cabang_id: 'Global',
+            kode_rak: '-',
+            total_stok: 0,
+            minimum_stok: 5,
+            sizes: sizesArray.reduce((obj, sz) => { obj[sz] = { qty: 0, id: null }; return obj; }, {})
+          });
+        }
+      });
+      
+      const finalInventory = groupedList.map(item => {
+        const itemKode = item.kode_produk?.toUpperCase().trim();
+        const itemNama = item.nama_barang?.toLowerCase().trim();
+        
+        const match = combinedPricelist.find(p => 
+          (itemKode && p.kode?.toUpperCase().trim() === itemKode) ||
+          (itemNama && p.nama_produk?.toLowerCase().trim() === itemNama)
+        );
+        
+        return {
+          ...item,
+          kode_produk: match ? match.kode : item.kode_produk,
+          kategori: match ? (match.jenis || match.kategori) : item.kategori,
+          nama_barang: match ? match.nama_produk : item.nama_barang,
+          bahan: match ? (match.bahan || '-') : item.bahan
+        };
+      });
+      
+      setInventory(finalInventory);
     } catch (err) { console.error(err); } finally { setLoading(false); }
   };
 
@@ -1949,10 +2007,9 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
           <thead className="bg-gray-900 text-xs text-white uppercase tracking-wider font-semibold sticky top-0 z-10">
             <tr>
               <th className="p-4 font-semibold">Kode</th>
-              <th className="p-4 font-semibold">Kategori</th>
+              <th className="p-4 font-semibold">Jenis</th>
               <th className="p-4 font-semibold">Nama Produk</th>
               <th className="p-4 font-semibold">Bahan</th>
-              <th className="p-4 font-semibold">Cabang</th>
               {sizesArray.map(size => (
                 <th key={size} className="p-4 font-semibold text-center w-20">{size}</th>
               ))}
@@ -1963,17 +2020,16 @@ export default function MarketingOfflineTanaka({ embedded = false }) {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={7 + sizesArray.length} className="p-10 text-center"><Loader2 className="w-10 h-10 animate-spin text-[#990000] mx-auto" /></td></tr>
+              <tr><td colSpan={6 + sizesArray.length} className="p-10 text-center"><Loader2 className="w-10 h-10 animate-spin text-[#990000] mx-auto" /></td></tr>
             ) : filteredInventory.length === 0 ? (
-              <tr><td colSpan={7 + sizesArray.length} className="p-10 text-center text-gray-400 font-bold italic">Stok barang tidak ditemukan.</td></tr>
+              <tr><td colSpan={6 + sizesArray.length} className="p-10 text-center text-gray-400 font-bold italic">Stok barang tidak ditemukan.</td></tr>
             ) : (
               filteredInventory.map((item, idx) => (
                 <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50 text-sm">
                   <td className="p-4 font-bold text-[#990000]">{item.kode_produk}</td>
-                  <td className="p-4"><span className={`px-2 py-0.5 rounded text-[11px] font-bold ${item.kategori === 'Utama' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-gray-100 text-gray-600'}`}>{item.kategori}</span></td>
+                  <td className="p-4"><span className="px-2 py-0.5 rounded text-[11px] font-bold bg-gray-100 text-gray-600">{item.kategori}</span></td>
                   <td className="p-4 font-bold text-gray-800">{item.nama_barang}</td>
                   <td className="p-4 text-gray-500">{item.bahan}</td>
-                  <td className="p-4">{item.cabang_id}</td>
                   {sizesArray.map(size => {
                     const qty = item.sizes[size]?.qty || 0;
                     return <td key={size} className="p-4 text-center border-x border-gray-100 font-extrabold text-gray-800">{qty > 0 ? qty : <span className="text-gray-300 font-normal">-</span>}</td>

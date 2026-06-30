@@ -2,9 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { getStokJalan, createStokJalan, updateStokJalan, deleteStokJalan } from '../api/stokJalanApi';
 import { Search, Filter, Plus, Edit, Trash2, X, Layers, Calendar, UserCircle, Trash } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
+import api from '../api/axios';
 
 const StokJalan = () => {
     const [dataStokJalan, setDataStokJalan] = useState([]);
+    const [pricelist, setPricelist] = useState([]);
+    const [offlinePricelist, setOfflinePricelist] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('');
@@ -28,6 +31,7 @@ const StokJalan = () => {
 
     useEffect(() => {
         fetchStokJalan();
+        fetchPricelist();
     }, []);
 
     const fetchStokJalan = async () => {
@@ -42,6 +46,17 @@ const StokJalan = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const fetchPricelist = async () => {
+        try {
+            const [onlineRes, offlineRes] = await Promise.all([
+                api.get('/pricelist-online'),
+                api.get('/produk')
+            ]);
+            setPricelist(onlineRes.data.data || []);
+            setOfflinePricelist(offlineRes.data.data || []);
+        } catch (e) { console.error(e); }
     };
 
     const handleCreateOrUpdate = async (e) => {
@@ -188,7 +203,10 @@ const StokJalan = () => {
         return acc;
     }, {}));
 
-    const filteredData = groupedData.filter(item => {
+    const allPricelistItems = [...pricelist, ...offlinePricelist];
+    const finalStokJalanList = groupedData;
+
+    const filteredData = finalStokJalanList.filter(item => {
         const matchesSearch = 
             (item.nama_barang || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
             (item.nomer_barang || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -196,9 +214,9 @@ const StokJalan = () => {
         return matchesSearch && matchesStatus;
     });
 
-    // Recommendations lists
-    const uniqueItems = Array.from(new Set(dataStokJalan.map(item => item.nama_barang).filter(Boolean)));
-    const uniqueCodes = Array.from(new Set(dataStokJalan.map(item => item.nomer_barang).filter(Boolean)));
+    // Recommendations lists from official pricelist
+    const uniqueItems = Array.from(new Set(allPricelistItems.map(item => item.nama_produk).filter(Boolean)));
+    const uniqueCodes = Array.from(new Set(allPricelistItems.map(item => item.kode).filter(Boolean)));
     const uniqueStatuses = Array.from(new Set(dataStokJalan.map(item => item.status).filter(Boolean)));
 
     return (
@@ -237,7 +255,7 @@ const StokJalan = () => {
                         {/* Header Title & Add Button */}
                         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
                             <div>
-                                <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-tight flex items-center gap-3">
+                                <h1 className="text-2xl font-black text-gray-900 tracking-tight leading-tight flex items-center gap-3">
                                     <div className="bg-red-50 border border-red-100 p-2 rounded-lg shadow-sm">
                                         <Layers className="text-red-600" size={20} />
                                     </div>
@@ -280,8 +298,10 @@ const StokJalan = () => {
                                         <tr>
                                             <th rowSpan="2" className="p-3 font-bold text-center border-b border-gray-800">No</th>
                                             <th rowSpan="2" className="p-3 font-bold border-b border-gray-800 text-left">Tanggal</th>
-                                            <th rowSpan="2" className="p-3 font-bold border-b border-gray-800 text-left">Nama Barang</th>
-                                            <th rowSpan="2" className="p-3 font-bold border-b border-gray-800 text-left">No Barang</th>
+                                            <th rowSpan="2" className="p-3 font-bold border-b border-gray-800 text-left">KODE</th>
+                                            <th rowSpan="2" className="p-3 font-bold border-b border-gray-800 text-left">JENIS / KATEGORI</th>
+                                            <th rowSpan="2" className="p-3 font-bold border-b border-gray-800 text-left">NAMA PRODUK</th>
+                                            <th rowSpan="2" className="p-3 font-bold border-b border-gray-800 text-left">BAHAN</th>
                                             
                                             {/* Sections */}
                                             <th colSpan="8" className="p-2 text-center bg-red-800 text-white border-x border-red-700 text-[11px] font-black">STOK TOTAL</th>
@@ -325,11 +345,11 @@ const StokJalan = () => {
                                     <tbody className="divide-y divide-gray-100 text-[11px]">
                                         {loading ? (
                                             <tr>
-                                                <td colSpan={4 + 7 * 5 + 3} className="p-8 text-center text-gray-500 font-medium">Memuat data stok jalan...</td>
+                                                <td colSpan={6 + 7 * 5 + 3} className="p-8 text-center text-gray-500 font-medium">Memuat data stok jalan...</td>
                                             </tr>
                                         ) : filteredData.length === 0 ? (
                                             <tr>
-                                                <td colSpan={4 + 7 * 5 + 3} className="p-8 text-center text-gray-500 font-medium">Tidak ada data stok jalan ditemukan.</td>
+                                                <td colSpan={6 + 7 * 5 + 3} className="p-8 text-center text-gray-500 font-medium">Tidak ada data stok jalan ditemukan.</td>
                                             </tr>
                                         ) : (
                                             filteredData.map((item, idx) => {
@@ -350,14 +370,36 @@ const StokJalan = () => {
                                                     statusColor = "bg-red-50 text-red-700 border-red-100";
                                                 }
 
+                                                const itemKode = item.nomer_barang?.toUpperCase().trim();
+                                                const itemNama = item.nama_barang?.toLowerCase().trim();
+
+                                                const matchOnline = pricelist.find(p => 
+                                                    (itemKode && p.kode?.toUpperCase().trim() === itemKode) ||
+                                                    (itemNama && p.nama_produk?.toLowerCase().trim() === itemNama)
+                                                );
+                                                const matchOffline = offlinePricelist.find(p => 
+                                                    (itemKode && p.kode?.toUpperCase().trim() === itemKode) ||
+                                                    (itemNama && p.nama_produk?.toLowerCase().trim() === itemNama)
+                                                );
+                                                const match = matchOnline || matchOffline;
+                                                
+                                                const displayKode = match ? match.kode : (item.nomer_barang || '-');
+                                                const displayJenis = match ? (match.jenis || match.kategori) : '-';
+                                                const displayNama = match ? match.nama_produk : item.nama_barang;
+                                                const displayBahan = match ? (match.bahan || '-') : '-';
+
                                                 return (
                                                     <tr key={idx} className="hover:bg-gray-50 transition-colors">
                                                         <td className="p-2 text-center font-bold text-gray-400 border-r border-gray-100">{idx + 1}</td>
                                                         <td className="p-2 font-semibold text-gray-700 text-left border-r border-gray-100">
                                                             {new Date(item.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
                                                         </td>
-                                                        <td className="p-2 font-black text-gray-900 text-left border-r border-gray-100 max-w-xs overflow-hidden text-ellipsis">{item.nama_barang}</td>
-                                                        <td className="p-2 font-semibold text-gray-500 text-left border-r border-gray-100">{item.nomer_barang || '-'}</td>
+                                                        <td className="p-2 font-bold text-[#990000] text-left border-r border-gray-100">{displayKode}</td>
+                                                        <td className="p-2 text-gray-600 text-left border-r border-gray-100">
+                                                            <span className="bg-gray-100 text-gray-700 text-[10px] font-bold px-2 py-0.5 rounded-full">{displayJenis}</span>
+                                                        </td>
+                                                        <td className="p-2 font-black text-gray-900 text-left border-r border-gray-100 max-w-xs overflow-hidden text-ellipsis">{displayNama}</td>
+                                                        <td className="p-2 text-gray-500 text-left border-r border-gray-100">{displayBahan}</td>
                                                         
                                                         {/* STOK TOTAL columns */}
                                                         {sizesArray.map(sz => {

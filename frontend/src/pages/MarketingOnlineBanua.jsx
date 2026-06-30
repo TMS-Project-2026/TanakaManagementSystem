@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import api from '../api/axios';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import * as XLSX from 'xlsx';
@@ -66,6 +67,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
   const [pendingApprovals, setPendingApprovals] = useState([]);
   const [orders, setOrders] = useState([]);
   const [inventory, setInventory] = useState([]);
+  const [flatInventory, setFlatInventory] = useState([]);
   const [barangKeluarHariIni, setBarangKeluarHariIni] = useState([]);
   const [stokGudang, setStokGudang] = useState([]);
   const [stokSearch, setStokSearch] = useState(promoHighlight);
@@ -306,11 +308,98 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
   const fetchInventory = async () => {
     setLoading(true);
     try {
-      const res = await getStok();
-      if (res.data.status === 'success') {
-        const filteredData = res.data.data.filter(s => ['Banua', 'Tanaka', 'Global'].includes(s.cabang_id));
-        setInventory(filteredData);
-      }
+      const [resStok, resOnline, resOffline] = await Promise.all([
+        getStok(),
+        api.get('/pricelist-online'),
+        api.get('/produk')
+      ]);
+      
+      const rawData = resStok.data?.data || resStok.data || [];
+      setFlatInventory(rawData);
+      const onlinePricelist = resOnline.data?.data || resOnline.data || [];
+      const offlinePricelist = resOffline.data?.data || resOffline.data || [];
+      const combinedPricelist = [...onlinePricelist, ...offlinePricelist];
+      
+      const sizesArray = ['XS','S','M','L','XL','XXL','XXXL','XXXXL','XXXXXL','All Size'];
+      const grouped = {};
+      
+      rawData.forEach(item => {
+        const kode   = (item.kode_produk || '').trim().toLowerCase();
+        const nama   = (item.nama_barang || item.product_name || '').trim().toLowerCase();
+        const cabang = (item.cabang_id || '').trim().toLowerCase();
+        const key = `${kode}|${nama}|${cabang}`;
+        if (!grouped[key]) {
+          grouped[key] = {
+            id: item.id,
+            kode_produk: item.kode_produk || '-',
+            nama_brand: item.nama_brand || '-',
+            nama_barang: item.nama_barang || item.product_name || '-',
+            bahan: item.bahan || '-',
+            kategori: item.kategori || '-',
+            cabang_id: item.cabang_id || '-',
+            kode_rak: item.kode_rak || '-',
+            total_stok: 0,
+            minimum_stok: item.minimum_stok || 5,
+            sizes: sizesArray.reduce((obj, sz) => { obj[sz] = { qty: 0, id: null }; return obj; }, {})
+          };
+        }
+        grouped[key].total_stok += Number(item.jumlah) || 0;
+        if (item.ukuran && grouped[key].sizes[item.ukuran] !== undefined) {
+          grouped[key].sizes[item.ukuran].qty += Number(item.jumlah) || 0;
+          if (!grouped[key].sizes[item.ukuran].id) grouped[key].sizes[item.ukuran].id = item.id;
+        }
+        if (item.minimum_stok && item.minimum_stok > grouped[key].minimum_stok) {
+          grouped[key].minimum_stok = item.minimum_stok;
+        }
+      });
+      
+      const groupedList = Object.values(grouped);
+      
+      combinedPricelist.forEach(p => {
+        const pKode = (p.kode || '').toLowerCase().trim();
+        const pNama = (p.nama_produk || '').toLowerCase().trim();
+        
+        const exists = groupedList.some(s => 
+          (pKode && (s.kode_produk || '').toLowerCase().trim() === pKode) ||
+          (pNama && (s.nama_barang || '').toLowerCase().trim() === pNama)
+        );
+        
+        if (!exists) {
+          groupedList.push({
+            id: `temp-${p.kode || p.nama_produk}`,
+            kode_produk: p.kode || '-',
+            nama_brand: p.grup_produk || '-',
+            nama_barang: p.nama_produk,
+            bahan: p.bahan || '-',
+            kategori: p.jenis || p.kategori || '-',
+            cabang_id: 'Global',
+            kode_rak: '-',
+            total_stok: 0,
+            minimum_stok: 5,
+            sizes: sizesArray.reduce((obj, sz) => { obj[sz] = { qty: 0, id: null }; return obj; }, {})
+          });
+        }
+      });
+      
+      const finalInventory = groupedList.map(item => {
+        const itemKode = item.kode_produk?.toUpperCase().trim();
+        const itemNama = item.nama_barang?.toLowerCase().trim();
+        
+        const match = combinedPricelist.find(p => 
+          (itemKode && p.kode?.toUpperCase().trim() === itemKode) ||
+          (itemNama && p.nama_produk?.toLowerCase().trim() === itemNama)
+        );
+        
+        return {
+          ...item,
+          kode_produk: match ? match.kode : item.kode_produk,
+          kategori: match ? (match.jenis || match.kategori) : item.kategori,
+          nama_barang: match ? match.nama_produk : item.nama_barang,
+          bahan: match ? (match.bahan || '-') : item.bahan
+        };
+      });
+      
+      setInventory(finalInventory);
       
       const token = localStorage.getItem('token');
       const resBK = await axios.get('http://localhost:3000/api/barang-keluar', {
@@ -1248,10 +1337,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
 
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      await axios.post('http://localhost:3000/api/marketing-online-banua/import', [finalOrder], {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.post('/marketing-online-banua/import', [finalOrder]);
       alert("Pesanan manual berhasil disimpan!");
       setShowManualModal(false);
       setManualOrder({
@@ -1812,42 +1898,13 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
           {activeTab === 'inventory' && (() => {
             const sizesArray = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'XXXXL', 'XXXXXL', 'All Size'];
 
-            // Grouping stok identik dengan Stok.jsx
-            const groupedStok = Object.values(inventory.reduce((acc, curr) => {
-              const key = `${(curr.kode_produk||'').toLowerCase()}|${(curr.nama_barang||'').toLowerCase()}|${(curr.cabang_id||'').toLowerCase()}`;
-              if (!acc[key]) {
-                acc[key] = {
-                  id: curr.id,
-                  kode_produk: curr.kode_produk || '-',
-                  nama_brand: curr.nama_brand || '-',
-                  nama_barang: curr.nama_barang || '-',
-                  bahan: curr.bahan || '-',
-                  kategori: curr.kategori || '-',
-                  cabang_id: curr.cabang_id || '-',
-                  kode_rak: curr.kode_rak || '-',
-                  total_stok: 0,
-                  minimum_stok: curr.minimum_stok || 5,
-                  sizes: sizesArray.reduce((obj, sz) => { obj[sz] = { qty: 0, id: null }; return obj; }, {})
-                };
-              }
-              acc[key].total_stok += Number(curr.jumlah) || 0;
-              if (curr.ukuran && acc[key].sizes[curr.ukuran] !== undefined) {
-                acc[key].sizes[curr.ukuran].qty += Number(curr.jumlah) || 0;
-                if (!acc[key].sizes[curr.ukuran].id) acc[key].sizes[curr.ukuran].id = curr.id;
-              }
-              if (curr.minimum_stok && curr.minimum_stok > acc[key].minimum_stok)
-                acc[key].minimum_stok = curr.minimum_stok;
-              return acc;
-            }, {}));
-
-            const filteredStok = groupedStok.filter(item => {
+            const filteredStok = inventory.filter(item => {
               const q = stokSearch.toLowerCase();
               return (
                 item.nama_barang?.toLowerCase().includes(q) ||
                 item.kode_produk?.toLowerCase().includes(q) ||
                 item.nama_brand?.toLowerCase().includes(q) ||
                 item.bahan?.toLowerCase().includes(q) ||
-                item.cabang_id.toLowerCase().includes(q) ||
                 item.kategori.toLowerCase().includes(q)
               );
             });
@@ -1872,10 +1929,9 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                       <thead className="bg-gray-900 text-xs text-white uppercase tracking-wider font-semibold sticky top-0 z-10">
                         <tr>
                           <th className="p-4">Kode</th>
-                          <th className="p-4">Jenis / Kategori</th>
+                          <th className="p-4">Jenis</th>
                           <th className="p-4">Nama Produk</th>
                           <th className="p-4">Bahan</th>
-                          <th className="p-4">Cabang</th>
                           {sizesArray.map(size => (
                             <th key={size} className="p-4 text-center w-14">{size}</th>
                           ))}
@@ -1925,7 +1981,6 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
                                 </div>
                               </td>
                               <td className="p-4 text-gray-500">{item.bahan}</td>
-                              <td className="p-4 text-gray-700 font-medium">{item.cabang_id}</td>
                               {sizesArray.map(size => {
                                 const qty = item.sizes[size]?.qty || 0;
                                 return (
@@ -2772,7 +2827,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
         setOrder={setManualOrder}
         loading={loading}
         formatRupiah={formatRupiah}
-        inventory={inventory}
+        inventory={flatInventory}
         availableAccounts={[...new Set([...Object.keys(dailyTargets), ...Object.keys(bulananTargets), ...Object.keys(tahunanTargets)])].sort()}
       />
 
@@ -2967,7 +3022,7 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
         setOrder={setManualOrder}
         loading={loading}
         formatRupiah={formatRupiah}
-        inventory={inventory}
+        inventory={flatInventory}
         pricelistOnlineData={pricelistOnlineData}
         availableAccounts={[...new Set([...Object.keys(dailyTargets), ...Object.keys(bulananTargets), ...Object.keys(tahunanTargets)])].sort()}
       />
@@ -3169,6 +3224,12 @@ const MarketingOnlineBanua = ({ embedded = false, forcedTab = null }) => {
 // Sub-component for Manual Order Modal
 const ManualOrderModal = ({ show, onClose, onSave, order, setOrder, loading, formatRupiah, inventory, availableAccounts, pricelistOnlineData }) => {
   const [showSuggest, setShowSuggest] = useState(false);
+
+  const selectedStockItem = inventory?.find(item => 
+    (order.stok_id && item.id === order.stok_id) || 
+    (!order.stok_id && order.kode_produk && item.kode_produk?.toLowerCase() === order.kode_produk?.toLowerCase())
+  );
+
   if (!show) return null;
   return (
     <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -3202,7 +3263,14 @@ const ManualOrderModal = ({ show, onClose, onSave, order, setOrder, loading, for
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="relative">
-              <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Kode Produk <span className="text-red-500">*</span></label>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-xs font-bold text-gray-500 uppercase">Kode Produk <span className="text-red-500">*</span></label>
+                {selectedStockItem && (
+                  <span className={`text-[11px] font-black px-2.5 py-0.5 rounded-full ${selectedStockItem.jumlah > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-red-50 text-red-700 border border-red-100'}`}>
+                    Stok Tersedia: {selectedStockItem.jumlah} Pcs
+                  </span>
+                )}
+              </div>
               <input 
                 type="text"
                 className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-100 outline-none font-medium text-gray-800 text-sm" 

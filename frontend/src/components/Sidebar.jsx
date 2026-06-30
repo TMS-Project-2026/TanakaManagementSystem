@@ -144,7 +144,7 @@ const Sidebar = () => {
 
     { name: 'Barang Masuk', path: '/barang-masuk', icon: <TrendingUp size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Barang Keluar', path: '/barang-keluar', icon: <TrendingDown size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
-    { name: 'Mutasi Barang', path: '/mutasi', icon: <ArrowRightLeft size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
+    { name: 'Mutasi Barang', path: '/mutasi', icon: <ArrowRightLeft size={20} />, roles: ['Admin', 'Manager'], group: 'Warehouse' },
     { name: 'Stok Barang', path: '/stok', icon: <Package size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Stok Jalan', path: '/stok-jalan', icon: <Layers size={20} />, roles: ['Admin', 'Manager', 'Gudang'], group: 'Warehouse' },
     { name: 'Suku Cadang', path: '/sparepart', icon: <Settings size={20} />, roles: ['Admin', 'Manager'], group: 'Warehouse' },
@@ -200,7 +200,7 @@ const Sidebar = () => {
         { title: 'Order Marketplace', path: '/marketing-online/orders' },
         { title: 'Stok Inventory', path: '/marketing-online/inventory' },
         { title: 'Promo Online', path: '/marketing-online/promo' },
-        { title: 'Pricelist Harga', path: '/pricelist-online' },
+        { title: 'Pricelist Online', path: '/pricelist-online?from=online-banua' },
         {
           title: 'Report',
           path: '/marketing-online/reports',
@@ -225,7 +225,7 @@ const Sidebar = () => {
         { title: 'Order Marketplace', path: '/marketing-online-tanaka/orders' },
         { title: 'Stok Inventory', path: '/marketing-online-tanaka/inventory' },
         { title: 'Promo Online', path: '/marketing-online-tanaka/promo' },
-        { title: 'Pricelist Harga', path: '/pricelist-online' },
+        { title: 'Pricelist Online', path: '/pricelist-online?from=online-tanaka' },
         {
           title: 'Report',
           path: '/marketing-online-tanaka/reports',
@@ -251,7 +251,7 @@ const Sidebar = () => {
         { title: 'Stok Inventory', path: '/marketing-offline/inventory' },
         { title: 'Customer', path: '/marketing-offline/customers' },
         { title: 'Promo', path: '/marketing-offline/promo' },
-        { title: 'Pricelist Offline', path: '/pricelist' },
+        { title: 'Pricelist Offline', path: '/pricelist?from=offline-banua' },
         {
           title: 'Report',
           path: '/marketing-offline/reports',
@@ -277,7 +277,7 @@ const Sidebar = () => {
         { title: 'Stok Inventory', path: '/marketing-offline-tanaka/inventory' },
         { title: 'Customer', path: '/marketing-offline-tanaka/customers' },
         { title: 'Promo', path: '/marketing-offline-tanaka/promo' },
-        { title: 'Pricelist Offline', path: '/pricelist' },
+        { title: 'Pricelist Offline', path: '/pricelist?from=offline-tanaka' },
         {
           title: 'Report',
           path: '/marketing-offline-tanaka/reports',
@@ -303,10 +303,8 @@ const Sidebar = () => {
 
         { title: 'Barang Masuk', path: '/barang-masuk' },
         { title: 'Barang Keluar', path: '/barang-keluar' },
-        { title: 'Mutasi Barang', path: '/mutasi' },
         { title: 'Stok Barang', path: '/stok' },
         { title: 'Stok Jalan', path: '/stok-jalan' },
-        { title: 'Suku Cadang', path: '/sparepart' },
         { title: 'Warning Stok', path: '/warning-stok' }
       ]
     },
@@ -378,7 +376,7 @@ const Sidebar = () => {
 
     { name: 'Barang Masuk', path: '/barang-masuk', icon: <TrendingUp size={20} />, roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
     { name: 'Barang Keluar', path: '/barang-keluar', icon: <TrendingDown size={20} />, roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
-    { name: 'Mutasi Barang', path: '/mutasi', icon: <ArrowRightLeft size={20} />, roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
+    { name: 'Mutasi Barang', path: '/mutasi', icon: <ArrowRightLeft size={20} />, roles: ['Manager', 'Admin'], group: 'Gudang Accestret' },
     { name: 'Stok Barang', path: '/stok', icon: <Package size={20} />, roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
     { name: 'Stok Jalan', path: '/stok-jalan', icon: <Layers size={20} />, roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
     { name: 'Warning Stok', path: '/warning-stok', icon: <AlertTriangle size={20} />, roles: ['gudang_accestret', 'owner', 'Manager', 'Admin'], group: 'Gudang Accestret' },
@@ -471,9 +469,17 @@ const Sidebar = () => {
             let currentGroup = '';
             return menuItems.map((item) => {
               const hasActiveChild = item.subMenu && item.subMenu.some(sub => {
-                const matchDirect = location.pathname === sub.path;
-                const matchNested = sub.subMenu && sub.subMenu.some(nested => location.pathname === nested.path);
-                return matchDirect || matchNested || (sub.path && sub.path !== '/' && location.pathname.startsWith(sub.path + '/'));
+                const currentFull = location.pathname + location.search;
+                const matchDirect = sub.path && sub.path.includes('?')
+                  ? currentFull === sub.path
+                  : location.pathname === sub.path;
+                const matchNested = sub.subMenu && sub.subMenu.some(nested => {
+                  const nestedFull = nested.path + (nested.search || '');
+                  return nested.path && nested.path.includes('?')
+                    ? currentFull === nestedFull
+                    : location.pathname === nested.path;
+                });
+                return matchDirect || matchNested || (sub.path && sub.path !== '/' && !sub.path.includes('?') && location.pathname.startsWith(sub.path + '/'));
               });
               const isActive = location.pathname === item.path || (item.path && item.path !== '/' && item.path !== '/gudang' && item.path !== '/finance' && location.pathname.startsWith(item.path + '/')) || hasActiveChild;
               const isExpanded = expandedMenus[item.name] !== undefined
@@ -508,7 +514,9 @@ const Sidebar = () => {
                       <div className={isActive ? 'text-white' : 'text-gray-400'}>
                         {item.icon}
                       </div>
-                      <span className="text-sm flex-1">{item.name}</span>
+                      <span className="flex-1" style={{ fontSize: '12.5px' }}>
+                        {item.name}
+                      </span>
                     </div>
                     {item.hasBadge && pendingApprovals > 0 && (
                       <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-sm">
@@ -533,7 +541,10 @@ const Sidebar = () => {
                     <ul className="ml-12 mt-2 space-y-2 border-l-2 border-red-200 pl-4 mb-3">
                       {item.subMenu.map(sub => {
                         const hasNestedActiveChild = sub.subMenu && sub.subMenu.some(nested => location.pathname === nested.path || location.pathname.startsWith(nested.path + '/'));
-                        const isSubActive = location.pathname === (sub.path || '') || hasNestedActiveChild || (sub.path && sub.path !== '/' && sub.path !== '/finance' && sub.path !== '/gudang' && location.pathname.startsWith(sub.path + '/'));
+                        const currentFull = location.pathname + location.search;
+                        const isSubActive = sub.path && sub.path.includes('?')
+                          ? currentFull === sub.path
+                          : location.pathname === (sub.path || '') || hasNestedActiveChild || (sub.path && sub.path !== '/' && sub.path !== '/finance' && sub.path !== '/gudang' && location.pathname.startsWith(sub.path + '/'));
                         const expandedKey = item.name + '_' + sub.title;
                         const isSubExpanded = expandedMenus[expandedKey] !== undefined
                           ? expandedMenus[expandedKey]
@@ -550,10 +561,11 @@ const Sidebar = () => {
                                   navigate(sub.path);
                                 }
                               }}
-                              className={`text-[13px] cursor-pointer py-2 px-4 rounded-xl transition-all duration-200 flex items-center justify-between ${isSubActive && !sub.subMenu
+                              className={`cursor-pointer py-2 px-4 rounded-xl transition-all duration-200 flex items-center justify-between ${isSubActive && !sub.subMenu
                                 ? 'bg-red-800 text-white font-black shadow-sm'
                                 : 'text-gray-600 font-bold hover:bg-red-50 hover:text-red-800'
                                 }`}
+                              style={{ fontSize: '12.5px' }}
                             >
                               <span className="flex items-center gap-2">{sub.title || sub}</span>
                               <div className="flex items-center gap-2">
@@ -575,7 +587,10 @@ const Sidebar = () => {
                             {sub.subMenu && isSubExpanded && (
                               <ul className="ml-6 mt-1 space-y-1 border-l-2 border-red-100 pl-3 mb-2">
                                 {sub.subMenu.map(nested => {
-                                  const isNestedActive = location.pathname === (nested.path || '');
+                                  const currentFull = location.pathname + location.search;
+                                  const isNestedActive = nested.path && nested.path.includes('?')
+                                    ? currentFull === nested.path
+                                    : location.pathname === (nested.path || '');
                                   return (
                                     <li
                                       key={nested.title || nested}

@@ -109,7 +109,7 @@ export default function PettyCash() {
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-3">
             <div>
-              <h1 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+              <h1 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3">
                 Petty Cash
               </h1>
               <p className="text-gray-500 mt-2 text-sm font-medium">Pengelolaan kas kecil per cabang</p>

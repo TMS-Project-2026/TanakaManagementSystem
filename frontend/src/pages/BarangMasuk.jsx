@@ -10,6 +10,7 @@ const BarangMasuk = () => {
     const [history, setHistory] = useState([]);
     const [stokList, setStokList] = useState([]);
     const [pricelist, setPricelist] = useState([]);
+    const [offlinePricelist, setOfflinePricelist] = useState([]);
     const [successMsg, setSuccessMsg] = useState('');
     const [showAddModal, setShowAddModal] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
@@ -27,7 +28,7 @@ const BarangMasuk = () => {
     const [namaBrand, setNamaBrand] = useState('');
     const [namaBarang, setNamaBarang] = useState('');
     const [kategori, setKategori] = useState('Reguler');
-    const [cabangId, setCabangId] = useState(userRole === 'gudang_accestret' ? 'Acestreet' : userRole === 'gudang' ? 'Global' : 'Banua');
+    const [cabangId, setCabangId] = useState(userRole === 'gudang_accestret' ? 'Acestreet' : 'Banua');
     const [kodeRak, setKodeRak] = useState('');
     const [tanggal, setTanggal] = useState(new Date().toISOString().split('T')[0]);
     const [minimumStok, setMinimumStok] = useState('5'); // Default minimal stok untuk transaksi ini
@@ -53,19 +54,28 @@ const BarangMasuk = () => {
 
     const fetchPricelist = async () => {
         try {
-            const res = await api.get('/pricelist-online');
-            setPricelist(res.data.data || []);
+            const [onlineRes, offlineRes] = await Promise.all([
+                api.get('/pricelist-online'),
+                api.get('/produk')
+            ]);
+            setPricelist(onlineRes.data.data || []);
+            setOfflinePricelist(offlineRes.data.data || []);
         } catch (e) { console.error(e); }
     };
 
     // Autofill saat kode dipilih
     const handleKodeChange = (kode) => {
-        setKodeProduk(kode.toUpperCase());
-        const found = pricelist.find(p => p.kode === kode.toUpperCase());
+        const uppercaseKode = kode.toUpperCase();
+        setKodeProduk(uppercaseKode);
+        const found = pricelist.find(p => p.kode === uppercaseKode) || offlinePricelist.find(p => p.kode === uppercaseKode);
         if (found) {
             setNamaBarang(found.nama_produk);
-            setNamaBrand(found.grup_produk);
-            setKategori(found.jenis || 'Reguler');
+            setNamaBrand(found.grup_produk || '');
+            setKategori(found.jenis || found.kategori || 'Reguler');
+        } else {
+            setNamaBarang('');
+            setNamaBrand('');
+            setKategori('Reguler');
         }
     };
 
@@ -135,7 +145,7 @@ const BarangMasuk = () => {
             setNamaBrand('');
             setNamaBarang('');
             setKategori('Reguler');
-            setCabangId(userRole === 'gudang_accestret' ? 'Acestreet' : userRole === 'gudang' ? 'Global' : 'Banua');
+            setCabangId(userRole === 'gudang_accestret' ? 'Acestreet' : 'Banua');
             setKodeRak('');
             setMinimumStok('5');
             setSizeItems(initialSizes);
@@ -463,7 +473,7 @@ const BarangMasuk = () => {
                     <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100">
                     <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
                         <div>
-                            <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-tight flex items-center gap-3">
+                            <h1 className="text-2xl font-black text-gray-900 tracking-tight leading-tight flex items-center gap-3">
                                 <div className="bg-green-50 border border-green-100 p-2 rounded-lg shadow-sm">
                                     <Download className="text-green-600" size={20} />
                                 </div>
@@ -487,7 +497,7 @@ const BarangMasuk = () => {
                                     setNamaBarang('');
                                     setKodeProduk('');
                                     setKategori('Reguler');
-                                    setCabangId(userRole === 'gudang_accestret' ? 'Acestreet' : userRole === 'gudang' ? 'Global' : 'Banua');
+                                    setCabangId(userRole === 'gudang_accestret' ? 'Acestreet' : 'Banua');
                                     setKodeRak('');
                                     setMinimumStok('5');
                                     setSizeItems(initialSizes);
@@ -542,7 +552,7 @@ const BarangMasuk = () => {
                                                 />
                                                 {showKodeSuggest && (
                                                     <ul className="absolute z-50 w-full bg-white border border-gray-200 rounded-xl shadow-lg mt-1 max-h-52 overflow-y-auto">
-                                                        {pricelist
+                                                        {[...pricelist, ...offlinePricelist]
                                                             .filter(p =>
                                                                 !kodeProduk ||
                                                                 p.kode?.toLowerCase().includes(kodeProduk.toLowerCase()) ||
@@ -562,7 +572,7 @@ const BarangMasuk = () => {
                                                                 </li>
                                                             ))
                                                         }
-                                                        {pricelist.filter(p =>
+                                                        {[...pricelist, ...offlinePricelist].filter(p =>
                                                             !kodeProduk ||
                                                             p.kode?.toLowerCase().includes(kodeProduk.toLowerCase()) ||
                                                             p.nama_produk?.toLowerCase().includes(kodeProduk.toLowerCase())
@@ -588,18 +598,6 @@ const BarangMasuk = () => {
                                             <input type="date" required value={tanggal} onChange={e => setTanggal(e.target.value)}
                                                 className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-green-100 focus:border-green-600 outline-none transition-all" />
                                         </div>
-                                        {userRole !== 'gudang' && (
-                                            <div>
-                                                <label className="block text-sm font-semibold text-gray-700 mb-1">Cabang Tujuan</label>
-                                                <select required value={cabangId} onChange={e => setCabangId(e.target.value)}
-                                                    className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-green-100 focus:border-green-600 outline-none bg-white">
-                                                    <option value="Banua">Banua</option>
-                                                    <option value="Tanaka">Tanaka</option>
-                                                    <option value="Acestreet">Acestreet</option>
-                                                    <option value="Global">Global</option>
-                                                </select>
-                                            </div>
-                                        )}
                                     </div>
 
                                     {/* TABEL GRID UKURAN */}
@@ -702,7 +700,6 @@ const BarangMasuk = () => {
                                         <th className="px-3 py-3 border-r border-gray-700">JENIS</th>
                                         <th className="px-3 py-3 border-r border-gray-700">NAMA PRODUK</th>
                                         <th className="px-3 py-3 border-r border-gray-700">BAHAN</th>
-                                        {userRole !== 'gudang' && <th className="px-3 py-3 border-r border-gray-700">CABANG</th>}
                                         {sizesArray.map(sz => (
                                             <th key={sz} className="px-2 py-3 text-center border-r border-gray-700 w-14">{sz}</th>
                                         ))}
@@ -725,7 +722,6 @@ const BarangMasuk = () => {
                                             </td>
                                             <td className="px-3 py-2.5 font-semibold text-gray-800 border-r border-gray-100 whitespace-nowrap">{item.nama_barang}</td>
                                             <td className="px-3 py-2.5 text-gray-500 border-r border-gray-100">{item.bahan}</td>
-                                            {userRole !== 'gudang' && <td className="px-3 py-2.5 text-gray-600 border-r border-gray-100">{item.cabang_id}</td>}
                                             {sizesArray.map(sz => {
                                                 const s = item.sizes[sz];
                                                 const bagus = s?.jumlah || 0;
@@ -775,7 +771,7 @@ const BarangMasuk = () => {
                                         </tr>
                                     ))}
                                     {filteredHistory.length === 0 && (
-                                        <tr><td colSpan={7 + sizesArray.length + 2} className="p-8 text-center text-gray-400">Tidak ada riwayat barang masuk.</td></tr>
+                                        <tr><td colSpan={6 + sizesArray.length + 2} className="p-8 text-center text-gray-400">Tidak ada riwayat barang masuk.</td></tr>
                                     )}
                                 </tbody>
                             </table>
@@ -796,22 +792,7 @@ const BarangMasuk = () => {
                                 <button type="button" onClick={() => setShowEditModal(false)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"><X size={20} /></button>
                             </div>
                             <form onSubmit={saveEdit}>
-                                {userRole !== 'gudang' && (
-                                    <div className="mb-4">
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Cabang Tujuan</label>
-                                        <select 
-                                            required 
-                                            value={editForm.cabang_id} 
-                                            onChange={e => setEditForm({...editForm, cabang_id: e.target.value})} 
-                                            className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-100 focus:border-blue-600 outline-none bg-white transition-all"
-                                        >
-                                            <option value="Banua">Banua</option>
-                                            <option value="Tanaka">Tanaka</option>
-                                            <option value="Acestreet">Acestreet</option>
-                                            <option value="Global">Global</option>
-                                        </select>
-                                    </div>
-                                )}
+
                                 <div className="space-y-2 mb-4">
                                     <div className="grid grid-cols-[80px_1fr_1fr] gap-4 px-2 font-bold text-gray-500 text-[11px] uppercase tracking-wider">
                                         <div>Ukuran</div>

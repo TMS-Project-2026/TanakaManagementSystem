@@ -647,7 +647,7 @@ const Journal = () => {
             {/* === TAB SWITCHER === */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
               <div className="flex flex-col items-start gap-1">
-                <h1 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                <h1 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3">
                   Journal {{ Sales: 'Penjualan', Purchase: 'Pembelian', General: 'Umum', Expense: 'Biaya' }[activeTab]}
                 </h1>
                 <p className="text-gray-500 font-medium mt-1">

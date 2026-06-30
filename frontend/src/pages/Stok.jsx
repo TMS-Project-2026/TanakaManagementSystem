@@ -11,6 +11,7 @@ const Stok = () => {
 
     const [stok, setStok] = useState([]);
     const [pricelist, setPricelist] = useState([]);
+    const [offlinePricelist, setOfflinePricelist] = useState([]);
     const [form, setForm] = useState({
         id: 0, kode_produk: '', nama_brand: '', nama_barang: '', bahan: '',
         jumlah: '', kategori: 'Reguler',
@@ -66,23 +67,28 @@ const Stok = () => {
 
     const fetchPricelist = async () => {
         try {
-            const res = await api.get('/pricelist-online');
-            setPricelist(res.data.data || []);
+            const [onlineRes, offlineRes] = await Promise.all([
+                api.get('/pricelist-online'),
+                api.get('/produk')
+            ]);
+            setPricelist(onlineRes.data.data || []);
+            setOfflinePricelist(offlineRes.data.data || []);
         } catch (e) { console.error(e); }
     };
 
     // Autofill dari pricelist saat kode diketik
     const handleKodeChange = (kode) => {
-        setForm(f => ({ ...f, kode_produk: kode.toUpperCase() }));
-        const found = pricelist.find(p => p.kode === kode.toUpperCase());
+        const uppercaseKode = kode.toUpperCase();
+        setForm(f => ({ ...f, kode_produk: uppercaseKode }));
+        const found = pricelist.find(p => p.kode === uppercaseKode) || offlinePricelist.find(p => p.kode === uppercaseKode);
         if (found) {
             setForm(f => ({
                 ...f,
                 kode_produk: found.kode,
-                nama_brand: found.grup_produk,
+                nama_brand: found.grup_produk || '',
                 nama_barang: found.nama_produk,
                 bahan: found.bahan || '',
-                kategori: found.jenis || 'Reguler',
+                kategori: found.jenis || found.kategori || 'Reguler',
             }));
         }
     };
@@ -114,9 +120,9 @@ const Stok = () => {
 
     const sizesArray = ['XS','S','M','L','XL','XXL','XXXL','XXXXL','XXXXXL','All Size'];
 
-    // Group by kode_produk | nama_barang | cabang
+    // Group by kode_produk | nama_barang
     const groupedStok = Object.values(stok.reduce((acc, curr) => {
-        const key = `${(curr.kode_produk||'').toLowerCase()}|${(curr.nama_barang||'').toLowerCase()}|${(curr.cabang_id||'').toLowerCase()}`;
+        const key = `${(curr.kode_produk||'').toLowerCase()}|${(curr.nama_barang||'').toLowerCase()}`;
         if (!acc[key]) {
             acc[key] = {
                 id: curr.id,
@@ -143,8 +149,38 @@ const Stok = () => {
         return acc;
     }, {}));
 
+    const allPricelistItems = [...pricelist, ...offlinePricelist];
+    const finalStokList = [...groupedStok];
+
+    allPricelistItems.forEach(p => {
+        const pKode = (p.kode || '').toLowerCase().trim();
+        const pNama = (p.nama_produk || '').toLowerCase().trim();
+        
+        const exists = finalStokList.some(s => 
+            (pKode && (s.kode_produk || '').toLowerCase().trim() === pKode) ||
+            (pNama && (s.nama_barang || '').toLowerCase().trim() === pNama)
+        );
+        
+        if (!exists) {
+            finalStokList.push({
+                id: `temp-${p.kode || p.nama_produk}`,
+                kode_produk: p.kode || '-',
+                nama_brand: p.grup_produk || '-',
+                nama_barang: p.nama_produk,
+                bahan: p.bahan || '-',
+                kategori: p.jenis || p.kategori || '-',
+                cabang_id: filterCabang || (userRole === 'gudang_accestret' ? 'Acestreet' : 'Global'),
+                kode_rak: '-',
+                total_stok: 0,
+                total_reject: 0,
+                minimum_stok: 5,
+                sizes: sizesArray.reduce((o, sz) => { o[sz] = { qty: 0, id: null }; return o; }, {})
+            });
+        }
+    });
+
     const q = searchTerm.toLowerCase();
-    const filteredStok = groupedStok.filter(item =>
+    const filteredStok = finalStokList.filter(item =>
         item.nama_barang?.toLowerCase().includes(q) ||
         item.kode_produk?.toLowerCase().includes(q) ||
         item.nama_brand?.toLowerCase().includes(q) ||
@@ -217,10 +253,9 @@ const Stok = () => {
                                     <thead className="bg-gray-900 text-white text-[11px] uppercase tracking-wider sticky top-0 z-10">
                                         <tr>
                                             <th className="px-3 py-3 border-r border-gray-700">KODE</th>
-                                            <th className="px-3 py-3 border-r border-gray-700">JENIS / KATEGORI</th>
+                                            <th className="px-3 py-3 border-r border-gray-700">JENIS</th>
                                             <th className="px-3 py-3 border-r border-gray-700">NAMA PRODUK</th>
                                             <th className="px-3 py-3 border-r border-gray-700">BAHAN</th>
-                                            {userRole !== 'gudang' && <th className="px-3 py-3 border-r border-gray-700">CABANG</th>}
                                             {sizesArray.map(sz => (
                                                 <th key={sz} className="px-2 py-3 text-center border-r border-gray-700 w-14">{sz}</th>
                                             ))}
@@ -233,15 +268,34 @@ const Stok = () => {
                                     <tbody>
                                         {filteredStok.map((item, idx) => {
                                             const isLow = item.total_stok <= item.minimum_stok;
+                                            
+                                            const itemKode = item.kode_produk?.toUpperCase().trim();
+                                            const itemNama = item.nama_barang?.toLowerCase().trim();
+
+                                            const matchOnline = pricelist.find(p => 
+                                                (itemKode && p.kode?.toUpperCase().trim() === itemKode) ||
+                                                (itemNama && p.nama_produk?.toLowerCase().trim() === itemNama)
+                                            );
+                                            const matchOffline = offlinePricelist.find(p => 
+                                                (itemKode && p.kode?.toUpperCase().trim() === itemKode) ||
+                                                (itemNama && p.nama_produk?.toLowerCase().trim() === itemNama)
+                                            );
+                                            const match = matchOnline || matchOffline;
+                                            
+                                            const displayKode = match ? match.kode : (item.kode_produk || '-');
+                                            const displayJenis = match ? (match.jenis || match.kategori) : item.kategori;
+                                            const displayNama = match ? match.nama_produk : item.nama_barang;
+                                            const displayBahan = match ? (match.bahan || '-') : (item.bahan || '-');
+
                                             return (
                                                 <tr key={idx} className={`border-b border-gray-100 hover:bg-red-50/30 transition-colors ${isLow ? 'bg-red-50/20' : idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
-                                                    <td className="px-3 py-2.5 font-bold text-[#990000] border-r border-gray-100 whitespace-nowrap">{item.kode_produk}</td>
+                                                    <td className="px-3 py-2.5 font-bold text-[#990000] border-r border-gray-100 whitespace-nowrap">{displayKode}</td>
                                                     <td className="px-3 py-2.5 border-r border-gray-100">
-                                                        <span className="bg-gray-100 text-gray-700 text-[11px] font-bold px-2 py-0.5 rounded-full">{item.kategori}</span>
+                                                        <span className="bg-gray-100 text-gray-700 text-[11px] font-bold px-2 py-0.5 rounded-full">{displayJenis}</span>
                                                     </td>
                                                     <td className="px-3 py-2.5 font-semibold text-gray-800 border-r border-gray-100 whitespace-nowrap">
                                                         <div className="flex flex-col">
-                                                            <span>{item.nama_barang}</span>
+                                                            <span>{displayNama}</span>
                                                             {(() => {
                                                                 const matchingOut = barangKeluarHariIni.filter(bk => 
                                                                     bk.nama_barang.toLowerCase().trim() === item.nama_barang.toLowerCase().trim() &&
@@ -259,8 +313,7 @@ const Stok = () => {
                                                             })()}
                                                         </div>
                                                     </td>
-                                                    <td className="px-3 py-2.5 text-gray-500 border-r border-gray-100">{item.bahan}</td>
-                                                    {userRole !== 'gudang' && <td className="px-3 py-2.5 text-gray-600 border-r border-gray-100">{item.cabang_id}</td>}
+                                                    <td className="px-3 py-2.5 text-gray-500 border-r border-gray-100">{displayBahan}</td>
                                                     {sizesArray.map(sz => {
                                                         const qty = item.sizes[sz]?.qty || 0;
                                                         return (
@@ -331,14 +384,14 @@ const Stok = () => {
                             <form onSubmit={handleCreateOrUpdate} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {/* KODE PRODUK — dengan autofill */}
                                 <div className="md:col-span-2">
-                                    <label className="block text-xs font-bold text-gray-700 mb-1">KODE PRODUK <span className="text-gray-400 font-normal">(pilih dari pricelist)</span></label>
+                                    <label className="block text-xs font-bold text-gray-700 mb-1">KODE <span className="text-gray-400 font-normal">(pilih dari pricelist)</span></label>
                                     <select
                                         value={form.kode_produk}
                                         onChange={e => handleKodeChange(e.target.value)}
                                         className="w-full border border-gray-300 rounded-xl p-2.5 bg-white focus:ring-2 focus:ring-red-100 focus:border-[#990000] outline-none text-sm font-semibold text-gray-900"
                                     >
-                                        <option value="">-- Pilih Kode Produk --</option>
-                                        {pricelist.map((p, i) => (
+                                        <option value="">-- Pilih Kode --</option>
+                                        {[...pricelist, ...offlinePricelist].map((p, i) => (
                                             <option key={i} value={p.kode}>{p.kode} - {p.nama_produk}</option>
                                         ))}
                                     </select>
@@ -355,7 +408,7 @@ const Stok = () => {
                                         className="w-full border border-gray-200 bg-gray-50 rounded-xl p-2.5 outline-none text-sm" />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-700 mb-1">JENIS / KATEGORI</label>
+                                    <label className="block text-xs font-bold text-gray-700 mb-1">JENIS</label>
                                     <input list="jenis-list" type="text" value={form.kategori} onChange={e => setForm({...form, kategori: e.target.value})}
                                         className="w-full border border-gray-200 bg-gray-50 rounded-xl p-2.5 outline-none text-sm uppercase" />
                                     <datalist id="jenis-list">

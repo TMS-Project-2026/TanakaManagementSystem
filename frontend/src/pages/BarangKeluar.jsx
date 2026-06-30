@@ -204,7 +204,7 @@ const BarangKeluar = () => {
                     <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100">
                     <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
                         <div>
-                            <h1 className="text-xl md:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-tight flex items-center gap-3">
+                            <h1 className="text-2xl font-black text-gray-900 tracking-tight leading-tight flex items-center gap-3">
                                 <div className="bg-red-50 border border-red-100 p-2 rounded-lg shadow-sm">
                                     <Upload className="text-red-600" size={20} />
                                 </div>

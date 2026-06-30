@@ -377,7 +377,7 @@ const ReportCenter = () => {
                     {/* Page Title */}
                     <div className="flex justify-between items-center mb-6">
                         <div className="flex flex-col items-start gap-1">
-                            <h1 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                            <h1 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3">
                                 Laporan Keuangan
                             </h1>
                             <p className="text-gray-500 font-medium mt-1">Laporan keuangan dan analisis bisnis Tanaka Management System.</p>

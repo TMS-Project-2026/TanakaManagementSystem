@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import api from '../api/axios';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import { 
@@ -8,7 +9,6 @@ import {
   Users, Calendar, Search, Loader2,
   AlertTriangle, ArrowRight, X, Send, UserCircle, Plus, ChevronDown, PieChart
 } from 'lucide-react';
-import api from '../api/axios';
 import * as XLSX from 'xlsx';
 import { shopeeDataAdapter } from '../utils/shopeeAdapter';
 import { getStok, createPermintaanStok } from '../api/gudangApi';
@@ -301,6 +301,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
     potongan_shopee: '', hpp_aktual: '', order_date: new Date().toISOString().split('T')[0],
     address: '', status: 'Pesanan Selesai'
   });
+  const [flatInventory, setFlatInventory] = useState([]);
   
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [selectedItemForRequest, setSelectedItemForRequest] = useState(null);
@@ -451,10 +452,100 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
   const fetchInventory = async () => {
     setLoading(true);
     try {
-      const res = await getStok('Accestret');
-      if (res.data.status === 'success') {
-        setInventory(res.data.data);
-      }
+      const [resStok, resOnline, resOffline] = await Promise.all([
+        getStok(),
+        api.get('/pricelist-online'),
+        api.get('/produk')
+      ]);
+      
+      let rawData = resStok.data?.data || resStok.data || [];
+      rawData = rawData.filter(d => ['Accestret','Acestreet'].includes(d.cabang_id));
+      setFlatInventory(rawData);
+      
+      const onlinePricelist = resOnline.data?.data || resOnline.data || [];
+      const offlinePricelist = resOffline.data?.data || resOffline.data || [];
+      const combinedPricelist = [...onlinePricelist, ...offlinePricelist];
+      
+      const sizesArray = ['XS','S','M','L','XL','XXL','XXXL','XXXXL','XXXXXL','All Size'];
+      const grouped = {};
+      
+      rawData.forEach(item => {
+        const kode   = (item.kode_produk || '').trim().toLowerCase();
+        const nama   = (item.nama_barang || item.product_name || '').trim().toLowerCase();
+        const cabang = (item.cabang_id || '').trim().toLowerCase();
+        const key = `${kode}|${nama}|${cabang}`;
+        if (!grouped[key]) {
+          grouped[key] = {
+            id: item.id,
+            kode_produk: item.kode_produk || '-',
+            nama_brand: item.nama_brand || '-',
+            nama_barang: item.nama_barang || item.product_name || '-',
+            bahan: item.bahan || '-',
+            kategori: item.kategori || '-',
+            cabang_id: item.cabang_id || '-',
+            kode_rak: item.kode_rak || '-',
+            total_stok: 0,
+            minimum_stok: item.minimum_stok || 5,
+            sizes: sizesArray.reduce((obj, sz) => { obj[sz] = { qty: 0, id: null }; return obj; }, {})
+          };
+        }
+        grouped[key].total_stok += Number(item.jumlah) || 0;
+        if (item.ukuran && grouped[key].sizes[item.ukuran] !== undefined) {
+          grouped[key].sizes[item.ukuran].qty += Number(item.jumlah) || 0;
+          if (!grouped[key].sizes[item.ukuran].id) grouped[key].sizes[item.ukuran].id = item.id;
+        }
+        if (item.minimum_stok && item.minimum_stok > grouped[key].minimum_stok) {
+          grouped[key].minimum_stok = item.minimum_stok;
+        }
+      });
+      
+      const groupedList = Object.values(grouped);
+      
+      combinedPricelist.forEach(p => {
+        const pKode = (p.kode || '').toLowerCase().trim();
+        const pNama = (p.nama_produk || '').toLowerCase().trim();
+        
+        const exists = groupedList.some(s => 
+          (pKode && (s.kode_produk || '').toLowerCase().trim() === pKode) ||
+          (pNama && (s.nama_barang || '').toLowerCase().trim() === pNama)
+        );
+        
+        if (!exists) {
+          groupedList.push({
+            id: `temp-${p.kode || p.nama_produk}`,
+            kode_produk: p.kode || '-',
+            nama_brand: p.grup_produk || '-',
+            nama_barang: p.nama_produk,
+            bahan: p.bahan || '-',
+            kategori: p.jenis || p.kategori || '-',
+            cabang_id: 'Acestreet',
+            kode_rak: '-',
+            total_stok: 0,
+            minimum_stok: 5,
+            sizes: sizesArray.reduce((obj, sz) => { obj[sz] = { qty: 0, id: null }; return obj; }, {})
+          });
+        }
+      });
+      
+      const finalInventory = groupedList.map(item => {
+        const itemKode = item.kode_produk?.toUpperCase().trim();
+        const itemNama = item.nama_barang?.toLowerCase().trim();
+        
+        const match = combinedPricelist.find(p => 
+          (itemKode && p.kode?.toUpperCase().trim() === itemKode) ||
+          (itemNama && p.nama_produk?.toLowerCase().trim() === itemNama)
+        );
+        
+        return {
+          ...item,
+          kode_produk: match ? match.kode : item.kode_produk,
+          kategori: match ? (match.jenis || match.kategori) : item.kategori,
+          nama_barang: match ? match.nama_produk : item.nama_barang,
+          bahan: match ? (match.bahan || '-') : item.bahan
+        };
+      });
+      
+      setInventory(finalInventory);
     } catch (err) {
       console.error(err);
     } finally {
@@ -1330,10 +1421,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
 
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      await axios.post('http://localhost:3000/api/marketing-accestret/import', [finalOrder], {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.post('/marketing-accestret/import', [finalOrder]);
       alert("Pesanan manual berhasil disimpan!");
       setShowManualModal(false);
       setManualOrder({
@@ -1881,43 +1969,11 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
           {activeTab === 'inventory' && (() => {
             const sizesArray = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', 'XXXXL', 'XXXXXL', 'All Size'];
 
-            // Grouping stok identik dengan Stok.jsx
-            const groupedStok = Object.values(inventory.reduce((acc, curr) => {
-              const kode   = (curr.kode_produk || '').trim().toLowerCase();
-              const nama   = (curr.nama_barang || '').trim().toLowerCase();
-              const cabang = (curr.cabang_id || '').trim().toLowerCase();
-              const key = `${kode}|${nama}|${cabang}`;
-              if (!acc[key]) {
-                acc[key] = {
-                  id: curr.id,
-                  kode_produk: curr.kode_produk || '-',
-                  nama_brand: curr.nama_brand || '-',
-                  nama_barang: curr.nama_barang || '-',
-                  bahan: curr.bahan || '-',
-                  kategori: curr.kategori || '-',
-                  cabang_id: curr.cabang_id || '-',
-                  kode_rak: curr.kode_rak || '-',
-                  total_stok: 0,
-                  minimum_stok: curr.minimum_stok || 5,
-                  sizes: sizesArray.reduce((obj, sz) => { obj[sz] = { qty: 0, id: null }; return obj; }, {})
-                };
-              }
-              acc[key].total_stok += Number(curr.jumlah) || 0;
-              if (curr.ukuran && acc[key].sizes[curr.ukuran] !== undefined) {
-                acc[key].sizes[curr.ukuran].qty += Number(curr.jumlah) || 0;
-                if (!acc[key].sizes[curr.ukuran].id) acc[key].sizes[curr.ukuran].id = curr.id;
-              }
-              if (curr.minimum_stok && curr.minimum_stok > acc[key].minimum_stok)
-                acc[key].minimum_stok = curr.minimum_stok;
-              return acc;
-            }, {}));
-
-            const filteredStok = groupedStok.filter(item => {
+            const filteredStok = inventory.filter(item => {
               const q = stokSearch.toLowerCase();
               return (
                 item.nama_barang.toLowerCase().includes(q) ||
                 item.nama_brand.toLowerCase().includes(q) ||
-                item.cabang_id.toLowerCase().includes(q) ||
                 item.kategori.toLowerCase().includes(q)
               );
             });
@@ -1942,10 +1998,9 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                       <thead className="bg-gray-900 text-xs text-white uppercase tracking-wider font-semibold sticky top-0 z-10">
                         <tr>
                           <th className="p-4">Kode</th>
-                          <th className="p-4">Kategori</th>
+                          <th className="p-4">Jenis</th>
                           <th className="p-4">Nama Produk</th>
                           <th className="p-4">Bahan</th>
-                          <th className="p-4">Cabang</th>
                           {sizesArray.map(size => (
                             <th key={size} className="p-4 text-center w-14">{size}</th>
                           ))}
@@ -1972,13 +2027,10 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
                             }`}>
                               <td className="p-4 font-bold text-[#990000]">{item.kode_produk}</td>
                               <td className="p-4">
-                                <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${
-                                  item.kategori === 'Utama' ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-gray-100 text-gray-600'
-                                }`}>{item.kategori}</span>
+                                <span className="bg-gray-100 text-gray-700 text-[11px] font-bold px-2 py-0.5 rounded-full">{item.kategori}</span>
                               </td>
                               <td className="p-4 font-bold text-gray-800">{item.nama_barang}</td>
                               <td className="p-4 text-gray-500">{item.bahan}</td>
-                              <td className="p-4 text-gray-700 font-medium">{item.cabang_id}</td>
                               {sizesArray.map(size => {
                                 const qty = item.sizes[size]?.qty || 0;
                                 return (
@@ -2842,7 +2894,7 @@ const AccestretMarketingDashboard = ({ embedded = false, forcedTab = null }) => 
         setOrder={setManualOrder}
         loading={loading}
         formatRupiah={formatRupiah}
-        inventory={inventory}
+        inventory={flatInventory}
         availableAccounts={ACCESTRET_ACCOUNTS}
       />
 

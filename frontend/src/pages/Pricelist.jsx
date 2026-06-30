@@ -2,7 +2,7 @@ import NotificationBell from '../components/NotificationBell';
 import { Bell } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import api from '../api/axios';
-import { Plus, Edit, Trash2, Search, Package, DollarSign, Loader2, UploadCloud, Upload, UserCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Package, DollarSign, Loader2, UploadCloud, Upload, UserCircle, Tag } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -419,136 +419,155 @@ const Pricelist = () => {
         <div className="flex-1 overflow-y-auto px-4 sm:px-10 pb-10">
           <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100 flex flex-col">
 
-            {/* Header */}
+            {/* PAGE HEADER */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
               <div>
-                <h1 className="text-3xl font-black text-gray-900 tracking-tight">Pricelist Harga</h1>
-                <p className="text-gray-500 font-medium mt-1 text-sm">Kelola juklak harga produk berdasarkan kategori dokumen.</p>
+                <h1 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                  <Tag className="text-[#990000]" size={24} />
+                  Pricelist Offline
+                </h1>
+                <p className="text-gray-400 text-xs mt-1">{filteredProducts.length} produk terdaftar</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                {canCrud && (
+                  <div>
+                    <input
+                      type="file"
+                      id="importExcel"
+                      accept=".xlsx, .xls, .csv"
+                      className="hidden"
+                      onChange={handleFileUpload}
+                    />
+                    <label
+                      htmlFor="importExcel"
+                      className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all shadow-sm cursor-pointer text-sm ${
+                        loading ? 'bg-gray-400 text-white' : 'bg-green-600 text-white hover:bg-green-700'
+                      }`}
+                    >
+                      {loading ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
+                      Import Excel
+                    </label>
+                  </div>
+                )}
+                <button
+                  onClick={handleDownload}
+                  className="flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-gray-700 transition-all shadow-sm text-sm"
+                >
+                  <Upload size={16} />
+                  Download PDF
+                </button>
+                {canCrud && (
+                  <button
+                    onClick={openAddModal}
+                    className="flex items-center gap-2 bg-[#990000] text-white px-5 py-2.5 rounded-xl font-bold hover:bg-red-800 transition-all shadow-sm text-sm"
+                  >
+                    <Plus size={16} />
+                    Tambah Produk
+                  </button>
+                )}
               </div>
             </div>
 
-            {/* ===================== SECTION: JUKLAK HARGA UNIFORM ===================== */}
-            <h2 className="text-2xl font-black text-[#990000] mb-4 mt-4 uppercase tracking-widest">JUKLAK HARGA UNIFORM</h2>
-            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-                  <div className="text-sm text-gray-500 font-medium flex items-center gap-2 bg-gray-50 px-4 py-2 rounded-xl border border-gray-200">
-                    <Package size={16}/> Total: <span className="font-bold text-gray-900">{filteredProducts.length} Produk</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {canCrud && (
-                      <div>
-                        <input
-                          type="file"
-                          id="importExcel"
-                          accept=".xlsx, .xls, .csv"
-                          className="hidden"
-                          onChange={handleFileUpload}
-                        />
-                        <label
-                          htmlFor="importExcel"
-                          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold transition-all shadow-sm cursor-pointer ${
-                            loading ? 'bg-gray-400 text-white' : 'bg-green-600 text-white hover:bg-green-700'
-                          }`}
-                        >
-                          {loading ? <Loader2 size={20} className="animate-spin" /> : <UploadCloud size={20} />}
-                          Import Excel
-                        </label>
+            {/* LOADING */}
+            {loading ? (
+              <div className="flex items-center justify-center py-20 gap-3 text-gray-400">
+                <Loader2 size={28} className="animate-spin text-[#990000]" />
+                <span className="font-semibold">Memuat data pricelist...</span>
+              </div>
+            ) : (
+              <div className="space-y-8">
+                {(() => {
+                  // Group by brand section
+                  const grouped = {};
+                  BRAND_ORDER.forEach(b => { grouped[b] = []; });
+                  filteredProducts.forEach(prod => {
+                    const brand = getBrand(prod);
+                    if (!grouped[brand]) grouped[brand] = [];
+                    grouped[brand].push(prod);
+                  });
+                  const toRender = BRAND_ORDER.filter(b => grouped[b].length > 0);
+
+                  if (toRender.length === 0) {
+                    return (
+                      <div className="text-center py-16 text-gray-400 font-medium">Tidak ada data ditemukan.</div>
+                    );
+                  }
+
+                  return toRender.map(brand => (
+                    <div key={brand} className="rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                      <div className="bg-[#990000] px-4 py-2.5 flex items-center">
+                        <span className="text-white font-black text-sm tracking-wide">{brand}</span>
+                        <span className="ml-auto text-white/70 text-xs font-semibold">{grouped[brand].length} item</span>
                       </div>
-                    )}
-                    <button
-                      onClick={handleDownload}
-                      className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-blue-700 transition-all shadow-sm"
-                    >
-                      <Upload size={20} />
-                      Download
-                    </button>
-                    {canCrud && (
-                      <button
-                        onClick={openAddModal}
-                        className="flex items-center gap-2 bg-[#990000] text-white px-5 py-2.5 rounded-xl font-bold hover:bg-red-800 transition-all shadow-sm"
-                      >
-                        <Plus size={20} />
-                        Tambah Produk
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Table */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-300 overflow-x-auto">
-                  <table className="w-full text-left text-sm whitespace-nowrap border-collapse">
-
-                    <tbody>
-                      {(() => {
-                        // Group by brand section
-                        const grouped = {};
-                        BRAND_ORDER.forEach(b => { grouped[b] = []; });
-                        filteredProducts.forEach(prod => {
-                          const brand = getBrand(prod);
-                          if (!grouped[brand]) grouped[brand] = [];
-                          grouped[brand].push(prod);
-                        });
-                        const toRender = BRAND_ORDER.filter(b => grouped[b].length > 0);
-                        const totalCols = canCrud ? 9 : 8;
-
-                        if (toRender.length === 0) {
-                          return (
-                            <tr>
-                              <td colSpan={totalCols} className="p-8 text-center text-gray-500 font-medium">Belum ada data pricelist uniform.</td>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm border-collapse whitespace-nowrap">
+                          <thead>
+                            <tr className="bg-gray-900 text-white text-[11px] uppercase tracking-wider">
+                              <th className="px-3 py-2.5 text-left border-r border-gray-700">KODE</th>
+                              <th className="px-3 py-2.5 text-left border-r border-gray-700">JENIS</th>
+                              <th className="px-3 py-2.5 text-left border-r border-gray-700">NAMA PRODUK</th>
+                              <th className="px-3 py-2.5 text-left border-r border-gray-700">BAHAN</th>
+                              <th className="px-3 py-2.5 text-left border-r border-gray-700">VARIASI</th>
+                              <th className="px-3 py-2.5 text-right border-r border-gray-700">SALES MANAGER</th>
+                              <th className="px-3 py-2.5 text-right border-r border-gray-700">SALES SPV</th>
+                              <th className="px-3 py-2.5 text-right border-r border-gray-700">HARGA JUAL OFFLINE</th>
+                              {canCrud && <th className="px-3 py-2.5 text-center">AKSI</th>}
                             </tr>
-                          );
-                        }
-
-                        return toRender.map(brand => (
-                          <React.Fragment key={brand}>
-                            {/* Brand Section Header (Red) */}
-                            <tr>
-                              <td colSpan={totalCols} className="bg-[#990000] text-white font-black text-sm uppercase px-4 py-3 tracking-widest border border-gray-600 text-left">
-                                {brand}
-                              </td>
-                            </tr>
-                            {/* Column Headers (Black) */}
-                            <tr className="bg-gray-900 text-white uppercase text-[11px] tracking-wider font-bold text-center">
-                              <th className="p-3 border border-gray-700 align-middle min-w-[80px]">KODE</th>
-                              <th className="p-3 border border-gray-700 align-middle min-w-[120px]">JENIS / KATEGORI PRODUK</th>
-                              <th className="p-3 border border-gray-700 align-middle min-w-[200px]">NAMA PRODUK</th>
-                              <th className="p-3 border border-gray-700 align-middle min-w-[90px]">BAHAN</th>
-                              <th className="p-3 border border-gray-700 align-middle min-w-[80px]">VARIASI</th>
-                              <th className="p-3 border border-gray-700 align-middle min-w-[120px]">SALES MANAGER</th>
-                              <th className="p-3 border border-gray-700 align-middle min-w-[110px]">SALES SPV</th>
-                              <th className="p-3 border border-gray-700 align-middle min-w-[130px]">HARGA JUAL OFFLINE</th>
-                              {canCrud && <th className="p-3 border border-gray-700 align-middle">AKSI</th>}
-                            </tr>
+                          </thead>
+                          <tbody>
                             {grouped[brand].map((prod, idx) => {
                               const prefix = BRAND_PREFIX[brand] || 'PRD';
                               const autoKode = `${prefix}${String(idx + 1).padStart(3, '0')}`;
                               const displayKode = prod.kode || autoKode;
                               return (
-                                <tr key={prod.id} className="hover:bg-red-50/50 transition-colors">
-                                  <td className="p-2.5 font-bold text-gray-800 border border-gray-300 text-center text-xs">{displayKode}</td>
-                                  <td className="p-2.5 text-center border border-gray-300 text-xs font-semibold text-gray-700">{getJenis(prod)}</td>
-                                  <td className="p-2.5 font-bold text-gray-900 border border-gray-300">{prod.nama_produk}</td>
-                                  <td className="p-2.5 text-center border border-gray-300 text-xs text-gray-600">{prod.bahan || 'UNIONE'}</td>
-                                  <td className="p-2.5 text-center border border-gray-300 text-xs text-gray-500">{prod.variasi || '-'}</td>
-                                  <td className="p-2.5 text-right border border-gray-300 text-xs font-medium text-gray-700">{formatRupiah(prod.harga_manager)}</td>
-                                  <td className="p-2.5 text-right border border-gray-300 text-xs font-medium text-gray-700">{formatRupiah(prod.harga_spv)}</td>
-                                  <td className="p-2.5 text-right border border-gray-300 text-xs font-bold text-gray-900 bg-gray-50">{formatRupiah(prod.harga_jual)}</td>
+                                <tr key={prod.id} className={`border-t border-gray-100 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/60'} hover:bg-red-50/40 transition-colors`}>
+                                  <td className="px-3 py-2.5 font-bold text-[#990000] border-r border-gray-100 border-b border-gray-100">
+                                    {displayKode}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-gray-600 border-r border-gray-100 border-b border-gray-100">
+                                    {getJenis(prod)}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-medium text-gray-800 border-r border-gray-100 border-b border-gray-100">
+                                    {prod.nama_produk}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-gray-500 border-r border-gray-100 border-b border-gray-100">
+                                    {prod.bahan || 'UNIONE'}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-gray-500 border-r border-gray-100 border-b border-gray-100">
+                                    {prod.variasi || '-'}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-right text-gray-600 border-r border-gray-100 border-b border-gray-100">
+                                    {formatRupiah(prod.harga_manager)}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-right text-gray-600 border-r border-gray-100 border-b border-gray-100">
+                                    {formatRupiah(prod.harga_spv)}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-right font-bold text-gray-900 border-r border-gray-100 border-b border-gray-100 bg-gray-50/40">
+                                    {formatRupiah(prod.harga_jual)}
+                                  </td>
                                   {canCrud && (
-                                    <td className="p-2 text-center border border-gray-300">
+                                    <td className="px-3 py-2.5 text-center border-b border-gray-100">
                                       <div className="flex justify-center gap-1.5">
-                                        <button onClick={() => openEditModal(prod)} className="p-1.5 text-blue-600 bg-blue-50 hover:bg-blue-600 hover:text-white rounded transition-colors"><Edit size={13}/></button>
-                                        <button onClick={() => handleDelete(prod.id)} className="p-1.5 text-red-600 bg-red-50 hover:bg-red-600 hover:text-white rounded transition-colors"><Trash2 size={13}/></button>
+                                        <button type="button" onClick={() => openEditModal(prod)} className="p-1.5 text-[#990000] bg-red-50 hover:bg-[#990000] hover:text-white rounded-lg transition-colors" title="Edit">
+                                          <Edit size={14} />
+                                        </button>
+                                        <button type="button" onClick={() => handleDelete(prod.id)} className="p-1.5 text-gray-400 bg-gray-50 hover:bg-red-600 hover:text-white rounded-lg transition-colors" title="Hapus">
+                                          <Trash2 size={14} />
+                                        </button>
                                       </div>
                                     </td>
                                   )}
                                 </tr>
                               );
                             })}
-                          </React.Fragment>
-                        ));
-                      })()}
-                    </tbody>
-                  </table>
-                </div>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ));
+                })()}
+              </div>
+            )}
 
           </div>
         </div>

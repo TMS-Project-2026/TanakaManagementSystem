@@ -173,7 +173,7 @@ const ChartOfAccounts = () => {
           <div className="bg-white p-6 min-h-full rounded-2xl shadow-sm border border-gray-100 flex flex-col">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
             <div className="flex flex-col items-start gap-1 w-full md:max-w-2xl">
-              <h1 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+              <h1 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3">
                 Chart of Accounts
               </h1>
               <p className="text-gray-500 font-medium mt-1">Manage company financial accounts</p>

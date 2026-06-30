@@ -187,7 +187,7 @@ export default function AccountsPayable() {
           {/* Header */}
           <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+              <h1 className="text-2xl font-black text-gray-900 tracking-tight flex items-center gap-3">
                 Accounts Payable
               </h1>
               <p className="text-gray-500 font-medium mt-1 text-sm">Manajemen hutang usaha kepada supplier</p>
